@@ -30,6 +30,7 @@ def runTrackingTrial(cfg):
   mousepos = cfg['mouse'].Pos()
   cfg['cross'].pos = [0,0]
   while sp.sqrt(sum(sp.array(mousepos[:2])**2)) > 10:
+    
     cfg['cross'].draw()
     cfg['cursor'].pos = mousepos[:2]
     cfg['cursor'].draw()
