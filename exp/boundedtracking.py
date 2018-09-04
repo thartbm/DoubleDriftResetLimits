@@ -149,6 +149,6 @@ def boundedTrackingTrial(cfg):
 
   trial_data = trial_data[['trial_no', 'fixationside', 'internalSpeed', 'externalDirection', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix']]
   
-  trial_data.to_csv('../data/tracking_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
+  trial_data.to_csv('../data/boundtrack_trials/boundtrack_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
   
   return(cfg)

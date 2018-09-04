@@ -63,14 +63,14 @@ participant_data = 0
 
 for trialno in range(Ntrials):
   
-  trial_data = pd.DataFrame.from_csv('../data/tracking_p%02d_t%03d.csv'%(cfg['id'], trialno+1))
+  trial_data = pd.DataFrame.from_csv('../data/boundtrack_trials/boundtrack_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index_col=None)
   
   if isinstance(participant_data, pd.DataFrame):
     participant_data = pd.concat([participant_data, trial_data])
   else:
     participant_data = trial_data
   
-  participant_data.to_csv('../data/tracking_p%02d.csv'%(cfg['id']), index=False, float_format='%0.3f')
+  participant_data.to_csv('../data/boundtrack_full/bounded_tracking_p%02d.csv'%(cfg['id']), index=False, float_format='%0.3f')
 
 # cleanly exit the experiment with the computer in a usable state:
 mouse.setVisible(True)

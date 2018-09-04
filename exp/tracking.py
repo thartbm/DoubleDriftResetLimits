@@ -30,7 +30,6 @@ def runTrackingTrial(cfg):
   mousepos = cfg['mouse'].Pos()
   cfg['cross'].pos = [0,0]
   while sp.sqrt(sum(sp.array(mousepos[:2])**2)) > 10:
-    
     cfg['cross'].draw()
     cfg['cursor'].pos = mousepos[:2]
     cfg['cursor'].draw()
@@ -148,6 +147,6 @@ def runTrackingTrial(cfg):
 
   trial_data = trial_data[['trial_no', 'fixationside', 'internalSpeed', 'externalDirection', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix']]
   
-  trial_data.to_csv('../data/tracking_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
+  trial_data.to_csv('../data/tracking_trials/tracking_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
   
   return(cfg)
