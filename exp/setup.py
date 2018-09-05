@@ -135,3 +135,10 @@ def getParticipantID(cfg):
   
   return(cfg)
 
+def foldout(a):
+  
+  r=[[]]
+  for x in a:
+    r = [ i + [y] for y in x for i in r ]
+
+  return(pd.DataFrame(r))
