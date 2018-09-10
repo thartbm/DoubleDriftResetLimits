@@ -104,7 +104,8 @@ def createStimuli(cfg):
                         ori=0.0, 
                         
                         )
-
+  
+  # CROSS shape used as target to put the cursor on:
   cfg['cross'] = visual.ShapeStim(win=cfg['win'],
                                 pos= [0,0], 
                                 vertices=((.2,.2),(1,.2),(1,-.2),(.2,-.2),(.2,-1),(-.2,-1),(-.2,-.2),(-1,-.2),(-1,.2),(-.2,.2),(-.2,1),(.2,1)), 
@@ -114,6 +115,16 @@ def createStimuli(cfg):
   cfg['cross'].setFillColor(color=(255,0,0), colorSpace='rgb255')
   cfg['cross'].setLineColor(color=(95,0,0), colorSpace='rgb255')
   cfg['cross'].interpolate = True
+  
+  # LINE shape used to indicate the percept:
+  
+  cfg['line'] = visual.ShapeStim( win       = cfg['win'],
+                                  pos       = [0,0],
+                                  vertices  = ((1,0),(-1,0)),   # ((0,0),(-1,0))
+                                  ori       = 0,
+                                  size      = 75,
+                                  lineWidth = 6 )
+  cfg['line'].setLineColor(color = (0,0,255), colorSpace='rgb255')
   
   return(cfg)
 
@@ -136,6 +147,7 @@ def getParticipantID(cfg):
   return(cfg)
 
 def foldout(a):
+  # http://code.activestate.com/recipes/496807-list-of-all-combination-from-multiple-lists/
   
   r=[[]]
   for x in a:
