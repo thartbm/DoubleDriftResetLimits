@@ -15,7 +15,8 @@ cfg['fullscr']      = True
 cfg['monitorIndex'] = 1
 cfg['flip']         = False
 
-cfg = createWindow(cfg, resolution=[1920, 1080])
+#cfg = createWindow(cfg, resolution=[1920, 1080])
+cfg = createWindow(cfg, resolution=[1620, 1050])
 
 mouse = event.Mouse(win=cfg['win'])
 mouse.setVisible(False)
@@ -46,10 +47,10 @@ externalMovement                        = [1./8, 1./6, 1./4]
 perceptAngle                            = [-60, 60]
 repetitions                             = 1
 
-internalMovement                        = [-3, 3]
-externalMovement                        = [1./4]
-perceptAngle                            = [30, 150]
-repetitions                             = 1
+#internalMovement                        = [-3, 3]
+#externalMovement                        = [1./4]
+#perceptAngle                            = [30, 150]
+#repetitions                             = 1
 
 # create all desired combinations:
 TD                                      = pd.concat([foldout(a=[internalMovement,externalMovement, perceptAngle])]*repetitions, ignore_index=True)
