@@ -41,7 +41,7 @@ cfg['trial_duration']                   = (0.5 / cfg['externalSpeed']) * (Npasse
 
 
 # there will be 3 internal cursor movements: right, left and none:
-internalMovement                        = [-3 -2, -1, 1, 2, 3]
+internalMovement                        = [-3, -2, -1, 1, 2, 3]
 externalMovement                        = [1./8, 1./6, 1./4]
 perceptAngle                            = [-60, 60]
 repetitions                             = 1
