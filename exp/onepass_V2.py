@@ -15,10 +15,23 @@ def onePassTrial(cfg):
   # getting trial parameters:
   trialno = cfg['trial']
   
+  # stimulus parameters:
   internalMovement  = cfg['trialdefinitions']['internalMovement'][trialno]
   externalMovement  = cfg['trialdefinitions']['externalMovement'][trialno]
+  
+  # psychophysics:
   recordTrace       = cfg['trialdefinitions']['recordTrace'][trialno]
   recordPercept     = cfg['trialdefinitions']['recordPercept'][trialno]
+  perceptTask       = cfg['trialdefinitions']['perceptTask'][trialno]
+  arrowPosition     = cfg['trialdefinitions']['arrowPosition'][trialno]
+  traceTime         = cfg['trialdefinitions']['traceTime'][trialno]
+  
+  #TDrulerPercept['recordTrace']                = False
+  #TDrulerPercept['recordPercept']              = True
+  #TDrulerPercept['perceptTask']                = 'ruler'
+  #TDrulerPercept['arrowPosition']              = None
+  #TDrulerPercept['traceTime']                  = None
+  
   
   trialduration = (0.5 / externalMovement) # trial duration will always be exactly enough for a single pass
   
@@ -91,7 +104,7 @@ def onePassTrial(cfg):
     #cfg['frameno'] = cfg['frameno'] + 1
     #cfg['win'].getMovieFrame(buffer='front')
     
-    if recordTrace:
+    if recordTrace & (traceTime == 'online'):
       handx_pix.append(mousepos[0])
       handy_pix.append(mousepos[1])
     else:
@@ -131,7 +144,7 @@ def onePassTrial(cfg):
     #cfg['frameno'] = cfg['frameno'] + 1
     #cfg['win'].getMovieFrame(buffer='front')
     
-    if recordTrace:
+    if recordTrace & (traceTime == 'online'):
       handx_pix.append(mousepos[0])
       handy_pix.append(mousepos[1])
     else:
@@ -162,7 +175,7 @@ def onePassTrial(cfg):
       #cfg['frameno'] = cfg['frameno'] + 1
       #cfg['win'].getMovieFrame(buffer='front')
     
-      if recordTrace:
+      if recordTrace & (traceTime == 'online'):
         handx_pix.append(mousepos[0])
         handy_pix.append(mousepos[1])
       else:
@@ -179,12 +192,15 @@ def onePassTrial(cfg):
   # now record the percept if applicable:
   
   percept = sp.NaN
-  if recordPercept:
+  if recordPercept & (perceptTask == 'arrow'):
+
     lineAngle = cfg['trialdefinitions']['perceptAngle'][trialno]
     cfg['line'].ori = lineAngle
-    #cfg['line'].pos = [0,-(cfg['height'] / 4)]
-    cfg['line'].pos = cfg['point'].pos    
-
+    if (arrowPosition == 'point'):
+      cfg['line'].pos = cfg['point'].pos
+    if (arrowPosition == 'start'):
+      cfg['line'].pos = [0,-(cfg['height'] / 4)]
+    
     event.clearEvents()
     
     perceptRecorded = False
@@ -236,6 +252,8 @@ def onePassTrial(cfg):
       #cfg['frameno'] = cfg['frameno'] + 1
       #cfg['win'].getMovieFrame(buffer='front')
       
+  if recordPercept & (perceptTask == 'ruler'):
+    
 
   # finalize stuff
   

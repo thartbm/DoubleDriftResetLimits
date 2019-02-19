@@ -43,7 +43,7 @@ cfg['trial_duration']                   = (0.5 / cfg['externalSpeed']) * (Npasse
 # there will be 6 internal cursor movements, that induce various degrees of illusion:
 internalMovement                        = [-3 -2, -1, 1, 2, 3]
 externalMovement                        = [1./8, 1./6, 1./4]
-perceptAngle                            = [90, 90]
+perceptAngle                            = [89, 91]
 repetitions                             = 1
 
 #internalMovement                        = [-3, 3]
@@ -61,7 +61,8 @@ TDarrowPercept                          = TD
 TDtraceDelayed                          = TD
 TDrulerPercept                          = TD
 
-instructiontrials = [0,TD.shape[0]]
+#instructiontrials = [0,TD.shape[0]]
+instructiontrials = [task * TD.shape[0] for task in range(4)]
 instructiontexts = ['track the patch','report movement direction of the patch','retrace the patch after seeing it','report the endpoint of the patch movement']
 
 # randomize:
@@ -96,7 +97,7 @@ TDrulerPercept['traceTime']                  = None
 
 
 # join tables for both trial types:
-cfg['trialdefinitions']                 = pd.concat([TDtrace, TDpercept], ignore_index=True)
+cfg['trialdefinitions']                 = pd.concat([TDtraceOnline, TDarrowPercept, TDtraceDelayed, TDrulerPercept], ignore_index=True)
 
 Ntrials = cfg['trialdefinitions'].shape[0]
 print cfg['trialdefinitions']

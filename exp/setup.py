@@ -126,6 +126,32 @@ def createStimuli(cfg):
                                   lineWidth = 6 )
   cfg['line'].setLineColor(color = (0,0,255), colorSpace='rgb255')
   
+  
+  class ruler:
+
+    def __init__(self, cfg, nticks=40):
+      
+      # save this stuff in the ruler object:
+      self.nticks = nticks
+      self.cfg = cfg
+      
+      # create ruler tick stuff:
+      self.x = np.linspace(-(cfg['height'] / 2), (cfg['height'] / 2), nticks)
+      self.y1 = (cfg['height']/4) - (cfg['height']/50)
+      self.y2 = (cfg['height']/4) + (cfg['height']/50)
+      
+      # create all the lines:
+      self.ticklines = []
+      for tickn in range(nticks):
+        self.ticklines.append(visual.Line(cfg['win'],start=(self.x[tickn],self.y1),end=(self.x[tickn],self.y2),lineWidth=4,lineColor=(0,0,0), lineColorSpace='rgb255'))
+      
+    
+    def draw(self):
+      for tickline in self.ticklines:
+        tickline.draw()
+  
+  cfg['ruler'] = ruler(cfg)
+  
   return(cfg)
 
 
