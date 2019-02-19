@@ -254,7 +254,45 @@ def onePassTrial(cfg):
       
   if recordPercept & (perceptTask == 'ruler'):
     
-
+    # move the cross from left to right?
+    cfg['cross'].pos = [0, (cfg['height'] / 4)]
+    
+    event.clearEvents()
+    
+    perceptRecorded = False
+    starttime = time.time() # RT not recorded?
+    
+    while not perceptRecorded:
+      
+      # read keyboard status
+      keysPressed = event.getKeys(keyList=['return'])
+      if 'return' in keysPressed:
+        Y = cfg['cross'].pos[1] + (cfg['height'] / 4)
+        X = cfg['cross']
+        perceptangle = (np.arctan2(Y,X) / np.pi) * 180
+        percept = perceptangle
+        perceptRecorded = True
+        event.clearEvents()
+      
+      # see the left / right keys continuously... have to use pyglet stuff
+      
+      if keyboard[key.LEFT]:
+        cfg['cross'].pos[0] = cfg['cross'].pos[0] - 1
+        event.clearEvents()
+        if cfg['line'].ori < (cfg['width'] / -2):
+          cfg['line'].ori = (cfg['width'] / -2)
+      if keyboard[key.RIGHT]:
+        cfg['cross'].pos[0] = cfg['cross'].pos[0] + 1
+        event.clearEvents()
+        if cfg['line'].ori > (cfg['width'] / 2):
+          cfg['line'].ori = (cfg['width'] / 2):      
+      
+            
+      # draw stuff on screen
+      cfg['line'].draw()
+      cfg['win'].flip()
+    
+    
   # finalize stuff
   
   nsamples = len(handx_pix)
