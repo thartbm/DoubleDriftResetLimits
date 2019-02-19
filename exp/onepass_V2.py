@@ -163,7 +163,7 @@ def onePassTrial(cfg):
   # just for good measure, we have a blank screen at the end of the trial
   # this ensures people stop moving... so, only for recordTrace trials
   
-  if recordTrace:
+  if recordTrace & (traceTime == 'online'):
     
     starttime = time.time()
     
@@ -195,11 +195,11 @@ def onePassTrial(cfg):
   if recordPercept & (perceptTask == 'arrow'):
 
     lineAngle = cfg['trialdefinitions']['perceptAngle'][trialno]
-    cfg['line'].ori = lineAngle
+    cfg['arrow'].ori = lineAngle
     if (arrowPosition == 'point'):
-      cfg['line'].pos = cfg['point'].pos
+      cfg['arrow'].pos = cfg['point'].pos
     if (arrowPosition == 'start'):
-      cfg['line'].pos = [0,-(cfg['height'] / 4)]
+      cfg['arrow'].pos = [0,-(cfg['height'] / 4)]
     
     event.clearEvents()
     
@@ -211,42 +211,25 @@ def onePassTrial(cfg):
       # read keyboard status
       keysPressed = event.getKeys(keyList=['return'])
       if 'return' in keysPressed:
-        percept = cfg['line'].ori
+        percept = cfg['arrow'].ori
         perceptRecorded = True
         event.clearEvents()
       
       # see the left / right keys continuously... have to use pyglet stuff
       
       if keyboard[key.LEFT]:
-        cfg['line'].ori = cfg['line'].ori - 1
+        cfg['arrow'].ori = cfg['arrow'].ori - 1
         event.clearEvents()
-        if cfg['line'].ori < 0:
-          cfg['line'].ori = 0
+        if cfg['arrow'].ori < 0:
+          cfg['arrow'].ori = 0
       if keyboard[key.RIGHT]:
-        cfg['line'].ori = cfg['line'].ori + 1
+        cfg['arrow'].ori = cfg['arrow'].ori + 1
         event.clearEvents()
-        if cfg['line'].ori > 180:
-          cfg['line'].ori = 180
-
+        if cfg['arrow'].ori > 180:
+          cfg['arrow'].ori = 180
       
-      ## if enter: end while loop and record stuff
-      #if len(keysPressed): print(keysPressed)
-      ## if +/- adapt angle
-      #if 'left' in keysPressed:
-      #  cfg['line'].ori = cfg['line'].ori - 1
-      #  event.clearEvents()
-      #  if cfg['line'].ori < 0:
-      #    cfg['line'].ori = 0
-      #if 'right' in keysPressed:
-      #  cfg['line'].ori = cfg['line'].ori + 1
-      #  event.clearEvents()
-      #  if cfg['line'].ori > 180:
-      #    cfg['line'].ori = 180
-      
-      
-            
       # draw stuff on screen
-      cfg['line'].draw()
+      cfg['arrow'].draw()
       cfg['win'].flip()
       #cfg['win']._getFrame().save('../frames/onepass%06d.png'%cfg['frameno'])
       #cfg['frameno'] = cfg['frameno'] + 1
@@ -260,7 +243,7 @@ def onePassTrial(cfg):
     event.clearEvents()
     
     perceptRecorded = False
-    starttime = time.time() # RT not recorded?
+    #starttime = time.time() # RT not recorded?
     
     while not perceptRecorded:
       
@@ -268,35 +251,103 @@ def onePassTrial(cfg):
       keysPressed = event.getKeys(keyList=['return'])
       if 'return' in keysPressed:
         Y = cfg['cross'].pos[1] + (cfg['height'] / 4)
-        X = cfg['cross']
-        perceptangle = (np.arctan2(Y,X) / np.pi) * 180
-        percept = perceptangle
+        X = cfg['cross'].pos[0]
+        percept = (sp.arctan2(Y,X) / sp.pi) * 180
         perceptRecorded = True
         event.clearEvents()
       
       # see the left / right keys continuously... have to use pyglet stuff
       
       if keyboard[key.LEFT]:
-        cfg['cross'].pos[0] = cfg['cross'].pos[0] - 1
+        cfg['cross'].pos[0] = (cfg['cross'].pos[0] - 1)
         event.clearEvents()
-        if cfg['line'].ori < (cfg['width'] / -2):
-          cfg['line'].ori = (cfg['width'] / -2)
+        if cfg['cross'].pos[0] < -(cfg['width'] / 2):
+          cfg['cross'].pos[0] = (cfg['width'] / 2)
       if keyboard[key.RIGHT]:
-        cfg['cross'].pos[0] = cfg['cross'].pos[0] + 1
+        cfg['cross'].pos[0] = (cfg['cross'].pos[0] + 1)
         event.clearEvents()
-        if cfg['line'].ori > (cfg['width'] / 2):
-          cfg['line'].ori = (cfg['width'] / 2):      
+        if cfg['cross'].pos[0] > (cfg['width'] / 2):
+          cfg['cross'].pos[0] = (cfg['width'] / 2)      
       
-            
+      print(cfg['cross'].pos) 
       # draw stuff on screen
-      cfg['line'].draw()
+      cfg['ruler'].draw()
+      cfg['cross'].draw()
       cfg['win'].flip()
+  
+  
+  # delayed tracing:
+  
+  
+  
+  #trialstarttime = time.time()
+  mousepos = cfg['mouse'].Pos()
+  
+  if recordTrace & (traceTime == 'delayed'):
     
+    traceRecorded = False
     
+    while not traceRecorded:
+    
+      # first the mouse / pen cursor has to be brought to the starting position (to counter all that spatial drift)
+    
+      cfg['cross'].pos = [0,-(cfg['height'] / 4)] # start position always at the bottom!
+    
+      while sp.sqrt(sum(sp.array([mousepos[0]-cfg['cross'].pos[0], mousepos[1]-cfg['cross'].pos[1]])**2)) > 10:
+        cfg['cross'].draw()
+        cfg['cursor'].pos = mousepos[:2]
+        cfg['cursor'].draw()
+        
+        cfg['win'].flip()
+        
+        # do we record this?
+        #handx_pix.append(mousepos[0])
+        #handy_pix.append(mousepos[1])
+        #time_s.append(mousepos[2] - trialstarttime)
+        #gaborx_pix.append(sp.NaN)
+        #gabory_pix.append(sp.NaN)
+        #gaborphase.append(sp.NaN)
+        #gabororientation.append(sp.NaN)
+        #step.append(4)
+      
+        mousepos = cfg['mouse'].Pos()
+      
+      traceEnded = False
+      
+      tracex_pix = []
+      tracey_pix = []
+      tracetime_s = []
+      
+      while not traceEnded:
+        # now record the actual trace...
+        mousepos = cfg['mouse'].Pos()
+        
+        tracex_pix.append(mousepos[0])
+        tracey_pix.append(mousepos[1])
+        tracetime_s.append(mousepos[2] - trialstarttime)
+        
+        # draw the trace
+        vertices = sp.array([tracex_pix,tracey_pix]).T
+        trace = visual.ShapeStim(cfg['win'], vertices=vertices, lineColor=(255,0,0), lineColorSpace='rgb255', closeShape=False, lineWidth=3)
+        trace.draw()
+        cfg['win'].flip()
+
+        keysPressed = event.getKeys(keyList=['return', 'delete'])
+        if 'return' in keysPressed:
+          # put the trace in the file?
+          #
+          # ???????????
+          #
+          event.clearEvents()
+          traceEnded = True
+          traceRecorded = True
+        if 'delete' in keysPressed:
+          traceEnded = True
+  
   # finalize stuff
   
   nsamples = len(handx_pix)
-
+  
   trial_data = pd.DataFrame(
     {
      'trial_no'          : [trialno + 1] * nsamples,
@@ -313,9 +364,9 @@ def onePassTrial(cfg):
      'handy_pix'         : handy_pix,
      'percept'           : [percept] * nsamples
     })
-
+  
   trial_data = trial_data[['trial_no', 'fixationside', 'internalMovement', 'externalMovement', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix', 'percept']]
   
-  trial_data.to_csv('../data/onepass/trials/onepass_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
+  trial_data.to_csv('../data/onepass_V2/trials/onepass_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
   
   return(cfg)

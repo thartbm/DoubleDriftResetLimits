@@ -105,7 +105,7 @@ def createStimuli(cfg):
                         
                         )
   
-  # CROSS shape used as target to put the cursor on:
+  # CROSS shape used as target to put the cursor on, among other stuff:
   cfg['cross'] = visual.ShapeStim(win=cfg['win'],
                                 pos= [0,0], 
                                 vertices=((.2,.2),(1,.2),(1,-.2),(.2,-.2),(.2,-1),(-.2,-1),(-.2,-.2),(-1,-.2),(-1,.2),(-.2,.2),(-.2,1),(.2,1)), 
@@ -125,6 +125,18 @@ def createStimuli(cfg):
                                   size      = 75,
                                   lineWidth = 6 )
   cfg['line'].setLineColor(color = (0,0,255), colorSpace='rgb255')
+  
+  # ARROW shape used to indicate the percept:
+  
+  cfg['arrow'] = visual.ShapeStim( win       = cfg['win'],
+                                   pos       = [0,0],
+#                                   vertices  = (-.1,-.1),(1,-.1),(1,-.3),(1.3,0),(1,.3),(1,.1),(-.1,.1)),   # ((0,0),(-1,0))
+                                   vertices  = ((0,0),(-1,0)),
+                                   ori       = 0,
+                                   size      = 75,
+                                   lineWidth = 6 )
+  cfg['arrow'].setLineColor(color = (0,0,255), colorSpace='rgb255')
+  
   
   
   class ruler:
@@ -151,6 +163,8 @@ def createStimuli(cfg):
         tickline.draw()
   
   cfg['ruler'] = ruler(cfg)
+
+  # make a grid for retracing trials?
   
   return(cfg)
 

@@ -46,10 +46,10 @@ externalMovement                        = [1./8, 1./6, 1./4]
 perceptAngle                            = [89, 91]
 repetitions                             = 1
 
-#internalMovement                        = [-3, 3]
-#externalMovement                        = [1./4]
-#perceptAngle                            = [30, 150]
-#repetitions                             = 1
+internalMovement                        = [-3, 3]
+externalMovement                        = [1./4]
+perceptAngle                            = [89, 91]
+repetitions                             = 1
 
 # create all desired combinations:
 TD                                      = pd.concat([foldout(a=[internalMovement,externalMovement, perceptAngle])]*repetitions, ignore_index=True)
@@ -66,8 +66,10 @@ instructiontrials = [task * TD.shape[0] for task in range(4)]
 instructiontexts = ['track the patch','report movement direction of the patch','retrace the patch after seeing it','report the endpoint of the patch movement']
 
 # randomize:
-TDtrace   = TDtrace.sample(frac=1).reset_index(drop=True)
-TDpercept = TDpercept.sample(frac=1).reset_index(drop=True)
+TDtraceOnline   = TDtraceOnline.sample(frac=1).reset_index(drop=True)
+TDarrowPercept  = TDarrowPercept.sample(frac=1).reset_index(drop=True)
+TDtraceDelayed  = TDtraceDelayed.sample(frac=1).reset_index(drop=True)
+TDrulerPercept  = TDrulerPercept.sample(frac=1).reset_index(drop=True)
 
 # add tracking and perceptual test parameters:
 TDtraceOnline['recordTrace']                 = True
@@ -100,14 +102,14 @@ TDrulerPercept['traceTime']                  = None
 cfg['trialdefinitions']                 = pd.concat([TDtraceOnline, TDarrowPercept, TDtraceDelayed, TDrulerPercept], ignore_index=True)
 
 Ntrials = cfg['trialdefinitions'].shape[0]
-print cfg['trialdefinitions']
+#print cfg['trialdefinitions']
 
 cfg['trialdefinitions']['fixationSide'] = [random.choice([-1,1]) for _ in range(Ntrials)]
 
 doTrials = range(Ntrials)
 #doTrials = [4,5,6,7]
 
-for trialno in doTrials[30:]:
+for trialno in doTrials[12:]:
   
   if trialno in instructiontrials:
     cfg['instruction'].text = instructiontexts[instructiontrials.index(trialno)]
@@ -134,14 +136,14 @@ participant_data = 0
 
 for trialno in doTrials:
   
-  trial_data = pd.DataFrame.from_csv('../data/onepass/trials/onepass_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index_col=None)
+  trial_data = pd.DataFrame.from_csv('../data/onepass_V2/trials/onepass_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index_col=None)
   
   if isinstance(participant_data, pd.DataFrame):
     participant_data = pd.concat([participant_data, trial_data])
   else:
     participant_data = trial_data
   
-  participant_data.to_csv('../data/onepass/onepass_p%02d.csv'%(cfg['id']), index=False, float_format='%0.3f')
+  participant_data.to_csv('../data/onepass_V2/onepass_p%02d.csv'%(cfg['id']), index=False, float_format='%0.3f')
 
 #cfg['instruction'].text = 'creating movie'
 #cfg['instruction'].pos = (0,0)
