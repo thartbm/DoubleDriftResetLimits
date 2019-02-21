@@ -25,6 +25,7 @@ def onePassTrial(cfg):
   perceptTask       = cfg['trialdefinitions']['perceptTask'][trialno]
   arrowPosition     = cfg['trialdefinitions']['arrowPosition'][trialno]
   traceTime         = cfg['trialdefinitions']['traceTime'][trialno]
+  taskname          = cfg['trialdefinitions']['taskname'][trialno]
   
   #TDrulerPercept['recordTrace']                = False
   #TDrulerPercept['recordPercept']              = True
@@ -211,7 +212,7 @@ def onePassTrial(cfg):
       # read keyboard status
       keysPressed = event.getKeys(keyList=['return'])
       if 'return' in keysPressed:
-        percept = cfg['arrow'].ori
+        percept = 90 - (cfg['arrow'].ori - 90)
         perceptRecorded = True
         event.clearEvents()
       
@@ -238,8 +239,8 @@ def onePassTrial(cfg):
   if recordPercept & (perceptTask == 'ruler'):
     
     # move the cross from left to right?
-    cfg['cross'].pos = [0, (cfg['height'] / 4)]
-    
+    sliderpos = [0, (cfg['height'] / 4)]
+
     event.clearEvents()
     
     perceptRecorded = False
@@ -250,29 +251,31 @@ def onePassTrial(cfg):
       # read keyboard status
       keysPressed = event.getKeys(keyList=['return'])
       if 'return' in keysPressed:
-        Y = cfg['cross'].pos[1] + (cfg['height'] / 4)
-        X = cfg['cross'].pos[0]
+        Y = cfg['slider'].pos[1] + (cfg['height'] / 4)
+        X = cfg['slider'].pos[0]
         percept = (sp.arctan2(Y,X) / sp.pi) * 180
         perceptRecorded = True
         event.clearEvents()
       
       # see the left / right keys continuously... have to use pyglet stuff
       
+      # make step size the log of the number of seconds (+1) since the key was started to be pushed down?
       if keyboard[key.LEFT]:
-        cfg['cross'].pos[0] = (cfg['cross'].pos[0] - 1)
+        sliderpos[0] = (sliderpos[0] - 5)
         event.clearEvents()
-        if cfg['cross'].pos[0] < -(cfg['width'] / 2):
-          cfg['cross'].pos[0] = (cfg['width'] / 2)
+        if sliderpos[0] < (-1 * (cfg['width'] / 2)):
+          sliderpos[0] = (cfg['width'] / 2)
       if keyboard[key.RIGHT]:
-        cfg['cross'].pos[0] = (cfg['cross'].pos[0] + 1)
+        sliderpos[0] = (sliderpos[0] + 5)
         event.clearEvents()
-        if cfg['cross'].pos[0] > (cfg['width'] / 2):
-          cfg['cross'].pos[0] = (cfg['width'] / 2)      
+        if sliderpos[0] > (cfg['width'] / 2):
+          sliderpos[0] = (cfg['width'] / 2)      
       
-      print(cfg['cross'].pos) 
+      cfg['slider'].pos = sliderpos
+      print(cfg['slider'].pos) 
       # draw stuff on screen
       cfg['ruler'].draw()
-      cfg['cross'].draw()
+      cfg['slider'].draw()
       cfg['win'].flip()
   
   
@@ -335,9 +338,21 @@ def onePassTrial(cfg):
         keysPressed = event.getKeys(keyList=['return', 'delete'])
         if 'return' in keysPressed:
           # put the trace in the file?
-          #
-          # ???????????
-          #
+          # determine number of samples in recorded trace:
+          trace_samples = len(tracex_pix)
+          empty = [sp.NaN] * trace_samples
+          # these were collected:
+          handx_pix = handx_pix + tracex_pix
+          handy_pix = handy_pix + tracey_pix
+          time_s = time_s + tracetime_s
+          # these have to be filled with default/empty values
+          gaborx_pix = gaborx_pix + empty
+          gabory_pix = gabory_pix + empty
+          gaborphase = gaborphase + empty
+          gabororientation = gabororientation + empty
+          trace_step = [99] * trace_samples
+          step = step + trace_step
+          # clear up and end the loops
           event.clearEvents()
           traceEnded = True
           traceRecorded = True
@@ -348,12 +363,14 @@ def onePassTrial(cfg):
   
   nsamples = len(handx_pix)
   
+  #print(len(handx_pix), len(handy_pix), len(time_s), len(gaborx_pix), len(step))
+  
   trial_data = pd.DataFrame(
     {
      'trial_no'          : [trialno + 1] * nsamples,
      'fixationside'      : [cfg['trialdefinitions']['fixationSide'][trialno]] * nsamples,
      'internalMovement'  : [internalMovement] * nsamples,
-     'externalMovement' : [externalMovement] * nsamples,
+     'externalMovement'  : [externalMovement] * nsamples,
      'step'              : step,
      'time_ms'           : [t * 1000 for t in time_s],
      'gaborx_pix'        : gaborx_pix,
@@ -362,11 +379,12 @@ def onePassTrial(cfg):
      'gabororientation'  : gabororientation,
      'handx_pix'         : handx_pix,
      'handy_pix'         : handy_pix,
-     'percept'           : [percept] * nsamples
+     'percept'           : [percept] * nsamples,
+     'taskname'          : [taskname] * nsamples
     })
   
-  trial_data = trial_data[['trial_no', 'fixationside', 'internalMovement', 'externalMovement', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix', 'percept']]
+  trial_data = trial_data[['taskname', 'trial_no', 'fixationside', 'internalMovement', 'externalMovement', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix', 'percept']]
   
-  trial_data.to_csv('../data/onepass_V2/trials/onepass_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
+  trial_data.to_csv('../data/onepass_V2/trials/onepass_V3_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
   
   return(cfg)
