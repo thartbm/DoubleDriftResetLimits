@@ -41,7 +41,7 @@ cfg['trial_duration']                   = (0.5 / cfg['externalSpeed']) * (Npasse
 
 
 # there will be 6 internal cursor movements, that induce various degrees of illusion:
-internalMovement                        = [-3 -2, -1, 1, 2, 3]
+internalMovement                        = [-3, -2, -1, 1, 2, 3]
 externalMovement                        = [1./8, 1./6, 1./4]
 perceptAngle                            = [89, 91]
 repetitions                             = 1
