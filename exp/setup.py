@@ -111,7 +111,8 @@ def createStimuli(cfg):
                                 vertices=((.2,.2),(1,.2),(1,-.2),(.2,-.2),(.2,-1),(-.2,-1),(-.2,-.2),(-1,-.2),(-1,.2),(-.2,.2),(-.2,1),(.2,1)), 
                                 ori=45,
                                 size=15,
-                                lineWidth=3 )
+                                lineWidth=3,
+                                units='pix' )
   cfg['cross'].setFillColor(color=(255,0,0), colorSpace='rgb255')
   cfg['cross'].setLineColor(color=(95,0,0), colorSpace='rgb255')
   cfg['cross'].interpolate = True
@@ -131,12 +132,20 @@ def createStimuli(cfg):
   cfg['arrow'] = visual.ShapeStim( win       = cfg['win'],
                                    pos       = [0,0],
 #                                   vertices  = (-.1,-.1),(1,-.1),(1,-.3),(1.3,0),(1,.3),(1,.1),(-.1,.1)),   # ((0,0),(-1,0))
-                                   vertices  = ((0,0),(-1,0)),
+                                   vertices  = ((0,0),(-1.5,0)),
                                    ori       = 0,
                                    size      = 75,
                                    lineWidth = 6 )
   cfg['arrow'].setLineColor(color = (0,0,255), colorSpace='rgb255')
   
+  cfg['slider'] = visual.ShapeStim(win            = cfg['win'],
+                                   pos            = [0,0],
+                                   units          = 'pix',
+                                   vertices       = ((0,0),(-1,3),(1,3)),
+                                   size           = 15,
+                                   lineWidth      = 0,
+                                   fillColor      = (0,0,255),
+                                   fillColorSpace = 'rgb255' )
   
   
   class ruler:
