@@ -17,10 +17,94 @@ def adjustTrial(cfg):
   trialno = cfg['trial']
   
   # stimulus parameters:
-  externalSpeed     = 
-  internalMovement  = cfg['adjusttrialdefinitions']['internalMovement'][trialno]
-  externalMovement  = cfg['adjusttrialdefinitions']['externalMovement'][trialno]
+  externalSpeed     = cfg['externalSpeed']
+  angle             = cfg['trialdefinitions']['angle'][trialno]
+  fixationSide      = cfg['trialdefinitions']['fixationSide'][trialno]
+  
+  #angle = 90 - angle
+  internalMovement  = 0  
+  theta = ((90 - angle) / 180.) * sp.pi
+  slope = sp.sin(theta) / sp.cos(theta)
+  
+  #print(angle)
+  #print(slope)
+  #print(fixationSide)
+  
+  # set location of fixation point:
+  cfg['point'].pos = [fixationSide * (cfg['width'] / 5.), 0]
+  
+  gaborPhase = sp.rand()
+  
+  # orientation should be the same as the movement angle?
+  cfg['gabor'].ori = (-1 * angle) + 90
+  
+  starttime = time.time()
+  prevtime = starttime
+  prevY = 0
+  
+  gaborNotStraight = True
+  
+  while (gaborNotStraight):
+    
+    # stimulus properties depend on time:
+    
+    now = time.time()
+    
+    # stimulus position depends on total elapsed time:
 
+    totalelapsed = now - starttime
+    
+    # Y = (cfg['height'] / 4) * (1 - (abs((((elapsed-trialduration)*(externalMovement/0.5))%2)) * 2))
+
+    Y = (1 - (abs((((totalelapsed)*(4*externalSpeed/0.5))%2) - 1) * 2)) * (cfg['height'] / 16)
+    X = slope * Y
+
+    cfg['gabor'].setPos([X,Y])
+    
+    # phase of the gabor changes depending on time elapsed since last the frame and on internal speed:
+    # (since the internal movement speed changes, we can't use total elapsed time)
+    # and it depends on whether or not the gabor is moving up or down... which is now weird to get
+    
+    frameelapsed = now - prevtime
+    #print(frameelapsed)
+    
+    direction = 1 if (Y - prevY) > 0 else -1
+    
+    gaborPhase = (gaborPhase + (frameelapsed * internalMovement * direction))
+    #print(gaborPhase)
+    cfg['gabor'].phase = gaborPhase
+    
+    
+    cfg['point'].draw()
+    cfg['gabor'].draw()
+    cfg['win'].flip()
+    
+    
+    # loop for keyboard input to change internal speed, or end trial:
+    
+    if keyboard[key.NUM_LEFT]:
+      internalMovement = internalMovement - .05
+      event.clearEvents()
+      if internalMovement < -10:
+        internalMovement = -10
+    if keyboard[key.NUM_RIGHT]:
+      internalMovement = internalMovement + .05
+      event.clearEvents()
+      if internalMovement > 10:
+        internalMovement = 10
+    
+    if keyboard[key.NUM_ENTER]:
+      gaborNotStraight = False
+        
+    #print(internalMovement)
+    prevtime = now
+    prevY = Y
+    
+  
+  # record this stuff somewhere?
+  cfg['trialdefinitions']['internalSpeed'][trialno] = internalMovement
+  
+  return(cfg)
 
 def onePassTrial(cfg):
   
@@ -53,7 +137,7 @@ def onePassTrial(cfg):
   trialduration = (0.5 / externalMovement) # trial duration will always be exactly enough for a single pass
   
   # set location of fixation point:
-  cfg['point'].pos = [cfg['trialdefinitions']['fixationSide'][trialno] * (cfg['width'] / 3.), 0]
+  cfg['point'].pos = [cfg['trialdefinitions']['fixationSide'][trialno] * (cfg['width'] / 5.), 0]
   
   # we need a few vectors to collect data in:
   handx_pix = []
@@ -67,6 +151,9 @@ def onePassTrial(cfg):
   
   # random phase:
   gaborPhaseOffset = sp.rand()
+  
+  # set orientation:
+  cfg['gabor'].ori = 0
   
   
   # first the mouse / pen cursor has to be brought to the starting position (to counter all that spatial drift)
@@ -357,8 +444,25 @@ def onePassTrial(cfg):
         trace.draw()
         cfg['win'].flip()
 
-        keysPressed = event.getKeys(keyList=['return', 'delete'])
-        if 'return' in keysPressed:
+
+#    if keyboard[key.NUM_LEFT]:
+#      internalMovement = internalMovement - .05
+#      event.clearEvents()
+#      if internalMovement < -10:
+#        internalMovement = -10
+#    if keyboard[key.NUM_RIGHT]:
+#      internalMovement = internalMovement + .05
+#      event.clearEvents()
+#      if internalMovement > 10:
+#        internalMovement = 10
+#    
+#    if keyboard[key.NUM_ENTER]:
+#      gaborNotStraight = False
+
+
+        #keysPressed = event.getKeys(keyList=['return', 'delete'])
+        #if 'return' in keysPressed:
+        if keyboard[key.NUM_ENTER]:
           # put the trace in the file?
           # determine number of samples in recorded trace:
           trace_samples = len(tracex_pix)
@@ -378,7 +482,8 @@ def onePassTrial(cfg):
           event.clearEvents()
           traceEnded = True
           traceRecorded = True
-        if 'delete' in keysPressed:
+        #if 'delete' in keysPressed:
+        if keyboard[key.NUM_DELETE]:
           traceEnded = True
   
   # finalize stuff
@@ -407,6 +512,6 @@ def onePassTrial(cfg):
   
   trial_data = trial_data[['taskname', 'trial_no', 'fixationside', 'internalMovement', 'externalMovement', 'step', 'time_ms', 'gaborx_pix', 'gabory_pix', 'gaborphase', 'gabororientation', 'handx_pix', 'handy_pix', 'percept']]
   
-  trial_data.to_csv('../data/onepass_V4/trials/onepass_V4_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
+  trial_data.to_csv('../data/CVRdemo/trials/onepass_V4_p%04d_t%03d.csv'%(cfg['id'], trialno+1), index=False, float_format='%0.3f')
   
   return(cfg)

@@ -15,7 +15,7 @@ cfg['fullscr']      = True
 cfg['monitorIndex'] = 1
 cfg['flip']         = True
 
-cfg = createWindow(cfg, resolution=[1920, 1080])
+cfg = createWindow(cfg, resolution=[1680, 1050])
 
 mouse = event.Mouse(win=cfg['win'])
 mouse.setVisible(False)
@@ -36,30 +36,39 @@ cfg = createStimuli(cfg)
 
 cfg['externalSpeed']                    = .125 # Hz: how often can the cursor go up and down the whole range (= 2 passes) in a second
 
-angles                                  = [45, 75, 105, 135]
+angles                                  = [50, 75, 105, 130]
 
+fixationsides                           = [1, -1]
+# add left & right fixation points?
 
-TD                                      = pd.concat([foldout(a=[angles])])
-TD.columns                              = ['angle']
+TD                                      = pd.concat([foldout(a=[angles, fixationsides])])
+TD.columns                              = ['angle', 'fixationSide']
 
+TD = TD.sample(frac=1).reset_index(drop=True)
+
+TD['internalSpeed'] = [sp.NaN] * TD.shape[0]
 
 cfg['trialdefinitions'] = TD
 
-instructiontrials = [0,1,2,3]
-instructiontexts = ['adjust the speed so the gabor moves straight'] * 4
-
-#Ntrials = cfg['trialdefinitions'].shape[0]
+Ntrials = cfg['trialdefinitions'].shape[0]
 #print cfg['trialdefinitions']
 
-cfg['trialdefinitions']['fixationSide'] = [random.choice([-1,1]) for _ in range(Ntrials)]
+print(cfg['trialdefinitions'])
 
-doTrials = range(4)
+instructiontrials = [0]
+instructiontext = 'adjust the speed so the gabor moves straight'
+
+#print(instructiontexts)
+
+
+doTrials = range(Ntrials)
 
 for trialno in doTrials:
   
   if trialno in instructiontrials:
-    cfg['instruction'].text = instructiontexts[instructiontrials.index(trialno)]
-    cfg['instruction'].pos = (0,0)
+    #print(trialno)
+    #print(instructiontexts[trialno])
+    cfg['instruction'].text = instructiontext
     cfg['instruction'].draw()
     cfg['win'].flip()
     event.waitKeys(keyList=['space'])
@@ -68,83 +77,75 @@ for trialno in doTrials:
   
   cfg['trial'] = trialno
   
-  cfg = onePassTrial(cfg)
+  cfg = adjustTrial(cfg)
   
 
+# put collected responses in a common framework:
+td = cfg['trialdefinitions']
+td['angdev'] = abs(90 - td['angle'])
+td['speeddev'] = [td['internalSpeed'][idx] if td['angle'][idx] > 90 else -1 * td['internalSpeed'][idx] for idx in range(td.shape[0])]
+
+
+# store the responses:
+td.to_csv('../data/CVRdemo/CVRdemo_OPV4_adjusts_p%04d.csv'%(cfg['id']), index=False, float_format='%0.3f')
+
+# calculate the median absolute speed deviation for each angle deviation from 90
+bounds = td.groupby('angdev').median()['speeddev']
+
+# stranslate to a range of illusion strengths, that _should_ go up from 15 degrees to 40 in steps of 2.5 degrees: 
+strengths = sp.arange(bounds.values[0], bounds.values[1]+(sp.diff(bounds.values)/10), sp.diff(bounds.values)/10)
 
 
 
+
+
+
+
+
+internalMovement = list(strengths) + list(-1* strengths)
 
 # ========================== second part
 
-
+externalMovement                        = [1./8]
+perceptAngle                            = [90]
+repetitions                             = 1
 
 # these two should not be used:
 Npasses                                 = 1
 cfg['trial_duration']                   = (0.5 / cfg['externalSpeed']) * (Npasses + .5)
 
 
-# there will be 6 internal cursor movements, that induce various degrees of illusion:
-#internalMovement                        = [-4, -2, -1, 1, 2, 4]
-#externalMovement                        = [1./8, 1./4, 1./2]
-#perceptAngle                            = [89,91]
-#repetitions                             = 2
-
-internalMovement                        = [-4,-3,-2, 2,3,4]
-externalMovement                        = [1./8]
-perceptAngle                            = [90]
-repetitions                             = 1
-
 # create all desired combinations:
 TD                                      = pd.concat([foldout(a=[internalMovement,externalMovement, perceptAngle])]*repetitions, ignore_index=True)
 TD.columns                              = ['internalMovement', 'externalMovement', 'perceptAngle']
 
 # copy for different trial types:
-TDarrowPercept                          = TD
 TDtraceDelayed                          = TD
 
 
-blockrepeats = 4
+blockrepeats = 1
 
 #instructiontrials = [0,TD.shape[0]]
-instructiontrials = [task * TD.shape[0] for task in range(2*blockrepeats)]
+instructiontrials = [task * TD.shape[0] for task in range(blockrepeats)]
 
-instructions = ['report initial movement direction of the patch','retrace the patch after seeing it']
+instructions = ['retrace the gabor path up to a reset point']
 
-instructiontexts = []
+#instructiontexts = []
 
-for br in range(blockrepeats):
+# randomize:
+TDtraceDelayed_1  = TDtraceDelayed.sample(frac=1).reset_index(drop=True)
   
-  # randomize:
-  TDarrowPercept_1  = TDarrowPercept.sample(frac=1).reset_index(drop=True)
-  TDtraceDelayed_1  = TDtraceDelayed.sample(frac=1).reset_index(drop=True)
+TDtraceDelayed_1['recordTrace']                = True
+TDtraceDelayed_1['recordPercept']              = False
+TDtraceDelayed_1['perceptTask']                = None
+TDtraceDelayed_1['arrowPosition']              = None
+TDtraceDelayed_1['traceTime']                  = 'delayed'
+TDtraceDelayed_1['taskname']                   = 're-trace'
   
-  TDarrowPercept_1['recordTrace']                = False
-  TDarrowPercept_1['recordPercept']              = True
-  TDarrowPercept_1['perceptTask']                = 'arrow'
-  TDarrowPercept_1['arrowPosition']              = 'start' # instead of 'fixation'
-  TDarrowPercept_1['traceTime']                  = None
-  TDarrowPercept_1['taskname']                   = 'arrow'
+#TDs                                     = pd.concat([TDarrowPercept_1, TDtraceDelayed_1], ignore_index=True)
+#instructiontexts += [instructions[0], instructions[1]]
   
-  TDtraceDelayed_1['recordTrace']                = True
-  TDtraceDelayed_1['recordPercept']              = False
-  TDtraceDelayed_1['perceptTask']                = None
-  TDtraceDelayed_1['arrowPosition']              = None
-  TDtraceDelayed_1['traceTime']                  = 'delayed'
-  TDtraceDelayed_1['taskname']                   = 're-trace'
-  
-  if (cfg['id'] % 2 == 0):
-    TDs                                     = pd.concat([TDarrowPercept_1, TDtraceDelayed_1], ignore_index=True)
-    instructiontexts += [instructions[0], instructions[1]]
-  else:
-    TDs                                     = pd.concat([TDtraceDelayed_1, TDarrowPercept_1], ignore_index=True)
-    instructiontexts += [instructions[1], instructions[0]]
-  
-  if ('trialdefinitions' in cfg.keys()):
-    # join tables for both trial types:
-    cfg['trialdefinitions']                 = pd.concat([cfg['trialdefinitions'],TDs], ignore_index=True)
-  else:
-    cfg['trialdefinitions']                 = TDs
+cfg['trialdefinitions']                 = TDtraceDelayed_1
 
 
 Ntrials = cfg['trialdefinitions'].shape[0]
@@ -158,7 +159,7 @@ doTrials = range(Ntrials)
 for trialno in doTrials:
   
   if trialno in instructiontrials:
-    cfg['instruction'].text = instructiontexts[instructiontrials.index(trialno)]
+    cfg['instruction'].text = instructions[trialno]
     cfg['instruction'].pos = (0,0)
     cfg['instruction'].draw()
     cfg['win'].flip()
@@ -182,14 +183,14 @@ participant_data = 0
 
 for trialno in doTrials:
   
-  trial_data = pd.DataFrame.from_csv('../data/onepass_V4/trials/onepass_V4_p%02d_t%03d.csv'%(cfg['id'], trialno+1), index_col=None)
+  trial_data = pd.DataFrame.from_csv('../data/CVRdemo/trials/onepass_V4_p%04d_t%03d.csv'%(cfg['id'], trialno+1), index_col=None)
   
   if isinstance(participant_data, pd.DataFrame):
     participant_data = pd.concat([participant_data, trial_data])
   else:
     participant_data = trial_data
   
-participant_data.to_csv('../data/onepass_V4/onepass_V4_p%02d.csv'%(cfg['id']), index=False, float_format='%0.3f')
+participant_data.to_csv('../data/CVRdemo/CVRdemo_OPV4_resets_p%04d.csv'%(cfg['id']), index=False, float_format='%0.3f')
 
 #cfg['instruction'].text = 'creating movie'
 #cfg['instruction'].pos = (0,0)

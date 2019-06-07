@@ -27,7 +27,7 @@ def createWindow(cfg, resolution=[1920, 1080]):
   if cfg['flip']:
     viewScale = [1, -1]
 
-  win = visual.Window(resolution, fullscr=cfg['fullscr'], units='pix', viewScale=viewScale)
+  win = visual.Window(resolution, fullscr=cfg['fullscr'], units='pix', viewScale=viewScale, waitBlanking=True)
   
   
   cfg['win'] = win
@@ -83,7 +83,7 @@ def createStimuli(cfg):
   cfg['cursor'].interpolate = True
 
   # create a fixation stimulus object:
-  cfg['point'] = visual.Circle(win=cfg['win'], pos = [-800,0], radius=15, lineWidth=5)
+  cfg['point'] = visual.Circle(win=cfg['win'], pos = [0,0], radius=15, lineWidth=5)
   cfg['point'].setFillColor(color=(255,255,255), colorSpace='rgb255')
   cfg['point'].setLineColor(color=(95,95,95), colorSpace='rgb255')
   cfg['point'].interpolate = True
