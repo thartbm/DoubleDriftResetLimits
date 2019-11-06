@@ -1,6 +1,6 @@
 # check / download data -----
 
-downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'onePass_V4')) {
+downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'onePass_V4', 'reset_pause')) {
   
   
   for (experiment in experiments) {
@@ -56,6 +56,32 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'o
         'onepass_V4_p09.csv' = 'https://osf.io/tm3c8/download',
         'onepass_V4_p10.csv' = 'https://osf.io/8u9rb/download',
         'onepass_V4_p11.csv' = 'https://osf.io/v4d8p/download'
+        
+      )
+      
+      downloadFiles(files=resources, folder=folder, overwrite=overwrite)
+      
+      next()
+      
+    }
+    
+    if (experiment == 'reset_pause') {
+      
+      folder = 'data/reset_pause'
+      
+      if (!dir.exists(folder)) {
+        dir.create(folder)
+      }
+
+      resources <- c( 
+        
+        'reset_p01.csv' = 'https://osf.io/739dp/download',
+        'reset_p02.csv' = 'https://osf.io/w7kht/download',
+        'reset_p09.csv' = 'https://osf.io/k29v3/download',
+        'reset_p10.csv' = 'https://osf.io/vb83k/download',
+        'reset_p11.csv' = 'https://osf.io/9rj8s/download',
+        'reset_p12.csv' = 'https://osf.io/4n36j/download',
+        'reset_p13.csv' = 'https://osf.io/vs6bw/download'
         
       )
       

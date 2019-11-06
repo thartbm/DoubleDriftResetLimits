@@ -402,7 +402,7 @@ plotResetTrial <- function(participant,trial) {
   
   library(colormap)
   
-  df <- read.csv(sprintf('../data/reset/reset_p%02d.csv', participant), stringsAsFactors=F)
+  df <- read.csv(sprintf('data/reset_pause/reset_p%02d.csv', participant), stringsAsFactors=F)
   df <- df[which(df$trial==trial & df$step==2),]
   
   par(mfrow=c(1,1))
