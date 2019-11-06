@@ -1,5 +1,13 @@
+# files that should be the output of the code here:
+*.html
+*.svg
+*.docx
 *.pdf
+
+# R files:
 *.Rproj
+.Rdata
+.Rhistory
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
