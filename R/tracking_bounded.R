@@ -5,7 +5,7 @@ library('svglite')
 
 plotBoundedTrackingRaw <- function(target='inline') {
   
-  participants <- c(1,3,5,6:8)
+  participants <- c(1,3,5,6,7,8)
   
   if (target=='svg') {
     svglite(file='doc/bounded_tracking_uncluttered.svg',width=6,height=9)
