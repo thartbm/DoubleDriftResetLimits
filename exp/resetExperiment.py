@@ -40,7 +40,8 @@ cfg['trial_duration']                   = (0.5 / cfg['externalSpeed']) * (Npasse
 # there will be 3 internal cursor movements: right, left and none:
 internalMovement                        = [-3, 3]
 resetPausePass                          = [ 1, 2, 3, Npasses+1]
-resetPauseOffset                        = [.3, .4]
+#resetPauseOffset                        = [.3, .4]
+resetPauseOffset                        = [.25, .75]
 externalDirection                       = [-1, 1]
 
 repetitions                             = 1
