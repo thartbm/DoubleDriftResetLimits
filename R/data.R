@@ -1,5 +1,7 @@
 # check / download data -----
 
+source('R/tracking_reset_pause.R')
+
 downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'onePass_V4', 'reset_pause')) {
   
   
@@ -124,5 +126,17 @@ downloadFiles <- function(files, folder='./', overwrite=TRUE) {
     }
     
   }
+  
+}
+
+doPreProcessing <- function() {
+  
+  # bounded tracking: no pre-processing
+  
+  # paused tracking:
+  getPauseTrajectories()
+  getReachDirections()
+  
+  # re-tracing:
   
 }
