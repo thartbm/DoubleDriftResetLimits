@@ -102,7 +102,7 @@ def createStimuli(cfg):
                         size=[gaborsize, gaborsize], 
                         sf=1.5/gaborsize,
                         ori=0.0, 
-                        
+                          
                         )
   
   # CROSS shape used as target to put the cursor on, among other stuff:
