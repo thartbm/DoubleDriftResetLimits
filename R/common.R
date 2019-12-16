@@ -379,8 +379,8 @@ hist2d <- function(x, y=NA, nbins=c(25,25), edges=NA) {
   
 }
 
-polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88),xlim=NA,ylim=NA,width=5,height=5,xunit='degrees',border=NA,bordercol='white',resolution=(1/180)*pi,alpha=1,main='') {
-
+polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88),xlim=NA,ylim=NA,xunit='degrees',border=NA,bordercol='white',resolution=1,alpha=1,overlay=FALSE,origin=c(0,0),scale=1,main='') {
+  
   # x: area edges in some form of angles (degrees [default] or radians)
   # y: area edges in distances from the origin
   # z: matrix with values in regions defined by x & y edges (NA to not plot the area)
@@ -401,13 +401,18 @@ polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88)
     ylim <- c(-1,1)
   }
   
+  resolution <- (resolution/180)*pi
+  
   #par(mar=c(4, 4, 2, 2), pin=c(width,height))
   
-  plot.new() # is this allowed... yes, but then everything else has to be manually added?
-  
-  plot.window(xlim = xlim, ylim = ylim, asp = 1)
-  title(main = main)
-  
+  if (overlay == FALSE) {
+    
+    plot.new() # is this allowed... yes, but then everything else has to be manually added?
+    
+    plot.window(xlim = xlim, ylim = ylim, asp = 1)
+    title(main = main)
+    
+  }
   # use `rgb()`
   
   # scale z to fit into 0-1 range:
@@ -442,8 +447,8 @@ polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88)
         y2 <- y[yi+1]
         #print(c(x1,x2))
         xs <- seq(x1,x2,length.out=ceiling(abs(diff(c(x1,x2)))/resolution))
-        X <- c(cos(xs)*y1, rev(cos(xs)*y2))
-        Y <- c(sin(xs)*y1, rev(sin(xs)*y2))
+        X <- (c(cos(xs)*y1, rev(cos(xs)*y2)) * scale) + origin[1]
+        Y <- (c(sin(xs)*y1, rev(sin(xs)*y2)) * scale) + origin[2]
         allPolygons[[length(allPolygons)+1]] <- list('x'=X, 'y'=Y, 'col'=rgb(R[xi,yi],G[xi,yi],B[xi,yi],alpha=alpha))
       }
     }
