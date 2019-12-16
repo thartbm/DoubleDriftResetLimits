@@ -72,16 +72,24 @@ plotBoundedTrackingRaw()
 
 We can see that the orientation of the tracking movements responds to the strength and direction of the internal motion of the stimulus. However, there are no clear spontaneous resets of the stimulus.
 
+The MEAN would say: "the majority of trials / participants show no evidence of a reset".
+
+I'd like to be able to say: "there is no evidence of any resets in all of the data". That is hard to do, unless I find a way to do an appropriate equivalence test (where the key problem is in the word 'appropriate').
+
+But I would settle for: "the majority of data shows no resets, and there's no easily identifiable minority in the data with resets either".
+
+And we can do the latter if we find a measure that would be somewhat bimodal in case of a few resets. A search reveals that one of the most accepted tests is recently Hartigan's Dip Test for unimodality (H1: not unimodal), at least a few years ago, so this might have changed, but it should still work. It is in the package 'diptest'.
+
 # Experiment 1b: continuous tracking with pauses
 
 Therefore, we did another experiment that mimicked the first, but with three changes, all designed to increase the occurrence of resets. First, the external motion was halved as earlier work showed that resets often occur after around 2-4 seconds [@Lisi2015 ??], and 2 seconds was how long one pass (from one end of the screen to the other) took in the first experiment. So now, the double-drift stimulus would do a single pass in 4 seconds instead of 2 seconds. Second, we only used -3 and 3 cycles per second for the internal motion as this would increase the strength of the illusion and perhaps lead to a higher chance of reset. Third, on 2 of every 4 trials, a ~266.66 ms "blink" (8 frames at 30 Hz) was introduced in the stimulus. During this period the stimulus disappeared from the screen and reappeared after the blink in the same location to continue as before. The blinks occured either in the first or second full pass of the stimulus, halfway along the path on screen. These blinks have been shown to trigger resets [@Lisis201X; @Nakayama2018], so if we can spot triggered resets in the tracking data, we can use the characteristics of that tracking data to detect spontaneous resets. However, we would primarily expect to see increases in horizontal tracking speed, perhaps accompanied by a decrease in vertical speed, when people track the "jump" in the perceived location of the stimulus.
 
 Here is a plot of trajectories just before (orange), during (red) as well as for 1500 ms after a pause (purple). The trajectories are normalized for the different directions (trajectories always shown going up and to the right, but could have been down and/or to the left) and the trajectories are all shown relative to the start of the pause, which is where they cross the gray vertical.
 
-```{r fig.width=7, fig.height=7}
+```{r fig.width=7, fig.height=3}
 # from R/tracking_reset_pause.R
 plotPostPauseTrajectories()
 ```
 
-Except for one trial in participant 9, it doesn't look like there are any resets to be seen in the trajectories.
+Except perhaps for one trial in participant 9, it doesn't look like there are any resets to be seen in the trajectories.
 
