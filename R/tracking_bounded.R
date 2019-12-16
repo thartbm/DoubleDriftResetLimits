@@ -7,6 +7,7 @@ getBoundedTrackingTimeNormalizedSegments <- function(segmentpoints=101) {
   
   # use these participants:
   participants <- c(1,3,5,6,7,8)
+  participants <- c(3,6,7,8) # 1 and 5 are authors
   
   # read all the data into one data frame:
   # BTdata <- NA
@@ -117,6 +118,7 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
   
   # use these participants:
   participants <- c(1,3,5,6,7,8)
+  participants <- c(3,6,7,8) # 1 and 5 are authors
   
   # read all the data into one data frame:
   # BTdata <- NA
@@ -239,9 +241,10 @@ getSegmentDirections <- function(allsegmentdata) {
 plotBoundedTrackingRaw <- function(target='inline') {
   
   participants <- c(1,3,5,6,7,8)
+  participants <- c(3,6,7,8)
   
   if (target=='svg') {
-    svglite(file='doc/Fig03.svg',width=7,height=6)
+    svglite(file='doc/Fig03.svg',width=6,height=6)
   }
   
   par(mfrow=c(1,1),mar=c(4.5,4.1,0.1,0.1))
@@ -250,7 +253,7 @@ plotBoundedTrackingRaw <- function(target='inline') {
   
   red <- colors$yorkred
   
-  plot(-1000,-1000,main='',ylim=c(0.5,5.5),xlim=c(0.5,6.5),xlab='participant',ylab='internal speed [cps]',asp=1,bty='n',ax=F)
+  plot(-1000,-1000,main='',ylim=c(0.5,5.5),xlim=c(0.5,length(participants)+1),xlab='participant',ylab='internal speed [cps]',asp=1,bty='n',ax=F)
 
   speeds <- c(-3,-1,0,1,3)
   
@@ -367,8 +370,8 @@ placeHolderOne <- function(target='inline') {
       idx <- which(allsegments$internalSpeed == internalSpeed & allsegments$participant == participant)
       
       # we put it into a normalized 2D histogram:
-      pfreq <- hist2d(x=allsegments$direction[idx], y=allsegments$sample_no[idx], nbins=NA, edges=list(seq(0,180,length.out=31), seq(1,101,4)+0.5))
-      pfreq$freq2D <- sqrt(pfreq$freq2D / sum(pfreq$freq2D))
+      pfreq <- hist2d(x=allsegments$direction[idx], y=allsegments$sample_no[idx], nbins=NA, edges=list(seq(0,180,length.out=61), seq(1,101,4)+0.5))
+      #pfreq$freq2D <- sqrt(pfreq$freq2D / sum(pfreq$freq2D))
       
       if (!is.matrix(freq2D)) {
         freq2D <- pfreq$freq2D
