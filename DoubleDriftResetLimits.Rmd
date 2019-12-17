@@ -1,0 +1,85 @@
+---
+title: "Limits to Spontaneous Resets in the Double-Drift Illusion"
+output: html_notebook
+---
+
+# Overview
+
+State aims of the project. Say which experiments were done and are analyzed here.
+
+# Setting up
+
+Before starting any analyses, we need to make sure that we have all the code and data necessary, this will be set up by the chunks below
+
+## Libraries
+
+We've minimized depencies on other packages, but there are two that help - even when not strictly required.
+
+```{r}
+library('svglite')
+library('ez')
+
+# these packages are not mandatory
+# - svglite generates SVG versions of the figures, but the native R figures might be enough
+# - ez allows one ANOVA to be run, but this part could be skipped
+
+# if you do want to install them, use this:
+# install.packages(c('svglite','ez'))
+# they seem to rely on other packages: 'data.table', 'ggplot2', 'dplyr', 'lme4', and 'car'
+
+```
+
+## Functions
+
+There are several files with code that will do the work for us in pre-processing, plotting and doing stats.
+
+```{r}
+# The functions here allow downloading the collected data from the OSF project:
+source('R/data.R')
+# This file has some common helper functions:
+
+# The functions in here are used on the data of the bounded tracking experiments:
+source('R/tracking_bounded.R')
+# And finally some code for the re-tracing experiment...
+source('R/retrace_onePass_V4.R')
+# As well as models fit to that data:
+source('R/models.R')
+```
+
+## Download data
+
+A last step before starting actual analyses is to download the data from the Open Science Framework:
+
+```{r}
+# from R/data.R
+downloadRawData(overwrite=FALSE, experiments=c('bounded_tracking', 'bounded_tracking_V2', 'onePass_V4'))
+```
+
+If there were no errors, we're now ready to start.
+
+# Experiment 1a: continuous tracking
+
+In this experiment, 6 participants were instructed to look at a fixation point at the left or right side of the screen, while moving a tablet controlled cursor to the center of the screen. Subsequently, a double-drift stimulus would appear and then move on a straight, 13.5 cm path along the Y axis of the screen (not sideways, but forward/backward, or upward/downward if you like), starting in one of two directions at random. When the double-drift stimulus would reach either end of the path, both it's external and internal motion would be inverted. This way it would appear to move on a diagonal, with the angle of the diagonal depending on the direction and velocity of the internal motion. Participants were to use the stylus on the tablet to track the perceived position of the stimulus while it was moving. The stimulus would complete 3 full cycles (if one path is the 13.5 cm: a half path, five full paths, and another half path) in 12 seconds. That is: a single path takes 2 seconds. The internal motion could have one of 5 values -3, -1, 0, 1 or 3 cycles per second (the number of complete phases the gabor would cycle through in 1 second). Each of these 5 internal motion values was repeated 8 times (with random initial direction and fixation side) for a total of 40 trials.
+
+Here we plot the trajectories recorded during this task (each subplot essentially shows 8 trials overlayed):
+
+```{r fig.width=7, fig.height=6}
+# from R/tracking_bounded.R:
+plotBoundedTracking()
+```
+
+The top row shows average instantaneous heading (as actual direction) over time (distance from origin), with a polar heatmap of all the data in the background. The middle 1 second of each pass of the gabor is used, so that the inversions at the far and close end of the workspace are excluded from the average heading data. Since headin doesn't change throughout these segments (stats?) we take the average heading across all segments for every participant and every internal speed to do statistical analyses.
+
+```{r}
+analyzeBoundedTracking()
+```
+
+
+First we want to see if internal motion affects illusion strength as measured by instantaneous heading direction. A repeated measures ANOVA on a model using internal speed to predict heading direction shows that heading direction in tracking data is a good measure of illusion strength (F(4,12)=102.7, p<.001, ges=0.97, Greenhouse-Geisser corrected). This effect is not caused by one internal speed giving different directions, but by each internal speed resulting in different heading directions from it's direct neighbour (4 FDR-corrected, pairwise, one-sided t-tests: all p<.025).
+
+A few of the tracking paths might be reflecting a reset (four of them are plotted in red in Fig 2). However, there are only a few and it's not clear they represent resets, or tracking errors made when changing direction at the far and close end of the workspace. The heading distributions don't seem to show any systematic deflections from the average heading, for eample evoked after a specific amount time.
+
+# Experiment 1b: continuous tracking
+
+Therefore, we did another experiment that mimicked the first, but with two changes, all designed to increase the occurrence of resets. First, we only used -3 and 3 cycles per second for the internal motion as this would increase the strength of the illusion and perhaps lead to a higher chance of reset. Second, the external motion was halved as earlier work showed that resets often occur after around 2 seconds [@Lisi2015 ??], and 2 seconds was how long one pass (from one end of the screen to the other) took in the first experiment. So now, the double-drift stimulus would do a single pass in 4 seconds instead of 2 seconds. This allows more opportunity for resets, but might also make it easier to track the gabor's position, so that errors at the direction changes in the far and close end of the workspace are less likely.
+
