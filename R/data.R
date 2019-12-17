@@ -1,8 +1,8 @@
 # check / download data -----
 
-source('R/tracking_reset_pause.R')
+#source('R/tracking_reset_pause.R')
 
-downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'onePass_V4', 'reset_pause')) {
+downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'bounded_tracking_V2', 'onePass_V4')) {
   
   
   for (experiment in experiments) {
@@ -67,9 +67,9 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'o
       
     }
     
-    if (experiment == 'reset_pause') {
+    if (experiment == 'bounded_tracking_V2') {
       
-      folder = 'data/reset_pause'
+      folder = 'data/bounded_tracking_V2'
       
       if (!dir.exists(folder)) {
         dir.create(folder)
@@ -77,13 +77,21 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'o
 
       resources <- c( 
         
-        'reset_p01.csv' = 'https://osf.io/739dp/download',
-        'reset_p02.csv' = 'https://osf.io/w7kht/download',
-        'reset_p09.csv' = 'https://osf.io/k29v3/download',
-        'reset_p10.csv' = 'https://osf.io/vb83k/download',
-        'reset_p11.csv' = 'https://osf.io/9rj8s/download',
-        'reset_p12.csv' = 'https://osf.io/4n36j/download',
-        'reset_p13.csv' = 'https://osf.io/vs6bw/download'
+        'bounded_tracking_V2_p01.csv' = 'https://osf.io/akyf4/download',
+        'bounded_tracking_V2_p02.csv' = 'https://osf.io/gzkqf/download',
+        'bounded_tracking_V2_p09.csv' = 'https://osf.io/wdq7p/download',
+        'bounded_tracking_V2_p10.csv' = 'https://osf.io/8g4q9/download',
+        'bounded_tracking_V2_p11.csv' = 'https://osf.io/axqcy/download',
+        'bounded_tracking_V2_p12.csv' = 'https://osf.io/fjpz6/download',
+        'bounded_tracking_V2_p13.csv' = 'https://osf.io/cyj49/download'
+        
+        # 'reset_p01.csv' = 'https://osf.io/739dp/download',
+        # 'reset_p02.csv' = 'https://osf.io/w7kht/download',
+        # 'reset_p09.csv' = 'https://osf.io/k29v3/download',
+        # 'reset_p10.csv' = 'https://osf.io/vb83k/download',
+        # 'reset_p11.csv' = 'https://osf.io/9rj8s/download',
+        # 'reset_p12.csv' = 'https://osf.io/4n36j/download',
+        # 'reset_p13.csv' = 'https://osf.io/vs6bw/download'
         
       )
       
@@ -129,14 +137,3 @@ downloadFiles <- function(files, folder='./', overwrite=TRUE) {
   
 }
 
-doPreProcessing <- function() {
-  
-  # bounded tracking: no pre-processing
-  
-  # paused tracking:
-  getPauseTrajectories()
-  getReachDirections()
-  
-  # re-tracing:
-  
-}
