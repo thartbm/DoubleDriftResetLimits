@@ -1,4 +1,6 @@
 library('svglite')
+library('ez')
+
 source('R/common.R')
 
 # Data handling -----
@@ -106,7 +108,9 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
   
 }
 
-getSegmentDirections <- function(allsegmentdata) {
+getSegmentDirections <- function() {
+  
+  allsegmentdata <- read.csv('data/bounded_tracking/standardized_segments.csv', stringsAsFactors = F) 
   
   allsegmentdata$direction <- NA
   
@@ -121,7 +125,7 @@ getSegmentDirections <- function(allsegmentdata) {
     allsegmentdata$direction[seg.idx] <- c(NA, ( atan2(diff(segment$handy_pix), diff(segment$handx_pix)) / pi ) * 180)
   }
   
-  return(allsegmentdata)
+  write.csv(allsegmentdata, 'data/bounded_tracking/segment_directions.csv', row.names = F, quote = F)
   
 }
 
@@ -133,10 +137,8 @@ plotBoundedTracking <- function(target='inline') {
   
   colors <- getColors()
 
-  #rawsegments <- read.csv('data/bounded_tracking/normalized_segments.csv', stringsAsFactors = F)  
-  stdsegments <- read.csv('data/bounded_tracking/standardized_segments.csv', stringsAsFactors = F)  
-  
-  stdsegments <- getSegmentDirections(stdsegments)
+  stdsegments <- read.csv('data/bounded_tracking/segment_directions.csv', stringsAsFactors = F)  
+
   stdsegments$direction[which(stdsegments$direction < 0)] <- NA
   stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
   
@@ -145,7 +147,7 @@ plotBoundedTracking <- function(target='inline') {
     svglite(file='doc/Fig03b.svg',width=6,height=6)
   }
   
-  # 5 conditions (columns)
+  # 5 conditions or internal speeds (columns)
   # row 1: heading distribution
   # row 2-5: participants
   
@@ -283,8 +285,93 @@ plotBoundedTracking <- function(target='inline') {
   
 }
 
+# Statistics -----
 
 
+
+analyzeBoundedTracking <- function(target='inline') {
+  
+
+  stdsegments <- read.csv('data/bounded_tracking/segment_directions.csv', stringsAsFactors = F)  
+  
+  stdsegments$direction[which(stdsegments$direction < 0)] <- NA
+  stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
+  
+  internalSpeeds <- sort(unique(stdsegments$internalSpeed))
+  participants <- sort(unique(stdsegments$participant))
+  
+  # build data frame for data analyses:
+  participant <- c()
+  internal_speed <- c()
+  direction <- c()
+  
+  for (internalSpeed.idx in c(1:length(internalSpeeds))) {
+    
+    intSpeed <- internalSpeeds[internalSpeed.idx]
+    
+    freq2D <- NA
+    avgDir <- c()
+    
+    for (ppno in participants) {
+      
+      # this is the part of the data we're dealing with now:
+      idx <- which(stdsegments$internalSpeed == intSpeed & stdsegments$participant == ppno)
+      
+      PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
+      
+      participant <- c(participant, ppno)
+      internal_speed <- c(internal_speed, intSpeed)
+      direction <- c(direction, 90 - mean(PPavgDir$direction) )
+      
+    }
+    
+  }
+  
+  # now we get a fairly small data set to analyse:
+  anaData <- data.frame(participant, internal_speed, direction)
+  
+  # first an F-test (or one-factort ANOVA) to see if internal speed affects heading:
+  anaData$participant <- as.factor(anaData$participant)
+  anaData$internal_speed <- as.factor(anaData$internal_speed)
+  AOVobj <-  ezANOVA(data=anaData, dv=direction, wid=participant, within=internal_speed, type=3)
+  
+  cat('\n**\n** repeated measures F-test on a model predicting heading from internal speed:\n**\n\n')
+  print(AOVobj)
+  
+  # post-hoc test: which internal speeds result in different headings from each other?
+  # Tukey's HSD? why not...
+  # because `TukeyHSD()` can't deal with repeated measures designs... 
+  
+  # this has too many comparisons, that are all two-sided
+  # print( pairwise.t.test( x=anaData$direction, g=anaData$internal_speed, paired=TRUE, p.adjust.method = 'fdr') )
+  
+  # with luck we only need these four comparison, all of them paired, one-sided t-tests:
+  comparisons <- list( '-3 -1' = list(-3, -1, 'l'),
+                       '-1  0' = list(-1,  0, 'l'),
+                       ' 0  1' = list( 0,  1, 'l'),
+                       ' 1  3' = list( 1,  3, 'l')
+  )
+  pvals <- list()
+  for (comparison in names(comparisons)) {
+    
+    isps <- comparisons[[comparison]]
+    
+    tt <- t.test(anaData$direction[which(anaData$internal_speed == isps[[1]])],
+                 anaData$direction[which(anaData$internal_speed == isps[[2]])],
+                 alternative=isps[[3]],
+                 paired=TRUE)
+    # cat(sprintf('\ninternal speed: %s\n\n',comparison))
+    # print(tt)
+    
+    pvals[[comparison]] <- tt$p.value
+    
+  }
+  
+  cat('\n**\n** FDR-corrected p-values from 4 paired, one-sided t-tests on mean heading\n** (between neighbouring internal speeds)\n**\n\n')
+  print(p.adjust(p=pvals, method='fdr'))
+  
+
+}
 
 # Code Graveyard -----
 
