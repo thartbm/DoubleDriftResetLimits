@@ -1,3 +1,8 @@
+
+# This is the first, organically grown set of functions: one big mess.
+# Kept here as source material.
+
+
 require('ez')
 require('svglite')
 
