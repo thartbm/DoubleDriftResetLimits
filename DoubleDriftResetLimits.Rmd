@@ -1,6 +1,8 @@
 ---
 title: "Limits to Spontaneous Resets in the Double-Drift Illusion"
-output: html_notebook
+output:
+  word_document: default
+  html_notebook: default
 ---
 
 # Overview
@@ -37,7 +39,7 @@ There are several files with code that will do the work for us in pre-processing
 # The functions here allow downloading the collected data from the OSF project:
 source('R/data.R')
 # This file has some common helper functions:
-
+source('R/common.R')
 # The functions in here are used on the data of the bounded tracking experiments:
 source('R/tracking_bounded.R')
 # And finally some code for the re-tracing experiment...
@@ -61,9 +63,17 @@ If there were no errors, we're now ready to start.
 
 In this experiment, 6 participants were instructed to look at a fixation point at the left or right side of the screen, while moving a tablet controlled cursor to the center of the screen. Subsequently, a double-drift stimulus would appear and then move on a straight, 13.5 cm path along the Y axis of the screen (not sideways, but forward/backward, or upward/downward if you like), starting in one of two directions at random. When the double-drift stimulus would reach either end of the path, both it's external and internal motion would be inverted. This way it would appear to move on a diagonal, with the angle of the diagonal depending on the direction and velocity of the internal motion. Participants were to use the stylus on the tablet to track the perceived position of the stimulus while it was moving. The stimulus would complete 3 full cycles (if one path is the 13.5 cm: a half path, five full paths, and another half path) in 12 seconds. That is: a single path takes 2 seconds. The internal motion could have one of 5 values -3, -1, 0, 1 or 3 cycles per second (the number of complete phases the gabor would cycle through in 1 second). Each of these 5 internal motion values was repeated 8 times (with random initial direction and fixation side) for a total of 40 trials.
 
-Here we plot the trajectories recorded during this task (each subplot essentially shows 8 trials overlayed):
+First, we process the raw data into a more useful format for our analyses:
 
-```{r fig.width=7, fig.height=6}
+```{r}
+# from R/tracking_bounded.R:
+getBoundedTrackingStandardizedSegments(segmentpoints=101, version=1)
+getSegmentDirections(version=1)
+```
+
+Then we plot the trajectories recorded during this task (each subplot essentially shows 8 trials overlayed), and in the top row we show the average heading as a thicker line, as well as a 2D polar histogram showing the distribution of headings.
+
+```{r fig.width=7, fig.height=6, echo=F}
 # from R/tracking_bounded.R:
 plotBoundedTracking()
 ```
@@ -79,7 +89,20 @@ First we want to see if internal motion affects illusion strength as measured by
 
 A few of the tracking paths might be reflecting a reset (four of them are plotted in red in Fig 2). However, there are only a few and it's not clear they represent resets, or tracking errors made when changing direction at the far and close end of the workspace. The heading distributions don't seem to show any systematic deflections from the average heading, for eample evoked after a specific amount time.
 
-# Experiment 1b: continuous tracking
+# Experiment 1b: continuous tracking with 4 second segments
 
-Therefore, we did another experiment that mimicked the first, but with two changes, all designed to increase the occurrence of resets. First, we only used -3 and 3 cycles per second for the internal motion as this would increase the strength of the illusion and perhaps lead to a higher chance of reset. Second, the external motion was halved as earlier work showed that resets often occur after around 2 seconds [@Lisi2015 ??], and 2 seconds was how long one pass (from one end of the screen to the other) took in the first experiment. So now, the double-drift stimulus would do a single pass in 4 seconds instead of 2 seconds. This allows more opportunity for resets, but might also make it easier to track the gabor's position, so that errors at the direction changes in the far and close end of the workspace are less likely.
+Therefore, we did another experiment that mimicked the first, but with two changes, all designed to increase the occurrence of resets. First, we only used -3 and 3 cycles per second for the internal motion as this would increase the strength of the illusion and perhaps lead to a higher chance of reset. Second, the external motion was halved as earlier work showed that resets often occur after around 2 seconds [@Lisi2015 ??], and 2 seconds was how long one pass (from one end of the screen to the other) took in the first experiment. So now, the double-drift stimulus would do a single pass in 4 seconds instead of 2 seconds. This allows more opportunity for resets, but might also make it easier to track the gabor's position, so that errors at the direction changes in the far and close end of the workspace are less likely. Since the passes are longer, we use only 3 full passes in each trial, but run 32 trials in total (instead of the 8 per condition).
 
+Before calculating heading, we've normalized the data, so that the direction of all segments _should_ be the same.
+
+First, here is a figure with the heading distributions across time for all participants as well as the group average:
+
+```{r fig.width=8, fig.height=4, echo=F}
+plotBoundedTracking_V2(target='inline')
+```
+
+Again, we see no time-dependent decrease of heading towards zero, except perhaps at the start of the data for participant 12. Since these are preceded by very large headings, and then settle into the normal range, this participant might have had more trouble responding to the direction reversals of the gabor. The group average reflects this tendency of participant 12 somewhat, but overall the average heading is very close to what was seen in the first trakcing experiment: 28.9 compared to 27.4 or 26.7 degrees.
+
+# Experiment 2: one-pass tracking and psychophysics
+
+Since it seemed that no clear spontaneous resets occurred in the continuous tracking paradigm, we used a re-tracing approach (c.f. @Nakayama2019). 
