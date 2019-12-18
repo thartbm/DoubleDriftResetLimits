@@ -470,7 +470,7 @@ plotOnePass_V4_participants <- function(participants = c(1,2,3,4,5), target='pdf
   
   for (participant in participants) {
     
-    df <- read.csv(sprintf('../data/onepass_V4/onepass_V4_p%02d.csv',participant))
+    df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',participant))
     
     par(mfrow=c(2,1),mar=c(4,4,2,0.1))
     
@@ -610,7 +610,7 @@ plotOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='pdf') 
       
       ppno <- participants[participant.idx]
       
-      df <- read.csv(sprintf('../data/onepass_V4/onepass_V4_p%02d.csv',ppno))
+      df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',ppno))
     
       tasktrials <- unique(df$trial[df$taskname == task])
       
@@ -774,7 +774,7 @@ plotOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='pdf') 
     # boundY <-c()
     
     df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, boundX, boundY)
-    write.csv(df, file=sprintf('../data/onePassV4_%s.csv', task), quote=F, row.names=F)
+    write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
     
   }
   
