@@ -5,11 +5,20 @@ source('R/common.R')
 
 # Data handling -----
 
-getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
+getBoundedTrackingStandardizedSegments <- function(segmentpoints=101, version=1) {
   
   # use these participants:
   participants <- c(1,3,5,6,7,8)
   participants <- c(3,6,7,8) # 1 and 5 are authors
+  folderstr <- 'data/bounded_tracking/'
+  filestr <- 'bounded_tracking_'
+  
+  if (version == 2) {
+    participants <- c(1,2,9,10,11,12,13)
+    participants <- c(2,9,10,11,12,13) # 1 is author
+    folderstr <- 'data/bounded_tracking_V2/'
+    filestr <- 'bounded_tracking_V2_'
+  }
   
   # read all the data into one data frame:
   # BTdata <- NA
@@ -17,7 +26,7 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
   
   for (ppno in participants) {
     
-    ppdf <- read.csv(sprintf('data/bounded_tracking/bounded_tracking_p%02d.csv',ppno), stringsAsFactors = F)
+    ppdf <- read.csv(sprintf('%s%sp%02d.csv',folderstr,filestr,ppno), stringsAsFactors = F)
     ppdf$participant <- ppno
     
     # # get all raw data in one frame?
@@ -69,6 +78,10 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
         segmentdf$handx_pix <- segmentdf$handx_pix - segmentdf$handx_pix[1]
         segmentdf$handy_pix <- segmentdf$handy_pix - segmentdf$handy_pix[1]
         
+        if (version == 2) {
+          segmentdf$handx_pix <- segmentdf$handx_pix * sign(segmentdf$internalSpeed[1])
+        }
+        
         # make new vectors for new data frame:
         participant <-       rep(ppno,                           segmentpoints)
         trial_no <-          rep(segmentdf$trial_no[1],          segmentpoints)
@@ -104,13 +117,18 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101) {
     }
   }
   
-  write.csv(BTSdata, file='data/bounded_tracking/standardized_segments.csv', row.names = F, quote = F)
+  write.csv(BTSdata, file=sprintf('%sstandardized_segments.csv',folderstr), row.names = F, quote = F)
   
 }
 
-getSegmentDirections <- function() {
+getSegmentDirections <- function(version=1) {
   
-  allsegmentdata <- read.csv('data/bounded_tracking/standardized_segments.csv', stringsAsFactors = F) 
+  folderstr <- 'data/bounded_tracking/'
+  if (version == 2) {
+    folderstr <- 'data/bounded_tracking_V2/'
+  }
+  
+  allsegmentdata <- read.csv(sprintf('%sstandardized_segments.csv', folderstr), stringsAsFactors = F) 
   
   allsegmentdata$direction <- NA
   
@@ -125,7 +143,7 @@ getSegmentDirections <- function() {
     allsegmentdata$direction[seg.idx] <- c(NA, ( atan2(diff(segment$handy_pix), diff(segment$handx_pix)) / pi ) * 180)
   }
   
-  write.csv(allsegmentdata, 'data/bounded_tracking/segment_directions.csv', row.names = F, quote = F)
+  write.csv(allsegmentdata, sprintf('%ssegment_directions.csv', folderstr), row.names = F, quote = F)
   
 }
 
@@ -158,7 +176,7 @@ plotBoundedTracking <- function(target='inline') {
   
   plot(-1000,-1000,main='',ylim=c(0.5,length(participants)+2),xlim=c(0.5,5.5),ylab='participant',xlab='internal speed [cps]',asp=1,bty='n',ax=F)
   
-  outlierTrials <- NA
+  #outlierTrials <- NA
   
   for (internalSpeed.idx in c(1:length(internalSpeeds))) {
     
@@ -285,9 +303,76 @@ plotBoundedTracking <- function(target='inline') {
   
 }
 
+
+plotBoundedTracking_V2 <- function(target='inline') {
+  
+  colors <- getColors()
+  
+  stdsegments <- read.csv('data/bounded_tracking_V2/segment_directions.csv', stringsAsFactors = F)  
+  
+  stdsegments$direction[which(stdsegments$direction < 0)] <- NA
+  stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
+    
+  
+  if (target=='svg') {
+    svglite(file='doc/Fig03e.svg',width=6,height=6)
+  }
+  
+  layout(matrix(c(1,2,7,3,4,7,5,6,7), 3, 3, byrow = TRUE), widths=c(1,1,3), heights=c(1,1,1))
+  
+  participants <- sort(unique(stdsegments$participant))
+  
+  par(mar=c(4.1,4.1,2.1,0.1))
+  
+  freq2D <- NA
+  avgDir <- c()
+  
+  for (participant in participants) {
+    
+    # this is the part of the data we're dealing with now:
+    idx <- which(stdsegments$participant == participant)
+    
+    # we put it into a normalized 2D histogram:
+    pfreq <- hist2d(x=stdsegments$direction[idx], y=stdsegments$sample_no[idx], nbins=NA, edges=list(seq(0,180,length.out=61), seq(1,101,4)+0.5))
+    #pfreq$freq2D <- sqrt(pfreq$freq2D / sum(pfreq$freq2D))
+    
+    if (!is.matrix(freq2D)) {
+      freq2D <- pfreq$freq2D
+    } else {
+      freq2D <- freq2D + pfreq$freq2D
+    }
+    
+    # also get the average, to plot on top of the polar heat map:
+    PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
+    avgDir <- c(avgDir, PPavgDir$direction)
+    
+    # plot this participant:
+    polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, mincol=c(1,1,1), border=NA, ylim=c(0,1), main=sprintf('participant: %d', participant), overlay=FALSE)
+    
+    scale <- ((PPavgDir$sample_no+30) / (max(PPavgDir$sample_no)+30))
+    adX <- (cos((PPavgDir$direction/180)*pi) * scale)
+    adY <- (sin((PPavgDir$direction/180)*pi) * scale)
+    lines(adX,adY,col=colors[['blue']]$s,lw=2)
+    
+  }
+  
+  polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, mincol=c(1,1,1), border=NA, ylim=c(0,1), main='group average', overlay=FALSE)
+  
+  avgDir <- (rowMeans( matrix(avgDir, ncol=length(participants), byrow=FALSE) ) / 180) * pi
+  text(0, 1.2, sprintf('%0.1f°',90 - ( ( mean(avgDir) / pi) * 180 ) ) )
+  #scale <- ((PPavgDir$sample_no+30) / (max(PPavgDir$sample_no)+30))
+  adX <- (cos(avgDir) * scale)
+  adY <- (sin(avgDir) * scale)
+  lines(adX,adY,col=colors[['blue']]$s,lw=2)
+  
+  
+  if (target %in% c('svg')) {
+    dev.off()
+  }
+  
+}
+
 # Statistics -----
-
-
 
 analyzeBoundedTracking <- function(target='inline') {
   
@@ -333,10 +418,15 @@ analyzeBoundedTracking <- function(target='inline') {
   # first an F-test (or one-factort ANOVA) to see if internal speed affects heading:
   anaData$participant <- as.factor(anaData$participant)
   anaData$internal_speed <- as.factor(anaData$internal_speed)
-  AOVobj <-  ezANOVA(data=anaData, dv=direction, wid=participant, within=internal_speed, type=3)
   
-  cat('\n**\n** repeated measures F-test on a model predicting heading from internal speed:\n**\n\n')
-  print(AOVobj)
+  if ('ez' %in% installed.packages()) {
+    
+    AOVobj <-  ezANOVA(data=anaData, dv=direction, wid=participant, within=internal_speed, type=3)
+    
+    cat('\n**\n** repeated measures F-test on a model predicting heading from internal speed:\n**\n\n')
+    print(AOVobj)
+    
+  }
   
   # post-hoc test: which internal speeds result in different headings from each other?
   # Tukey's HSD? why not...
