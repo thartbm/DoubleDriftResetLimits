@@ -1,93 +1,6 @@
 library('optimx')
 
 
-# combined geometric model -----
-
-resetModel <- function(par,directions,verbose=FALSE) {
-  
-  Lx <- par['Lx']
-  Ly <- par['Ly']
-  a  <- par['a']
-  
-  slopes <- sin(directions) / cos(directions)
-  
-  Y <- (a * Lx * slopes) + ((1-a) * Ly)
-  X <- (a * Lx)          + ((1-a) * Ly / slopes)
-  
-  resets <- data.frame(X,Y)
-  
-  if (verbose) {
-    cat(sprintf('Lx: %0.3f, Ly: %0.3f, a: %0.3f\n',Lx,Ly,a))
-  }
-  
-  return(resets)
-  
-}
-
-resetModelMSE <- function(par,directions,coords) {
-  
-  # the Lx, Ly and a parameters should be between 0 and 1, but optimx checks that
-  
-  resets <- resetModel(par,directions)
-  
-  MSE <- mean( (resets$X - coords$X)^2 + (resets$Y - coords$Y)^2 )
-  
-  return(MSE)
-  
-}
-
-fitResetModel <- function(directions,X,Y) {
-  
-  # convert input to more useful variables:
-  coords <- data.frame(X,Y)
-  directions <- ((90 - directions) / 180) * pi
-  
-  # create search grid:
-  
-  # # bound to "reasonable" values:
-  # Lx=seq(0,3/13.5,.05)
-  # Ly=seq(.5,1,.05)
-  # a=seq(0,1,.05)
-  
-  # bound to data:
-  #Lx=seq(0,median(X),diff(range(X))/10)
-  #Ly=seq(median(Y),1,diff(range(Y))/10)
-  
-  # bound to data:
-  Lx=seq(0,median(X),diff(range(X))/10)
-  Ly=seq(median(Y),1,diff(range(Y))/10)
-  a=seq(0,1,.1)
-  
-  searchgrid <- expand.grid('Lx'=Lx, 'Ly'=Ly, 'a'=a) # 11^3 combinations
-  
-  # get MSE for points in search grid:
-  MSE <- apply(searchgrid,FUN=resetModelMSE,MARGIN=c(1),directions=directions,coords=coords)
-  
-  # get 5 best points in the grid:
-  topgrid <- searchgrid[order(MSE)[1:5],]
-  
-  allfits <- do.call("rbind",
-                     apply( topgrid,
-                            MARGIN=c(1),
-                            FUN=optimx,
-                            fn=resetModelMSE,
-                            method='L-BFGS-B',
-                            lower=c(min(Lx),min(Ly),min(a)),
-                            upper=c(max(Lx),max(Ly),max(a)),
-                            directions=directions,
-                            coords=coords ) )
-  # print(allfits)
-  # pick the best fit:
-  win <- allfits[order(allfits$value)[1],]
-  # print(win[1:3])
-  
-  winpar <- as.numeric(win[1:3])
-  names(winpar) <- names(win[1:3])
-  
-  return(winpar)
-  
-}
-
 
 # separated geometric models -----
 
@@ -207,35 +120,208 @@ fitSeparateXYresetModels <- function(directions,X,Y) {
   
 }
 
-fitSeparateModelsOnData <- function() {
+fitSeparateModelsOnData <- function(verbosity=0) {
   
-  df <- summarizeTraceBoundsV4()
-  df$externalspeed[which(df$externalspeed == 0.125)] <- 4
-  df$externalspeed[which(df$externalspeed == 0.167)] <- 3
+  df <- getTimeNormalizedData()
   
-  df$boundY_mean[which(df$externalspeed == 3)] <- 0.75 * df$boundY_mean[which(df$externalspeed == 3)]
-  
-  df <- df[which(df$initialdirection_mean > 5),]
-  
+  # gets the two separate fits:
   fit <- fitSeparateXYresetModels(directions=df$initialdirection_mean,
                                   X=df$boundX_mean * 13.5,
                                   Y=df$boundY_mean * 13.5)
-  cat('limit parameters:\n')
-  print(fit$par * c(1, 4/13.5))
-  cat('limit MSEs:\n')
-  print(fit$MSE)
   
-  # the AIC parameters are the same for both models, except the MSEs
-  N <- 9
-  # this is then used for C:
-  C <- N*(log(2*pi)+1)
+  if (verbosity > 0) {
+    cat('limit parameters [cm and s]:\n')
+    #print(fit$par)
+    print(fit$par * c(1, 4/13.5))
+    cat('limit MSEs:\n')
+    print(fit$MSE)
+    
+    # the AIC parameters are the same for both models, except the MSEs
+    # N <- (9*6)-1
+    N <- length(df$boundX_mean)
+    # this is then used for C:
+    C <- N*(log(2*pi)+1)
+    
+    AICs <- 2 + N*log(fit$MSE) + C
+    cat('limit AICs:\n')
+    print(AICs)
+    
+    relativeLikelihoods <- exp((min(AICs)-AICs)/2)
+    cat('limit relative likelihoods:\n')
+    print(relativeLikelihoods)
+  }
   
-  AICs <- 2 + N*log(fit$MSE) + C
-  cat('limit AICs:\n')
-  print(AICs)
+}
+
+
+# weighted geometric model -----
+
+resetModel <- function(par,slopes,verbose=FALSE) {
   
-  relativeLikelihoods <- exp((min(AICs)-AICs)/2)
-  cat('limit relative likelihoods:\n')
-  print(relativeLikelihoods)
+  Lx <- par['Lx']
+  Ly <- par['Ly']
+  a  <- par['a']
+  
+  Y <- (a * Lx * slopes) + ((1-a) * Ly)
+  X <- (a * Lx)          + ((1-a) * Ly / slopes)
+  
+  resets <- data.frame(X,Y)
+  
+  if (verbose) {
+    cat(sprintf('Lx: %0.3f, Ly: %0.3f, a: %0.3f\n',Lx,Ly,a))
+  }
+  
+  return(resets)
+  
+}
+
+resetModelMSE <- function(par,slopes,coords) {
+  
+  # the Lx, Ly and a parameters should be between 0 and 1, but optimx checks that
+  
+  resets <- resetModel(par,slopes)
+  
+  MSE <- mean( (resets$X - coords$X)^2 + (resets$Y - coords$Y)^2 )
+  
+  return(MSE)
+  
+}
+
+fitResetModel <- function(slopes,X,Y) {
+  
+  # convert input to more useful variables:
+  coords <- data.frame(X,Y)
+  
+  # create search grid:
+  
+  # # bound to "reasonable" values:
+  # Lx=seq(0,3/13.5,.05)
+  # Ly=seq(.5,1,.05)
+  # a=seq(0,1,.05)
+  
+  # bound to data:
+  #Lx=seq(0,median(X),diff(range(X))/10)
+  #Ly=seq(median(Y),1,diff(range(Y))/10)
+  
+  # bound to data:
+  Lx=seq(0,median(X),diff(range(X))/10)
+  Ly=seq(median(Y),13.5,diff(range(Y))/10)
+  a=seq(0,1,.1)
+  
+  searchgrid <- expand.grid('Lx'=Lx, 'Ly'=Ly, 'a'=a) # 11^3 combinations (1331)
+  
+  # get MSE for points in search grid:
+  MSE <- apply(searchgrid,FUN=resetModelMSE,MARGIN=c(1),slopes=slopes,coords=coords)
+  
+  # get 5 best points in the grid:
+  topgrid <- searchgrid[order(MSE)[1:5],]
+  
+  allfits <- do.call("rbind",
+                     apply( topgrid,
+                            MARGIN=c(1),
+                            FUN=optimx,
+                            fn=resetModelMSE,
+                            method='L-BFGS-B',
+                            lower=c(min(Lx),min(Ly),min(a)),
+                            upper=c(max(Lx),max(Ly),max(a)),
+                            slopes=slopes,
+                            coords=coords ) )
+  # print(allfits)
+  # pick the best fit:
+  win <- allfits[order(allfits$value)[1],]
+  # print(win[1:3])
+  # print(win)
+  
+  winpar <- as.numeric(win[1:3])
+  names(winpar) <- names(win[1:3])
+  
+  return(winpar)
+  
+}
+
+
+# sequential geometric model -----
+
+resetModelSeq <- function(par,slopes,verbose=FALSE) {
+  
+  Lx <- par['Lx']
+  Ly <- par['Ly']
+  
+  Y <- (Lx * slopes) + Ly
+  X <- (Ly / slopes) + Lx
+  
+  return(data.frame(X,Y))
+  
+}
+
+resetModelSeqMSE <- function(par, slopes, coords) {
+  
+  # cat('parameters:\n')
+  # print(par)
+  
+  resets <- resetModelSeq(par,slopes)
+  # cat('Reset points:\n')
+  # print(resets)
+  
+  MSE <- mean( (resets$X - coords$X)^2 + (resets$Y - coords$Y)^2 )
+  # cat('MSE:\n')
+  # print(MSE)
+  
+  return(MSE)
+  
+}
+
+fitResetModelSeq <- function(slopes,X,Y) {
+  
+  # convert input to more useful variables:
+  coords <- data.frame(X,Y)
+
+  # create search grid:
+  
+  # # bound to "reasonable" values:
+  # Lx=seq(0,3/13.5,.05)
+  # Ly=seq(.5,1,.05)
+  # a=seq(0,1,.05)
+  
+  # bound to data:
+  #Lx=seq(0,median(X),diff(range(X))/10)
+  #Ly=seq(median(Y),1,diff(range(Y))/10)
+  
+  # bound to data:
+  Lx=seq(0,median(X),diff(range(X))/10)
+  Ly=seq(0,median(Y),diff(range(Y))/10)
+  
+  searchgrid <- expand.grid('Lx'=Lx, 'Ly'=Ly) #
+  # print(searchgrid)
+  
+  # get MSE for points in search grid:
+  MSE <- apply(searchgrid,FUN=resetModelSeqMSE,MARGIN=c(1),slopes=slopes,coords=coords)
+  
+  # cat('(evaluated search grid)\n')
+  
+  # get 5 best points in the grid:
+  topgrid <- searchgrid[order(MSE)[1:5],]
+  # print(topgrid)
+  
+  allfits <- do.call("rbind",
+                     apply( topgrid,
+                            MARGIN=c(1),
+                            FUN=optimx,
+                            fn=resetModelSeqMSE,
+                            method='L-BFGS-B',
+                            lower=c(0,0),
+                            upper=c(max(Lx),max(Ly)),
+                            slopes=slopes,
+                            coords=coords ) )
+  # print(allfits)
+  # pick the best fit:
+  win <- allfits[order(allfits$value)[1],]
+  # print(win[1:3])
+  # print(win)
+  
+  winpar <- as.numeric(win[1:2])
+  names(winpar) <- names(win[1:2])
+  
+  return(winpar)
   
 }
