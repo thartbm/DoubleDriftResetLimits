@@ -1,39 +1,42 @@
 ---
-title: "Limits to Spontaneous Resets in the Double-Drift Illusion"
+title: "Double-Drift Illusion Boundaries"
 output:
   word_document: default
   html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
 ---
 
 # Overview
 
-State aims of the project. Say which experiments were done and are analyzed here.
+We want to see if we can find reset points in tajectories people draw while or after seeing a double-drift stimulus, with the goal to see if we can figure out if those resets occur after a certain time interval (like perception in other illusions) or if it occurs when the percept reaches certain spatial difference with the true position.
 
-# Setting up
+![Stimuli and Setup. *Top left*: a gabor with internal motion (phase shifts) and external motion, that is viewed peripherally, appears to follow a path deviating from the true path. Eye-movements immediately following disappearance of the gabor land at the true position, but pointing movements and delayed eye-movements go to the illusory position. *Bottom left*: at some point, the perceived position will "reset" towards the true position. For some people this takes the form of a "jump" back to the true position, for others it means the illusory position doesn't deviate more from the true position, and there are some in between version. *Top right*: if these resets are due to a spatial limit on the size of the illusory position shift, the points of the resets should have a constant X coordinate. *Middle right*: if they occur after some period of time, they should have a constant Y coordinate. *Bottom right*: we have people track or re-trace their percept and try to isolate reset points from the drawn trajectories to figure out where or when resets occur. ](doc/stimulus_reset.png){width=100%}
+
+# Setting up the R session
 
 Before starting any analyses, we need to make sure that we have all the code and data necessary, this will be set up by the chunks below
 
 ## Libraries
 
-We've minimized depencies on other packages, but there are two that help - even when not strictly required.
+We've minimized depencies on other packages, but there are two that help. Of course, you can skip the chunks that use them, or just install them by uncommenting the second line of this chunk:
 
 ```{r}
-library('svglite')
-library('ez')
-
-# these packages are not mandatory
-# - svglite generates SVG versions of the figures, but the native R figures might be enough
-# - ez allows one ANOVA to be run, but this part could be skipped
-
-# if you do want to install them, use this:
+# install the dependencies using this command:
 # install.packages(c('svglite','ez'))
 # they seem to rely on other packages: 'data.table', 'ggplot2', 'dplyr', 'lme4', and 'car'
 
+library('svglite')
+library('ez')
+
+# - svglite generates SVG versions of the figures, but you can see the inline R figures in the notebook:
+# - ez allows one F-test to be run, but it's not central to the paper
 ```
 
-## Functions
+## Source files
 
-There are several files with code that will do the work for us in pre-processing, plotting and doing stats.
+There are several files with functions that will do the work for us in pre-processing, plotting and doing stats.
 
 ```{r}
 # The functions here allow downloading the collected data from the OSF project:
@@ -71,23 +74,25 @@ getBoundedTrackingStandardizedSegments(segmentpoints=101, version=1)
 getSegmentDirections(version=1)
 ```
 
+This will create pre-processed data files in the directory: `data/bounded_tracking`.
+
 Then we plot the trajectories recorded during this task (each subplot essentially shows 8 trials overlayed), and in the top row we show the average heading as a thicker line, as well as a 2D polar histogram showing the distribution of headings.
 
-```{r fig.width=7, fig.height=6, echo=F}
+```{r fig.width=7, fig.height=6}
 # from R/tracking_bounded.R:
 plotBoundedTracking()
 ```
 
-The top row shows average instantaneous heading (as actual direction) over time (distance from origin), with a polar heatmap of all the data in the background. The middle 1 second of each pass of the gabor is used, so that the inversions at the far and close end of the workspace are excluded from the average heading data. Since headin doesn't change throughout these segments (stats?) we take the average heading across all segments for every participant and every internal speed to do statistical analyses.
+The top row shows average instantaneous heading (as actual direction) over time (distance from origin), with a polar heatmap of all the data in the background. The first and last 0.5 second of each pass is stripped, so that the inversions at the far and close end of the workspace are excluded from the average heading data. In this case the middle 1 second of each pass of the gabor is used for the heading plots. Since heading doesn't change throughout these segments (stats?) we take the average heading across all segments for every participant and every internal speed to do statistical analyses.
 
 ```{r}
 analyzeBoundedTracking()
 ```
 
 
-First we want to see if internal motion affects illusion strength as measured by instantaneous heading direction. A repeated measures ANOVA on a model using internal speed to predict heading direction shows that heading direction in tracking data is a good measure of illusion strength (F(4,12)=102.7, p<.001, ges=0.97, Greenhouse-Geisser corrected). This effect is not caused by one internal speed giving different directions, but by each internal speed resulting in different heading directions from it's direct neighbour (4 FDR-corrected, pairwise, one-sided t-tests: all p<.025).
+First we want to see if internal motion affects illusion strength as measured by instantaneous heading direction. A repeated measures ANOVA (or F-test) on a model using internal speed to predict heading direction shows that internal motion affects heading direction in tracking data (F(4,12)=102.7, p<.001, ges=0.97, Greenhouse-Geisser corrected). This effect is not caused by one internal speed giving different directions, but by each internal speed resulting in different heading directions from it's direct neighbour (4 FDR-corrected, pairwise, one-sided t-tests: all p<.025). That means heading direction is a good measure of illusion strength.
 
-A few of the tracking paths might be reflecting a reset (four of them are plotted in red in Fig 2). However, there are only a few and it's not clear they represent resets, or tracking errors made when changing direction at the far and close end of the workspace. The heading distributions don't seem to show any systematic deflections from the average heading, for eample evoked after a specific amount time.
+A few of the tracking paths might be reflecting a reset (four examples are plotted in red in Fig 2). However, there are only a few and it's not clear they represent resets, or tracking errors made when changing direction at the far and close end of the workspace. The heading distributions don't seem to show any systematic (time-locked) deflections from the average heading.
 
 # Experiment 1b: continuous tracking with 4 second segments
 
@@ -97,12 +102,108 @@ Before calculating heading, we've normalized the data, so that the direction of 
 
 First, here is a figure with the heading distributions across time for all participants as well as the group average:
 
-```{r fig.width=8, fig.height=4, echo=F}
+```{r fig.width=8, fig.height=4}
 plotBoundedTracking_V2(target='inline')
 ```
 
-Again, we see no time-dependent decrease of heading towards zero, except perhaps at the start of the data for participant 12. Since these are preceded by very large headings, and then settle into the normal range, this participant might have had more trouble responding to the direction reversals of the gabor. The group average reflects this tendency of participant 12 somewhat, but overall the average heading is very close to what was seen in the first trakcing experiment: 28.9 compared to 27.4 or 26.7 degrees.
+Again, we see no time-dependent decrease of heading towards zero, except perhaps at the start of the data for participant 12. Since these are preceded by very large headings, and then settle into the normal range, this participant might have had trouble responding to the direction reversals of the gabor rather then show resets, but it's somewhat unclear. The group average reflects this tendency of participant 12 somewhat, but overall the average heading is very close to what was seen in the first trakcing experiment: 28.9 compared to 27.4 or 26.7 degrees. So depsite the slower external movement, the illusion was about equally strong, but did not lead to consistent resets.
 
 # Experiment 2: one-pass tracking and psychophysics
 
-Since it seemed that no clear spontaneous resets occurred in the continuous tracking paradigm, we used a re-tracing approach (c.f. @Nakayama2019). 
+Since it seemed that no clear spontaneous resets occurred in the continuous tracking paradigm, we used a re-tracing approach (c.f. @Nakayama2019). In this next experiment, participants first were presented with a double-drift stimulus starting close, and moving away from them, for a single pass across the workspace (while fixating to the left or right, at random). In two kinds of blocks participants had to either indicate the initial direction by adjusting the orientation of a line originating at the sarting point of the gabor, or they had to retrace the perceived path of the gabor. When retracing the path, the trajectory so far was shown on the screen, and it could be deleted to start over. The idea was that if the simultaneous tracking from the first tasks either interfered with the percept or made it hard to quickly report resets, this paradigm would overcome either problem, or both.
+
+In this experiment we did not control the strength of the illusion. In order to sample diverse illusion strengths, the external motion of 13.5 cm took either 3 or 4 seconds (~5.2 or ~3.4 cm/s), and the internal motion was set to either 2, 3 or 4 cps (corresponding to about 3.4, 5.2 or 6.9 cm/s). That means there are 6 different stimuli. Fixation was to the left or right (at random) and the internal motion could either be to the left or right as well (counterbalanced, and normalized to rightward motion in pre-processing). The resulting trajectories in the re-tracing condition seemed to show a reset in the majority of trials, for a few examples, see Fig XXXX.
+
+In order to determine the point of reset automatically, we took the first sign change of the X coordinate. Since the start of the tracing often was somewhat "shaky" we disregarded sign changes in the first XXX cm. Since the trajectories are measured in discrete pixel values, sign changes were clearer after slight smoothing of the trajectories, using splines.
+
+
+
+
+We validate this measure of detecting resets as follows. The angle of a straight line to the reset point should have approximately the same angle as the oriented lines indicating the initial direction of the gabor. We take the average initial directions and the average X and Y coordinates of detected reset points, for every participant in each of the 6 conditions. First, we test if the initial perceived direction as participants inidicated with the oriented line, responds to the different internal and external motion speeds. Second, we perform a regression of the angle to the reset point on the angle of the initial direction responses.
+
+```{r fig.width=8, fig.height=4}
+plotValidity(target='inline')
+```
+
+It looks like the initial percept angle responds to internal and external motion (speed) somewhat, and like there is some relationship between both measures, although not as strong as it might be. We verify both observations.
+
+```{r}
+testValidity()
+```
+
+
+First, we perform a repeated measures ANOVA on a model predicting (averaged) line angle, as a measure of the initial percept of the direction of motion from the internal and external speed of the stimulus. There is an effect of internal speed (F(2,16)=12.7, p<.001, ges=0.049) as well as of external speed (F(1,8)=6.89, p=.030, ges=0.031) on the line angles, and no interaction. This means that stimulus speeds affected perceived paths as expected and that the line angle responses captured this to some extent.
+
+Now, we want to see if the re-tracing paths capture the strength of the illusion, similarly to how the line angles capture illusion strength - at least up to the reset point. We do a linear regression of average reset point angle on average line angle in the same condition for every participant (then remove two outliers and redo the regression), **but this is not significant (R2(50)=.051, p=.058)**. (This is not the regression shown in the figure.) When looking at the raw data in the figure, it seems like the error in each variable is larger for increasing values of the other variable. If true, this would mean two things. First, given the apparently increasing variability of measurement (measurement error?) of each variable on the magnitude of the other variable, the errors of the fit for each point need to be weighted (e.g. by the distance to the origin, or something similar). Second, simple linear regression strictly speaking doesn't allow for (much) measurement error in the independent variable: orthogonal distance regression (or maybe total least squares) would be better suited for such data.
+
+Let's first solve the weighting problem, as that is straightforward: we add `1 / (distance to origin)` as the vector of weights to the linear model. The line angle responses in this weighted linear model _do_ predict reset point angle (R2(50)=0.15, p=.003). Orthogonal distance regression with weights should be possible, but there is no ready-made implementation (at least not that I could find), and it may also be completely redundant. That is: I will skip this for now.
+
+We're reasonably sure that the method of distilling reset points from trajectories works, so let's see what data there is. First we look at the data, and plot the reset coordinates in a time-spatial representation: X coordinates in centimeters, and Y coordinates converted to seconds (or scaled normalized centimeters that account for the different durations of the 3 s and 4 s pass conditions). We can also plot the X and Y coordinates over the strength of the illusion, expressed as the angle of the line from the start point of the gabor to the reset point relative to straight forward.
+
+```{r fig.width=7, fig.height=5}
+plotResetPoints()
+```
+
+In the figure with the reset point coordinates, we show the true path of the gabor as a gray arrow, and add potential limits by plotting the median X and Y coordinates as dashed lines. These are put at ~1.6 cm for the spatial limit and ~1.0 s for the temporal limit. The median X coordinate seems to describe the reset point distribution somewhat better.
+
+We can also fit models that use one or the other limit, using a least-squared error algorithm (using a constrained, quasi-Newton method). In these single-limit models, the errors are the distance of the fitted reset point from the actual reset point in normalized centimeters. Perhaps unsurprisingly, the limits found by these two models are qualitatively not very different from the medians of the coordinates. Of course, using a single, set value for the Y coordinate should result in a worse fit. And this is confirmed by AIC-based relative likelihoods:
+
+```{r}
+fitSeparateModelsOnData(verbosity = 1)
+```
+
+The mean, squared error and AIC is larger for a temporal limit, than for a spatial limit, and the relative likelihood of a temporal limit is a fraction of that of a spatial limit (p<.001). It does seem that a spatial limit would fit the data better.
+
+Nevertheless, we now try to fit both coordinates with a single model. In a first model, we simply combine both, i.e. there is both a spatial and a temporal limit, and we fit a weight parameter that balances the two components. The data with the fitted model looks like this:
+
+```{r, fig.width=7, fig.height=5}
+plotInterdependentModel()
+```
+
+Of course the MSE for this model is lower than either of the single-limit models: 2.267313. But the AIC might not be:
+
+```{r}
+# MSEs <- c('Lx'=2.603413, 'Ly'=4.027378, 'wLx+wLy'=2.267313)
+# 
+# N <- (9*6)-1 # number of observations (participants? or participants times conditions?)
+# # this is then used for C:
+# C <- N*(log(2*pi)+1)
+# 
+# AICs <- (2 * c(1,1,3)) + N*log(MSEs) + C
+# cat('model AICs:\n')
+# print(AICs)
+#   
+# relativeLikelihoods <- exp((min(AICs)-AICs)/2)
+# cat('\nrelative log-likelihoods:\n')
+# print(relativeLikelihoods)
+```
+
+If we use the number of participants as the number of observations, the single limit on X is still the favourable model. If we use the rows of the data frame, or the number of points in the plot, it is the double limit model.
+
+The main advantage of this model is that it includes a weight that decides how much of the result depends on a spatial limit and also how much depends on a time limit. This weight is fitted at around 80%, which gives a rather different picture then the relative likelihoods of the single limit models: there is substantial room for an effect of time.
+
+It is possible that after crossing a spatial limit, some small amount of time has to pass before perception is reset towards the true, retinal position. Therefore, we fit another model that expresses this idea.
+
+```{r}
+plotSequentialModel()
+```
+
+The fit seems the same as that of the weighted model, and indeed the MSE is identical. That is: the two models lead to exactly the same predicted reset points. Let's see what the AICs and relative log-likelihoods are.
+
+```{r}
+MSEs <- c('Lx'=2.603413, 'Ly'=4.027378, 'wLx+wLy'=2.267313, 'Lx->Ly'=2.267313)
+
+N <- (9*6)-1 # number of observations (participants? or participants times conditions?)
+# this is then used for C:
+C <- N*(log(2*pi)+1)
+
+AICs <- (2 * c(1,1,3,2)) + N*log(MSEs) + C
+cat('model AICs:\n')
+print(AICs)
+  
+relativeLikelihoods <- exp((min(AICs)-AICs)/2)
+cat('\nrelative log-likelihoods:\n')
+print(relativeLikelihoods)
+```
+
+Since the sequential model has two parameters instead of three, it is slightly better, but not significantly so. While the sequential model allows estimating the actual spatial and temporal limits, the weighted model allows estimating the relative importance of the spatial and temporal limits.
