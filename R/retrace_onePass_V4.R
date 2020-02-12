@@ -912,6 +912,8 @@ plotSequentialModel <- function(target='inline') {
 
   par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
   
+  print(par)
+  
   #coords <- data.frame(X=df$boundX_mean,Y=df$boundY_mean)
   #directions <- ((90 - df$initialdirection_mean) / 180) * pi
   
