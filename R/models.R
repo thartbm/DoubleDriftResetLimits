@@ -6,6 +6,8 @@ library('optimx')
 
 resetXfromYlim <- function(par,slopes) {
   
+  # time limit
+  
   Ly <- par['Ly']
 
   X <- Ly / slopes
@@ -16,6 +18,8 @@ resetXfromYlim <- function(par,slopes) {
 
 
 resetYfromXlim <- function(par,slopes) {
+  
+  # space limit
   
   Lx <- par['Lx']
   
