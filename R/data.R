@@ -22,7 +22,9 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'b
         'bounded_tracking_p05.csv' = 'https://osf.io/trzdx/download',
         'bounded_tracking_p06.csv' = 'https://osf.io/qywdc/download',
         'bounded_tracking_p07.csv' = 'https://osf.io/59pcd/download',
-        'bounded_tracking_p08.csv' = 'https://osf.io/sfjc6/download'
+        'bounded_tracking_p08.csv' = 'https://osf.io/sfjc6/download',
+        
+        'bounded_tracking_participants.csv' = 'https://osf.io/gtycq/download'
         
       )
       
@@ -57,7 +59,9 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'b
         'onepass_V4_p08.csv' = 'https://osf.io/vpw3n/download',
         'onepass_V4_p09.csv' = 'https://osf.io/tm3c8/download',
         'onepass_V4_p10.csv' = 'https://osf.io/8u9rb/download',
-        'onepass_V4_p11.csv' = 'https://osf.io/v4d8p/download'
+        'onepass_V4_p11.csv' = 'https://osf.io/v4d8p/download',
+        
+        'onepass_V4_participants.csv' = 'https://osf.io/e2k8c/download'
         
       )
       
@@ -83,7 +87,9 @@ downloadRawData <- function(overwrite=TRUE, experiments=c('bounded_tracking', 'b
         'bounded_tracking_V2_p10.csv' = 'https://osf.io/8g4q9/download',
         'bounded_tracking_V2_p11.csv' = 'https://osf.io/axqcy/download',
         'bounded_tracking_V2_p12.csv' = 'https://osf.io/fjpz6/download',
-        'bounded_tracking_V2_p13.csv' = 'https://osf.io/cyj49/download'
+        'bounded_tracking_V2_p13.csv' = 'https://osf.io/cyj49/download',
+        
+        'bounded_tracking_V2_participants.csv' = 'https://osf.io/jzp5m/download'
         
         # 'reset_p01.csv' = 'https://osf.io/739dp/download',
         # 'reset_p02.csv' = 'https://osf.io/w7kht/download',
