@@ -5,10 +5,10 @@ author:
 - Denise Y.P. Henriques 1
 - Patrick Cavanagh 1,2,3
 output:
+  word_document: default
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
-  word_document: default
 bibliography: bibliography.bib
 csl: journal-of-vision.csl
 ---
@@ -69,32 +69,46 @@ For the first task in experiment 1, 4 participants were recruited from the lab (
 
 ## Setup
 
-Participants used a stylus on a horizontal drawing tablet (Intuos Pro) to indicate where they perceived the location of a gabor (see Fig 1e), as well as a keypad for additional responses. Stimuli were displayed on a downward facing LED monitor (30 Hz, 20”, 1680x1050), level with the drawing tablet. These were observed through an upward facing mirror placed exactly between the tablet and monitor, so that the stimuli appear to be in the same horizontal plane as the hand. The stimuli were phase-changing gabor patches 
+Participants used a stylus on a horizontal drawing tablet (Wacom Intuos Pro) to indicate where they perceived the location of a gabor (see Fig 1, bottom right), as well as a keypad for additional responses. Stimuli were displayed on a downward facing LED monitor (30 Hz, 20”, 1680x1050), level with the drawing tablet. These were observed through an upward facing mirror placed exactly between the tablet and monitor, so that the stimuli appear to be in the same horizontal plane as the hand.
+
+## Stimuli
+
+The stimuli were phase-changing gabor patches of XX _cm_ (150 _px_ or ~XX _dva_), based on 1.5 phases of a sine wave.
 - size of stimuli in cm, speed in cm/s (with guesstimates of dva?)
 
 ## Analyses
 
 Experiments were run in Python 2.7 with PsychoPy [@Peirce2019] and analyses were done in R 3.6.1 [@Rproject].
 
-
 # Experiment 1: Continuous tracking
-In this experiment, two tasks were performed by two separate groups of participants. Both tasks asked participants to use a stylus on a drawing tablet to track a moving gabor with some amount of internal motion that elicited the double-drift illusion. The idea was that whenever spontaneous resets occur, this would be recorded in the tracking data.
+
+In this experiment, two tasks were performed by two separate groups of participants. Both tasks asked participants to use a stylus on a drawing tablet to track a moving gabor with some amount of internal motion that elicited the double-drift illusion. The idea was that whenever spontaneous resets ofthe illusion occur, these would be recorded in the tracking data as sudden changes in heading (cf. Fig 1, bottom left, the dashed purple lines).
 
 ## Tasks
 
-Two similar tasks were used in this experiment. In the first task, 5 different amounts of internal motion were used, including no internal motion as a baseline (-3, -1, 0 , 1 and 3 cps). The stimulus started in the middle, and moved forward and backward several times including 5 complete passes of 13.5 cm (~XXX dva) and 2 seconds each. Each stimulus was repeated 8 times, with randomized position of the fixation point (left or right) of the stimulus and counterbalanced initial external motion direction (forward or backward). This task allowed testing how sensitive online tracking is to the illusion, and served to gauge what resets would look like in tracking data.
+Two similar tasks were used in this experiment. In the first task, 5 different amounts of internal motion were used, including no internal motion as a baseline (-3, -1, 0 , 1 and 3 _cps_). Before stimulus onset
 
-In the second task, only the highest internal motion was used (-3 or 3 cps), trials include only 3 complete passes, but these took 4 seconds each. As before, the fixation point (left or right) was random for each trial and initial external motion (forward or backward) was counterbalanced across trials.
+The stimulus started in the middle, and moved forward and backward several times including 5 complete passes of 13.5 _cm_ (~XXX _dva_) and 2 _s_ each. The initial external motion direction (forward or backward) was counterbalanced. When the external motion inverted at the far and close ends of the trajectory, the internal motion was also inverted. Each stimulus was repeated 8 times, with randomized position of the fixation point (left or right) of the stimulus and counterbalanced initial external motion direction (forward or backward). This task allowed testing how sensitive online tracking is to the illusion, and served to gauge what resets would look like in tracking data.
+
+**DOUBLE PARAGRAPH; CHECK WHAT IS MISSING**
+
+In a first experiment, participants were asked to continuously track the position of a gabor that moved forward and backward along the Y-axis (of the horizontal screen) for the duration of 12 _s_, using a stylus on a drawing tablet. Before trial onset, the participant moved the stylus to the middle of the screen (where the gabor would appear), and was subsequently asked to fixate a point on the left or right of the screen, and given 1.5 _s_ to do so. Since the screen was seen via a mirror, the stimulus appeared to move on a horizontal plane at the same depth as the drawing tablet. The internal motion of the gabor was inverted at the far and close ends of the physical path, where external motion was also inverted. Internal motion could be 3, 1, 0, -1 or -3 _cps_. Since each moving gabor was shown for 12 _s_, and it moved from one end to another in 2 _s_, it completed 5 full and 2 half passes of the path (or 3 cycles).
+
+In the second task, only the highest internal motion was used (±3 _cps_), trials include only 3 complete passes, but these took 4 _s_ each. As before, the fixation point (left or right) was random for each trial, while initial external motion (forward or backward) as well as internal motion were counterbalanced across trials.
 
 ## Results
 
-In a first experiment, participants were asked to continuously track the position of a gabor that moved forward and backward along the Y-axis (of the horizontal screen) for the duration of X seconds, using a stylus on a drawing tablet. Before trial onset, the participant moved the stylus to the middle of the screen (where the gabor would appear), and was then asked to fixate a point on the left or right of the screen, and given X seconds to do so. Since the screen was seen via a mirror, the stimulus appeared to move on a horizontal plane at the same depth as the drawing tablet. The internal motion of the gabor was inverted at the far ends of the external motion, and could be X, Y, 0, -Y or -X. Since each moving gabor was shown for Z seconds, it completed A full and B half sweeps of the path (or C cycles), which should allow for spontaneous resets to occur frequently.
+In Figure 2 (top), we plot the average instantaneous heading during the middle second of each 2 _s_ pass (as tracking was noisy at the inversion points) for each of the 5 internal motion speeds (normalized for the external motion). The average angle of the tracked path is given in degrees deviation from straight forward. It seems that continuous tracking is sensitive to the strength of the illusion, and this is confirmed by a repeated-measures F-test on the average angles, using internal motion as a within-subjects factor (_F_(4,12)=102.6, _p_<.001, $\eta^2$=0.97). With FDR-corrected, paired t-tests, we find a difference in heading between 0 _cps_ internal motion and both 1 _cps_ ( _p_=.022) and -1 _cps_ ( _p_=.025) as well as between -3 and -1 _cps_ and 3 and 1 _cps_ (both _p_=<.001). This means we can use the averaged angle for each of the internal motion conditions as a measure of the strength of the illusion.
 
-Furthermore, since a short disappearance of the stimulus (~250 ms or more?) has been shown to evoke a reset (XXXX; XXXX), these were included in some of the stimuli (X/Y). Each stimulus had either 0 disappearances of the stimulus (X%), or one in the second (X%), third(X%) or fourth (X%) full sweep, and it would either occur at 25% or 75% of the sweep, but never close to the middle where the perceived and illusory position should be the same. This allows characterizing what a forced reset looks like in the trajectories, and then detect spontaneous resets, that still have a lot of opportunity to occur.
+The average headings are close to straight lines for all conditions. Since average straight trajectories could either result from uniform tracking paths, each with no signs of resets or from paths with many differently shaped, directed and timed resets, they do not prove or disprove neither the absence nor the presence of resets. Hence, we also show full trajectories of all participants in each of the 5 internal motion conditions.
 
-In Figure X, we plot the full trajectories of all participants in each of the 5 conditions (internal motion), as well as the distribution and average instantaneous heading direction during the middle second of each 2-second pass of the stimulus. In the 0 internal motion condition the physical and perceived path coincide and there is no illusion. Trajectories from other conditions with heading in the 0 internal motion confidence interval may be evidence of a reset. Trajectories where this occurs are drawn on top of the heading distribution for the group. The average angle of the tracked path is superimposed as both a line, and a numeral (in degrees deviation from straight forward). Both from the raw trajectories as well as from the averaged angles it becomes clear that continuous tracking is sensitive to the strength of the illusion, and this is confirmed by a repeated-measures F-test on the average angles, using internal motion as a factor (F(df)=XXX, p=XXX, eta=XXX). This means we can use the averaged angle for each of the internal motion conditions as a measure of the strength of the illusion for a subset of participants that also took part in further tasks.
+In order to detect potential resets, we consider that in the 0 internal motion condition there is no illusion, so that we measure the tracking of the veridical path of the stimulus. Since both strong, "jump" resets and weak "hit-the-wall" resets (see Fig 1, bottom left) would change percieved direction back to or crossing the veridical motion path, their smooth-spline interpolated paths would contain samples similar in heading to the 0 internal motion condition. We use a 95% confidence interval of heading in the 0 internal motion condition to select trajectories from conditions with non-zero heading that may show a reset. These trajectories are drawn in red (only 1 per condition/participant), but as can be seen, the deviations from the condition's dominant heading occur just before or after the external motion reversals, so they may simply reflect difficulty of tracking the stimulus, rather than resets.
 
-However, only a few potential resets / no clear resets were captured by the continuous tracking data. It is possible that resets were perceived but were too quick to respond to in the continuous drawing. Alternatively, since the hand was at the positioned at the perceived location of the gabor this may have provided an additional position signal that stabilized the illusion, preventing resets from occurring. Hence, we performed a second experiment that would counter both explanations for the absence of (spontaneous) resets.
+
+
+
+
+Hence, no unambiguous resets were captured. It is possible that resets were perceived but were too quick to respond to in the continuous tracking task. Alternatively, trackgin may have stabilized the illusion, preventing resets from occurring. Hence, we performed a second experiment that would counter both explanations for the absence of (spontaneous) resets.
 
 # Experiment 2: Re-tracing
 
