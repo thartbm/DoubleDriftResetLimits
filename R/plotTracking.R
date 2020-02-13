@@ -1439,7 +1439,7 @@ plotCVRdemo <- function(target='pdf') {
       
       trialdf <- ppdf[which(ppdf$trial_no == trialno & ppdf$step == 99),]
       
-      X <- trialdf$handx_pix / 38.814814815
+      X <- trialdf$handx_pix / 38.814814815 # is this pixels per centimeter?
       Y <- (trialdf$handy_pix + 262) / 38.814814815
       
       # if the endpoint Y-coordinate is negative (or close to 0?) we don't trust it
