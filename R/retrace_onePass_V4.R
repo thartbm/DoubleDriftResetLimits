@@ -296,7 +296,13 @@ getTimeNormalizedData <- function(convertSpeed=TRUE, normalizeTime=TRUE, illusio
 }
 
 
-getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE) {
+getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE, load=TRUE) {
+  
+  if (load) {
+    if(file.exists('data/onePass_V4/onePassHeading.Rds')) {
+      return(readRDS("data/onePass_V4/onePassHeading.Rds"))
+    }
+  }
   
   participants = c(2,3,4,5,6,8,9,10,11)
   
@@ -401,8 +407,10 @@ getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE) {
     
   }
   
-  freq2Ds[['x.edges']] <- pfreq$x.edges
-  freq2Ds[['y.edges']] <- pfreq$y.edges
+  freq2Ds[['edges']][['x.edges']] <- pfreq$x.edges
+  freq2Ds[['edges']][['y.edges']] <- pfreq$y.edges
+  
+  saveRDS(freq2Ds, file='data/onePass_V4/onePassHeading.Rds')
   
   return(freq2Ds)
   
@@ -413,7 +421,7 @@ getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE) {
 
 plotExampleData <- function(target='inline') {
   
-  graphics.off()
+  #graphics.off()
   
   if (target == 'pdf') {
     cairo_pdf(filename='doc/onePass_V4_boundaries.pdf',onefile=TRUE,width=8,height=4)
@@ -424,6 +432,7 @@ plotExampleData <- function(target='inline') {
   
   colors <- getColors()
   
+  # this should return polar heatmaps for all 6 conditions:
   f2ds <- getNormalizedHeading2Dhists()
   x.edges <- f2ds[['edges']]$x.edges
   y.edges <- f2ds[['edges']]$y.edges
@@ -530,7 +539,6 @@ plotExampleData <- function(target='inline') {
       
     }
     
-    
     conditionname <- sprintf('%d-%0.3f',internal_speed,external_speed)
     freq2D <- f2ds[['hists']][[conditionname]]
     
@@ -541,7 +549,7 @@ plotExampleData <- function(target='inline') {
     }
     
     plot(-1000,-1000,main='all',xlab=xlab,ylab='',xlim=c(-1,1),ylim=c(0,1),bty='n',ax=FALSE,asp=1)
-    #print(f2ds$x.edges)
+    #print(freq2D$x.edges)
     polarHeatMap(x=x.edges,y=y.edges+30,z=freq2D,mincol=c(1,1,1),maxcol=c(0.06,0.82,0.88),xlim=NA,ylim=NA,xunit='degrees',border=NA,bordercol='white',resolution=1,alpha=1,overlay=TRUE,origin=c(0,0),scale=1,main='')
     
   }
@@ -565,7 +573,7 @@ plotValidity <- function(target='inline') {
   
   colors <- getColors()
   
-  df <- getTimeNormalizedData()
+  df <- getTimeNormalizedData(illusionMinimum = 0)
   
   par(mfrow=c(1,2),mar=c(4.5, 4.5, 2.1, 0.1))
   
@@ -605,6 +613,8 @@ plotValidity <- function(target='inline') {
   
   # Illusion strength validity: regression of angle to reset on angle of arrow
   
+  df <- getTimeNormalizedData()
+  
   plot(-1000,-1000,main='illusion strength measures',xlab='line angle [deg]',ylab='reset point angle [deg]',xlim=c(0,50),ylim=c(0,50),bty='n',ax=F,asp=1)
   
   strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df)
@@ -615,11 +625,13 @@ plotValidity <- function(target='inline') {
   cutoff <- 4/((nrow(df)-length(strengthLM$coefficients)-2))
   outliers <- unique(which(strengthCookD > cutoff))
   df <- df[-outliers,]
-  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df)
+  #strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df)
   # print(summary(strengthLM))
   
   # weighted LM:
-  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df[-outliers,], weights = 1/sqrt(df[-outliers,]$arrowdirection_mean^2 + df[-outliers,]$initialdirection_mean^2))
+  #strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df[-outliers,], weights = 1/sqrt(df[-outliers,]$arrowdirection_mean^2 + df[-outliers,]$initialdirection_mean^2))
+  
+  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df, weights = 1/(df$initialdirection_mean)^2)
   
   #log_strengthLM <- lm(log(initialdirection_mean) ~ arrowdirection_mean, data=df)
   #abline(strengthLM$coefficients, col='#b400e4ff')
@@ -755,12 +767,12 @@ plotResetPoints <- function(target='inline') {
   # X coordinates:
   medX <- median(df$boundX_mean)
   text(x=medX-0.065,y=1.075,labels=sprintf('%0.1f cm',medX*13.5))
-  lines(rep(medX,2),c(0.05,1.05),col=colors[['yorkred']]$s,lty=2,lw=2)
+  lines(rep(medX,2),c(0.05,1.05),col=colors[['blue']]$s,lty=2,lw=2)
   
   # Y coordinates:
   medY <- median(df$boundY_mean)
   text(4/13.5,medY+0.05,sprintf('%0.1f s',medY*4))
-  lines(c(-0.08,0.3),rep(medY,2),col=colors[['blue']]$s,lty=2,lw=2)
+  lines(c(-0.08,0.3),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
   
   # sensible tick marks on the axes:
   xtick_cm <- c(-1,1,3)
@@ -777,33 +789,39 @@ plotResetPoints <- function(target='inline') {
   raddirections <- ((90 - directions) / 180) * pi
   slopes <- sin(raddirections) / cos(raddirections)
   
-  # PANEL B: space limit from time
+  # PANEL B: x coords from time limit
   
   plot(df$initialdirection_mean, df$boundX_mean*13.5, main=sprintf('time limit (%0.1f s)', fit$par['Ly']*(4/13.5)), xlab='illusion strength [deg]', ylab='X coordinates [cm]', bty='n', ax=F, xlim=c(5,45), ylim=c(0,10), col=colors[['blue']]$s)
   
+  lines(x=range(directions),y=rep(fit$par['Lx'],2),col=colors[['yorkred']]$s,lty=1)
+  
   fittedX <- resetXfromYlim(fit$par,slopes)$X
   lines(directions,fittedX,col=colors[['blue']]$s)
-
-  # XfromMedY <- resetXfromYlim(c('Ly'=medY*13.5),slopes)$X
-  # lines(directions,fittedX,col=colors[['blue']]$s, lty=2)
+  
+  # median models
+  XfromMedY <- resetXfromYlim(c('Ly'=medY*13.5),slopes)$X
+  lines(directions,XfromMedY,col=colors[['blue']]$s, lty=2)
   
   axis(side=1, at=c(10,20,30,40))
-  axis(side=2, at=c(0,2,4,6,8,10))
+  axis(side=2, at=c(0,2,4,6,8,10),las=1)
   
-  
-  # PANEL C: time limit from space
+ 
+  # PANEL C: Y coords from space limit
   
   plot(df$initialdirection_mean, df$boundY_mean*4, main=sprintf('space limit (%0.1f cm)', fit$par['Lx']), xlab='illusion strength [deg]', ylab='Y coordinates [s]', bty='n', ax=F, xlim=c(5,45), ylim=c(0,4), col=colors[['yorkred']]$s)
-
+  
+  print( (fit$par['Ly']/13.5)*4 )
+  lines(x=range(directions),y=rep((fit$par['Ly']/13.5)*4,2),col=colors[['blue']]$s)
+  
   fittedY <- resetYfromXlim(fit$par,slopes)$Y
   lines(directions,fittedY/4,col=colors[['yorkred']]$s)
   
-  YfromMedX <- resetYfromXlim(c('Lx'=medX*13.5),slopes)$Y
-  #lines(directions,fittedY/4,col=colors[['yorkred']]$s, lty=2)
-  
+  # median models
+  YfromMedX <- resetYfromXlim(c('Lx'=medX*4),slopes)$Y
+  lines(directions,YfromMedX,col=colors[['yorkred']]$s, lty=2)
   
   axis(side=1, at=c(10,20,30,40))
-  axis(side=2, at=c(0,1,2,3,4))
+  axis(side=2, at=c(0,1,2,3,4),las=1)
   
   
   if (target %in% c('pdf', 'svg')) {
@@ -814,6 +832,8 @@ plotResetPoints <- function(target='inline') {
 
 
 plotInterdependentModel <- function(target='inline') {
+  
+  cat('WARNING: this model does not have a unique solution. Do not use.\n')
   
   #graphics.off()
   
@@ -895,7 +915,7 @@ plotSequentialModel <- function(target='inline') {
     svglite(file='onePass_V4_boundaries.svg',width=8,height=11)
   }
   
-  par(mar=c(4.5, 4.5, 2.1, 4.5))
+  par(mar=c(4.5, 4.5, 2.1, 4.5), mfrow=c(1,1))
   
   df <- getTimeNormalizedData()
 
@@ -911,8 +931,6 @@ plotSequentialModel <- function(target='inline') {
   
 
   par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
-  
-  print(par)
   
   #coords <- data.frame(X=df$boundX_mean,Y=df$boundY_mean)
   #directions <- ((90 - df$initialdirection_mean) / 180) * pi
@@ -954,38 +972,41 @@ plotSequentialModel <- function(target='inline') {
 
 testValidity <- function(verbosity=0) {
   
-  df <- summarizeTraceBoundsV4()
-  df$externalspeed[which(df$externalspeed == 0.125)] <- 4
-  df$externalspeed[which(df$externalspeed == 0.167)] <- 3
+  # for ANOVA we can't have empty cells, so don't remove outliers:
+  df <- getTimeNormalizedData(illusionMinimum=0)
   
   dfAOV <- df
   dfAOV$internalspeed <- as.factor(dfAOV$internalspeed)
   dfAOV$externalspeed <- as.factor(dfAOV$externalspeed)
+  dfAOV$participant <- as.factor(dfAOV$participant)
   print(ez::ezANOVA(dv=arrowdirection_mean, wid=participant, data=dfAOV, within=c(internalspeed, externalspeed), type=3))
   
-  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df)
+  # for regression, it is better to remove outliers:
+  df <- getTimeNormalizedData(illusionMinimum=5)
   
+  # do an initial regression to identify and remove points that are too influential:
+  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df)
+
   if (verbosity > 0) {
     cat('**\n** regression on all data:\n**\n\n')
     print(summary(strengthLM))
   }
-  
-  # check for and remove outliers:
+
+  # use Cook's D to detect outliers:
   strengthCookD <- cooks.distance(strengthLM)
   cutoff <- 4/((nrow(df)-length(strengthLM$coefficients)-2))
   outliers <- unique(which(strengthCookD > cutoff))
-  # df <- df[-outliers,]
+  #remove outliers from dataset
+  df <- df[-outliers,]
   
-  # redo regression:
-  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df[-outliers,])
-  if (verbosity > 0) {
-    cat('**\n** regression with outliers removed:\n**\n\n')
-    print(summary(strengthLM))
-  }
   
-  # notice that the variability in each measures goes up with values on the other measure
-  # we probably want to weight the errors of the fit less when the points are further from the origin:
-  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df[-outliers,], weights = 1/sqrt(df[-outliers,]$arrowdirection_mean^2 + df[-outliers,]$initialdirection_mean^2))
+  # there is heteroscadasticity, so we counter this by doing a weighted regression:
+  # weighted LM:
+  #strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df[-outliers,], weights = 1/sqrt(df[-outliers,]$arrowdirection_mean^2 + df[-outliers,]$initialdirection_mean^2))
+  
+  # simpler weighting (same result):
+  strengthLM <- lm(initialdirection_mean ~ arrowdirection_mean, data=df, weights = 1/(df$initialdirection_mean)^2)
+  
   cat('**\n** weighted regression with outliers removed:\n**\n\n')
   print(summary(strengthLM))
   
@@ -998,6 +1019,18 @@ testValidity <- function(verbosity=0) {
   
 }
 
+testSingleLimits <- function() {
+  
+  df <- getTimeNormalizedData()
+  
+  spreadX <- sd(df$boundX_mean)
+  spreadY <- sd(df$boundY_mean)
+  
+  print(spreadX/spreadY)
+  
+  
+  
+}
 
 
 # Code graveyard -----
