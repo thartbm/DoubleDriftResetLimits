@@ -329,3 +329,126 @@ fitResetModelSeq <- function(slopes,X,Y) {
   return(winpar)
   
 }
+
+compareAllModels <- function(verbosity=0) {
+  
+  # get the data:
+  df <- getTimeNormalizedData()
+  
+  # convert data for simpler models:
+  coords <- data.frame('X'=df$boundX_mean,'Y'=df$boundY_mean)
+  directions <- ((90 - df$initialdirection_mean) / 180) * pi
+  slopes <- sin(directions) / cos(directions)
+  
+  
+  # get fits for all models:
+  Lx <- seq(0,1,length.out = 21)
+  Ly <- seq(0,1,length.out = 21)
+  
+  searchgridXlim <- expand.grid('Lx'=Lx)
+  searchgridYlim <- expand.grid('Ly'=Ly)
+  
+  searchgridXYlim <- expand.grid('Lx'=Lx,
+                                 'Ly'=Ly)
+  
+  
+  # get MSE for all points in search grid:
+  XlimMSE <- apply(searchgridXlim,FUN=resetXlimMSE,MARGIN=c(1),slopes=slopes,coords=coords)
+  YlimMSE <- apply(searchgridYlim,FUN=resetYlimMSE,MARGIN=c(1),slopes=slopes,coords=coords)
+  
+  XYlimMSE <- apply(searchgridXYlim,FUN=resetModelSeqMSE,MARGIN=c(1),slopes=slopes,coords=coords)
+  
+  # get 3 best points in the single limit "grids":
+  topgridXlim <- data.frame('Lx'=searchgridXlim[order(XlimMSE)[1:3],])
+  topgridYlim <- data.frame('Ly'=searchgridYlim[order(YlimMSE)[1:3],])
+
+  topgridXYlim <- searchgridXYlim[order(XYlimMSE)[1:5],]
+  
+  allXlimFits <- do.call("rbind",
+                         apply( topgridXlim,
+                                MARGIN=c(1),
+                                FUN=optimx,
+                                fn=resetXlimMSE,
+                                method='L-BFGS-B',
+                                lower=c(0),
+                                upper=c(1),
+                                slopes=slopes,
+                                coords=coords ) )
+  
+  allYlimFits <- do.call("rbind",
+                         apply( topgridYlim,
+                                MARGIN=c(1),
+                                FUN=optimx,
+                                fn=resetYlimMSE,
+                                method='L-BFGS-B',
+                                lower=c(0),
+                                upper=c(1),
+                                slopes=slopes,
+                                coords=coords ) )
+  
+  
+  allXYlimFits <- do.call("rbind",
+                         apply( topgridXYlim,
+                                MARGIN=c(1),
+                                FUN=optimx,
+                                fn=resetModelSeqMSE,
+                                method='L-BFGS-B',
+                                lower=c(0,0),
+                                upper=c(1,1),
+                                slopes=slopes,
+                                coords=coords ) )
+  
+  
+  # pick the best fit:
+  winXlimFit <- allXlimFits[order(allXlimFits$value)[1],]
+  winYlimFit <- allYlimFits[order(allYlimFits$value)[1],]
+  
+  winXYlimFit <- allXYlimFits[order(allXYlimFits$value)[1],]
+  # # 
+  # print(winXlimFit)
+  # print(winYlimFit)
+  # # 
+  # print(winXYlimFit)
+  
+  
+  if (verbosity > 0) {
+    
+    cat('\nFITTED MODEL LIMIT PARAMETERS:\n\n')
+    cat(sprintf('single Lx: %0.2f cm\n',                  winXlimFit$Lx*13.5))
+    cat(sprintf('single Ly: %0.2f s\n',                                       winYlimFit$Ly*4))
+    cat(sprintf('combined Lx: %0.2f cm and Ly: %0.2f s\n',winXYlimFit$Lx*13.5,winXYlimFit$Ly*4))
+    
+    MSEs <- c('Lx'=winXlimFit$value, 'Ly'=winYlimFit$value, 'LxLy'=winXYlimFit$value)
+    
+    cat('\nmodel MSEs:\n')
+    print(MSEs)
+    
+    # the AIC parameters are the same for both models, except the MSEs
+    # N <- (9*6)-1
+    N <- length(df$boundX_mean)
+    # this is then used for C:
+    
+    AICs <- AIC(MSE=MSEs, k=c(1,1,2), N=N)
+    cat('\nmodel AICs:\n')
+    print(AICs)
+    
+    rLL <- relativeLikelihood(AICs[1:2])
+    cat('\nsingle limit model relative likelihoods:\n')
+    print(rLL)
+    
+    rLL <- relativeLikelihood(AICs)
+    cat('\nALL model relative likelihoods:\n')
+    print(rLL)
+  }
+  
+}
+
+# model evaluation -----
+
+AIC <- function(MSE, k, N) {
+  return( (N * log(MSE)) + (2 * k) )
+}
+
+relativeLikelihood <- function(crit) {
+  return( exp( ( min( crit  ) - crit  ) / 2 ) )
+}
