@@ -172,7 +172,7 @@ plotBoundedTracking <- function(target='inline') {
   internalSpeeds <- sort(unique(stdsegments$internalSpeed))
   participants <- sort(unique(stdsegments$participant))
   
-  par(mar=c(4.1,4.1,2.1,0.1))
+  par(mar=c(4.1,4.1,2.1,0.1),mfrow=c(1,1))
   
   plot(-1000,-1000,main='',ylim=c(0.5,length(participants)+2),xlim=c(0.5,5.5),ylab='participant',xlab='internal speed [cps]',asp=1,bty='n',ax=F)
   
