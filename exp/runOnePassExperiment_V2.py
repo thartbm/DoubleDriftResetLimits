@@ -15,7 +15,7 @@ cfg['fullscr']      = True
 cfg['monitorIndex'] = 1
 cfg['flip']         = True
 
-cfg = createWindow(cfg, resolution=[1920, 1080])
+cfg = createWindow(cfg, resolution=[1920, 1080]) # this is not the real resolution?
 
 mouse = event.Mouse(win=cfg['win'])
 mouse.setVisible(False)
