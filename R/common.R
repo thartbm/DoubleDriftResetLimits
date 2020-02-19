@@ -1,4 +1,46 @@
+# 
+# # pixels per cm
+# 
+# # resolution is 1680 x 1050 pixels
+# # which spans ~43.5 x ~27 cm
+# # for width that is roughly 38.799 pixels per cm
+# # for depth that is roughly 38.888 pixels per cm
+# # on average that would be: 38.755 pixels per cm
+# 
+# PPC <- 38.754789272
+# 
 
+
+getPPCdva <- function(lo=3) {
+  
+  props <- list()
+  props['PPC'] <- 38.754789272 # pixels per cm
+  
+  # tan(A) = a/b
+  
+  dva <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo), 
+                     'gabor.pos' = seq(-6.75, 6.75, length.out = lo))
+  
+  b <- 27
+  a <- dva$eye.dist + dva$gabor.pos
+  
+  # https://en.wikipedia.org/wiki/Trigonometry
+  A <- atan(a/b)
+  
+  a1 <- tan(A+((0.5/180)*pi))*b
+  a2 <- tan(A-((0.5/180)*pi))*b
+  
+  dva$cmpd <- a1 - a2
+  
+  ghw <- (100/3) / props[['PPC']]
+  
+  dva$gabor.dva <- ghw / dva$cmpd
+  
+  props[['dva']] <- dva
+  
+  return(props)
+  
+}
 
 
 getColors <- function() {
@@ -354,8 +396,8 @@ hist2d <- function(x, y=NA, nbins=c(25,25), edges=NA) {
     #cat('set edges from edges\n')
   }
   
-  #cat('length x.edges:\n')
-  #print(length(x.edges))
+  # cat('length x.edges:\n')
+  # print(length(x.edges))
   
   xbincount <- findInterval(df[,1], x.edges, rightmost.closed = T, left.open = F, all.inside = F)
   ybincount <- findInterval(df[,2], y.edges, rightmost.closed = T, left.open = F, all.inside = F)
@@ -466,3 +508,5 @@ polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88)
   
   
 }
+
+
