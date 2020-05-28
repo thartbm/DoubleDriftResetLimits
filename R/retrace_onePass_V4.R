@@ -340,14 +340,16 @@ getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE, load=
         
         step.idx <- which(trialdf$step == 99) # only for re-trace
         
+        if (length(step.idx) == 0) { next() }
+        
         # get out the data:
         x  <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 0.6
         y  <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 0.6
         # t  <- trialdf$time_ms[step.idx]
         
-        if (taskdf$internalMovement[1] < 0) {
-          x <- -x
-        }
+        # this seems not to make much of a difference, 
+        # even though it works for the individual trajectories
+        if (trialdf$internalMovement[1] < 0) x <- -x
         
         boundary <- which(diff(x) < 0)[1]
         
@@ -362,7 +364,7 @@ getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE, load=
         # t  <- t[-del.idx]
         cd <- cd[-del.idx]
         
-        if (length(cd) < 2) next()
+        if (length(cd) < 2) { next() }
         # scale from 0 to 1:
         cd <- cd / max(cd)
         
@@ -551,6 +553,12 @@ plotExampleData <- function(target='inline') {
     plot(-1000,-1000,main='all',xlab=xlab,ylab='',xlim=c(-1,1),ylim=c(0,1),bty='n',ax=FALSE,asp=1)
     #print(freq2D$x.edges)
     polarHeatMap(x=x.edges,y=y.edges+30,z=freq2D,mincol=c(1,1,1),maxcol=c(0.06,0.82,0.88),xlim=NA,ylim=NA,xunit='degrees',border=NA,bordercol='white',resolution=1,alpha=1,overlay=TRUE,origin=c(0,0),scale=1,main='')
+    
+    avgline <- f2ds[['avg']][[conditionname]][c(2:101),]
+    scale <- ((avgline$sample_no+30) / (max(avgline$sample_no)+30))
+    adX <- (cos((avgline$heading/180)*pi) * scale)
+    adY <- (sin((avgline$heading/180)*pi) * scale)
+    lines(adX,adY,col=colors[['blue']]$s,lw=2)
     
   }
   
@@ -810,7 +818,7 @@ plotResetPoints <- function(target='inline') {
   
   plot(df$initialdirection_mean, df$boundY_mean*4, main=sprintf('space limit (%0.1f cm)', fit$par['Lx']), xlab='illusion strength [deg]', ylab='Y coordinates [s]', bty='n', ax=F, xlim=c(5,45), ylim=c(0,4), col=colors[['yorkred']]$s)
   
-  print( (fit$par['Ly']/13.5)*4 )
+  #print( (fit$par['Ly']/13.5)*4 )
   lines(x=range(directions),y=rep((fit$par['Ly']/13.5)*4,2),col=colors[['blue']]$s)
   
   fittedY <- resetYfromXlim(fit$par,slopes)$Y
