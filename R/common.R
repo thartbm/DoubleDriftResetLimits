@@ -21,11 +21,11 @@ getPPCdva <- function(lo=3) {
   dva <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo), 
                      'gabor.pos' = seq(-6.75, 6.75, length.out = lo))
   
-  b <- 27
-  a <- dva$eye.dist + dva$gabor.pos
+  b <- 27 # distance between mirror and monitor
+  a <- dva$eye.dist + dva$gabor.pos # horizontal distance (along monitor) 
   
   # https://en.wikipedia.org/wiki/Trigonometry
-  A <- atan(a/b)
+  A <- atan(a/b) # angle at centre of gabor
   
   a1 <- tan(A+((0.5/180)*pi))*b
   a2 <- tan(A-((0.5/180)*pi))*b
@@ -34,9 +34,24 @@ getPPCdva <- function(lo=3) {
   
   ghw <- (100/3) / props[['PPC']]
   
+  props[['gaborcm']] <- ghw
+  
   dva$gabor.dva <- ghw / dva$cmpd
   
   props[['dva']] <- dva
+  
+  # visual size of the "workspace" (13.5 cm track)
+  dva.track <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo))
+  
+  b <- 27
+  a <- dva.track$eye.dist
+  
+  A1 <- atan(a/(b-6.75)) # the angle of the close end at each head position
+  A2 <- atan(a/(b+6.75)) # the angle of the far end at each head position
+  
+  dva.track$dva <- ((A1-A2)/pi)*180
+  
+  props[['track']] <- dva.track
   
   return(props)
   
