@@ -20,7 +20,7 @@ Before starting any analyses, we need to make sure that we have all the code and
 
 ## Libraries
 
-We've minimized depencies on other packages, but there are two that help. Of course, you can skip the chunks that use them, or just install them by uncommenting the second line of this chunk:
+We've minimized depencies on other packages, but there are three that help. Of course, you can skip the chunks that use them, or just install them by uncommenting the second line of this chunk:
 
 ```{r}
 # install the dependencies using this command:
@@ -49,6 +49,8 @@ source('R/tracking_bounded.R')
 source('R/retrace_onePass_V4.R')
 # As well as models fit to that data:
 source('R/models.R')
+# Comparison with Sirui Liu's data:
+source('R/time.R')
 ```
 
 ## Download data
@@ -114,10 +116,26 @@ Since it seemed that no clear spontaneous resets occurred in the continuous trac
 
 In this experiment we did not control the strength of the illusion. In order to sample diverse illusion strengths, the external motion of 13.5 cm took either 3 or 4 seconds (~5.2 or ~3.4 cm/s), and the internal motion was set to either 2, 3 or 4 cps (corresponding to about 3.4, 5.2 or 6.9 cm/s). That means there are 6 different stimuli. Fixation was to the left or right (at random) and the internal motion could either be to the left or right as well (counterbalanced, and normalized to rightward motion in pre-processing). The resulting trajectories in the re-tracing condition seemed to show a reset in the majority of trials, for a few examples, see Fig XXXX.
 
-In order to determine the point of reset automatically, we took the first sign change of the X coordinate. Since the start of the tracing often was somewhat "shaky" we disregarded sign changes in the first XXX cm. Since the trajectories are measured in discrete pixel values, sign changes were clearer after slight smoothing of the trajectories, using splines.
+In order to determine the point of reset automatically, we took the first sign change of the X coordinate. Since the start of the tracing often was somewhat "shaky" we disregarded sign changes in the first 75 px or XXXX cm. Since the trajectories are measured in discrete pixel values, sign changes were clearer after slight smoothing of the trajectories, using splines.
 
+```{r}
+retrace <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+retrace$value <- 1
+retrace$value[which(is.na(retrace$boundX))] <- 0
+resetcounts <- aggregate(value ~ participant, data=retrace, FUN=sum)
+resetcounts$value <- resetcounts$value / (6*6*4)
+print(resetcounts)
+```
 
+We can also look at this, further split by condition:
 
+```{r}
+resetcountsCOND <- aggregate(value ~ participant + internalspeed + externalspeed, data=retrace, FUN=sum)
+print(resetcountsCOND)
+hist(resetcountsCOND$value)
+```
+
+This distribution appears to be bimodal. Since resets here depend on direction inversion, and some people may experience more "hit-the-wall resets", it seems that the lower peak could be from people with hit-the-wall resets, while the other participants perceive some return to the true position.
 
 We validate this measure of detecting resets as follows. The angle of a straight line to the reset point should have approximately the same angle as the oriented lines indicating the initial direction of the gabor. We take the average initial directions and the average X and Y coordinates of detected reset points, for every participant in each of the 6 conditions. First, we test if the initial perceived direction as participants inidicated with the oriented line, responds to the different internal and external motion speeds. Second, we perform a regression of the angle to the reset point on the angle of the initial direction responses.
 
@@ -207,3 +225,10 @@ print(relativeLikelihoods)
 ```
 
 Since the sequential model has two parameters instead of three, it is slightly better, but not significantly so. While the sequential model allows estimating the actual spatial and temporal limits, the weighted model allows estimating the relative importance of the spatial and temporal limits.
+
+# Alternative Time Model
+
+This model is based on the work by Sirui Liu and colleagues who found that when probing the location of the stimulus at a few fixed temporal offsets from stimulus onset it deviated less and less after more time. This is consistent with a simple model with a fixed, fairly low chance of a reset occurring at every time point. That is: as time goes by the likelihood of reset having occurred is larger, and as a result the average percept is closer to the true position over time. This model fits very well and is completely at odds with the findings here. So which is true?
+
+One way both may be true at the same time, is if after a reset, the illusion builds up less or not at all. In the current experiment people report the full path of the stimulus, so we can also look at the average deviation of the perceived position from the true position over time, continuously. This allows to see if it is in line with the data reported by Liu, Tse & Cavanagh []. 
+
