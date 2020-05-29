@@ -232,3 +232,15 @@ This model is based on the work by Sirui Liu and colleagues who found that when 
 
 One way both may be true at the same time, is if after a reset, the illusion builds up less or not at all. In the current experiment people report the full path of the stimulus, so we can also look at the average deviation of the perceived position from the true position over time, continuously. This allows to see if it is in line with the data reported by Liu, Tse & Cavanagh []. 
 
+Here is a figure that splits participants by whether or not they have an average percept that is consistent with the data Lui et al found, and that is inconsistent with it.
+
+```{r}
+plotSplitDeviations()
+```
+
+Let's also have a look at the distribution of first reset points on Y-axis (~time). Sirui's model predicts a certain distribution of first reset points, so we can compare wat is measured here, with the model.
+
+```{r}
+plotResetYdistribution()
+```
+
