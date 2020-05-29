@@ -166,7 +166,7 @@ plotSplitDeviations <- function() {
         
         ppdf <- imdf[which(imdf$participant == ppno),]
         
-        linreg <- lm(hordev ~ time_s, data=ppdf[which(ppdf$time_s > 0.5),])
+        linreg <- lm(hordev ~ time_s, data=ppdf[which(ppdf$time_s >= .5),])
         if (direction *linreg$coefficients[['time_s']] > 0) {
           
           lines(x=ppdf$hordev, y=ppdf$time_s, col=transp[[sprintf('%d',im)]])
@@ -184,6 +184,52 @@ plotSplitDeviations <- function() {
       axis(side=2, at=c(0,1,2,3))
       
     }
+    
+  }
+  
+}
+
+
+plotResetYdistribution <- function() {
+  
+  colors <- getColors()
+  transp <- list('2'=colors[['purple']]$t, '3'=colors[['yorkred']]$t, '4'=colors[['orange']]$t)
+  solids <- list('2'=colors[['purple']]$s, '3'=colors[['yorkred']]$s, '4'=colors[['orange']]$s)
+  
+  # read file with all detected resets
+  df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  
+  # remove trials without resets
+  df <- df[which(!is.na(df$boundX)),]
+  
+  # normalize for time:
+  idx3 <- which(df$externalspeed == 0.167)
+  idx4 <- which(df$externalspeed == 0.125)
+  df$boundY[idx3] <- df$boundY[idx3] * 3
+  df$boundY[idx4] <- df$boundY[idx4] * 4
+  
+  # we create one one plot per absolute internal speed
+  # create a layout matrix:
+  layout(matrix(c(1,2,3),nrow=1,ncol=3))
+  
+  for (im in c(2,3,4)) {
+    
+    plot(-1000,-1000,xlim=c(0,3),ylim=c(0,1.6),xlab='time [s]', ylab='relative density',ax=F,bty='n',main=sprintf('internal motion %d',im))
+    
+    for (ppno in unique(df$participant)) {
+      
+      subdf <- df[which(df$participant == ppno & df$internalspeed == im),]
+      kd <- density(subdf$boundY, bw=0.2, n=151, from=0, to=3)
+      lines(kd$x, kd$y, col=transp[[sprintf('%d',im)]])
+      
+    }
+    
+    imdf <- df[which(df$internalspeed == im),]
+    kd <- density(imdf$boundY, bw=0.2, n=151, from=0, to=3)
+    lines(kd$x, kd$y, col=solids[[sprintf('%d',im)]])
+    
+    axis(side=1,at=c(0,1,2,3))
+    axis(side=2,at=c(0,0.5,1.0,1.5))
     
   }
   
