@@ -1,4 +1,7 @@
 
+source('R/common.R')
+library('ez')
+
 getParticipantAverageDeviations <- function(participants = c(2,3,4,5,6,8,9,10,11)) {
   
   devdf <- NA
@@ -55,8 +58,20 @@ getParticipantAverageDeviations <- function(participants = c(2,3,4,5,6,8,9,10,11
         x <- x - min(x)
         #print(any(is.na(t)))
         #print(max(t))
-        x <- (x / max(t)) * duration # scale x to y (assuming y spans more pixels)
-        t <- (t / max(t)) * duration # scale y/t to duration
+        
+        use_cm <- TRUE
+        
+        if (use_cm) {
+          #x <- (x / 524.) * 13.5
+          x <- (x / max(t)) * 13.5
+          x <- x / 0.7298552 # cm/d on the centre of the track
+        } else {
+          # express x in seconds? counter intuitive, but can be scaled with the Y 
+          x <- (x / max(t)) * duration # scale x to y (assuming y spans more pixels)
+        }
+        
+        # t should be scaled always
+        t <- (t / max(t)) * duration # scale y (=t) to duration too
         #print(any(is.na(t)))
         
         # remove anything that is beyond 3 seconds:
@@ -116,7 +131,20 @@ plotDeviations <- function() {
   
   for (im in c(2,3,4)) {
     
-    plot(x=c(0,0),y=c(0,3),type='l',col='#999999',main=sprintf('internal motion %d',im), xlim=c(-.5,2), ylim=c(-.5,3.5), xlab='percept deviation', ylab='time [s]', asp=1, bty='n', ax=F)
+    plot(x=c(0,0),y=c(0,3),type='l',lty=3,col='#000000',main=sprintf('internal motion %d',im), xlim=c(-1,4), ylim=c(-.5,3.5), xlab='percept deviation [dva]', ylab='time [s]', bty='n', ax=F)
+    
+    #PSEs <- c(1.00, 0.83, 0.66, 1.65, 1.50, 1.20)
+    
+    # path length: 2 DVA
+    # the unit is not centimeters, though?
+    points(c(1.00, 0.83, 0.66),c(1,2,3),col='#999999',pch=16,cex=2)
+    lines(c(1.00, 0.83, 0.66),c(1,2,3),col='#999999',lw=3,lty=2)
+    text(x=.66,y=3.2,'2')
+    # path length: 4 DVA
+    points(c(1.65, 1.50, 1.20),c(1,2,3),col='#999999',pch=16,cex=2)
+    lines(c(1.65, 1.50, 1.20),c(1,2,3),col='#999999',lw=3,lty=2)
+    text(x=1.2,y=3.2,'4')
+    
     
     imdf <- devdf[which(devdf$internalmotion == im),]
     
@@ -134,7 +162,11 @@ plotDeviations <- function() {
     
     lines(x=conddf$hordev, y=conddf$time_s, col=solids[[sprintf('%d',im)]])
     
+    conddf <- conddf[which(conddf$time_s %in% c(1,2,3)),]
+    points(conddf$hordev, conddf$time_s, col=solids[[sprintf('%d',im)]], cex=2)
+    
     axis(side=2, at=c(0,1,2,3))
+    axis(side=1, at=c(0,1,2,3))
     
   }
   
@@ -232,5 +264,19 @@ plotResetYdistribution <- function() {
     axis(side=2,at=c(0,0.5,1.0,1.5))
     
   }
+  
+}
+
+timeANOVA <- function() {
+  
+  devdf <- getParticipantAverageDeviations()
+  
+  devdf <- devdf[which(devdf$time_s %in% c(1,2,3)),]
+  
+  devdf$participant <- as.factor(devdf$participant)
+  devdf$internalmotion <- as.factor(devdf$internalmotion)
+  devdf$time_s <- as.factor(devdf$time_s)
+  
+  print(ezANOVA(data=devdf, dv=hordev, wid=participant, within=c(time_s,internalmotion)))
   
 }
