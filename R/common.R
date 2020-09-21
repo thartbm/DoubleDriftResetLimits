@@ -1,3 +1,9 @@
+
+
+`%notin%` <- Negate(`%in%`)
+
+
+
 # 
 # # pixels per cm
 # 
