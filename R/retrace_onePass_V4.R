@@ -421,7 +421,7 @@ getNormalizedHeading2Dhists <- function(segmentpoints=101, resetOnly=TRUE, load=
 
 # Figures -----
 
-plotExampleData <- function(target='inline') {
+plotMoreExampleData <- function(target='inline') {
   
   #graphics.off()
   
@@ -568,9 +568,7 @@ plotExampleData <- function(target='inline') {
   
 }
 
-plotValidity <- function(target='inline') {
-  
-  #graphics.off()
+plotExampleData <- function(target='inline') {
   
   if (target == 'pdf') {
     cairo_pdf(filename='doc/onePass_V4_boundaries.pdf',onefile=TRUE,width=8,height=4)
@@ -581,15 +579,241 @@ plotValidity <- function(target='inline') {
   
   colors <- getColors()
   
+  conditions <- list( c(2, 0.125), 
+                      c(2, 0.167),
+                      c(3, 0.125), 
+                      c(3, 0.167),
+                      c(4, 0.125), 
+                      c(4, 0.167) )
+  
+  
+  lom <- matrix(c(1,3,5,7,2,4,6,7), ncol = 4, nrow = 2, byrow = TRUE)
+  layout(lom, widths=c(1,1,1,1.5))
+  
+  idd <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  idd <- idd[-which(is.na(idd$initialdirection)),]
+  
+  participants <- unique(idd$participant)
+  
+  for (condition in conditions) {
+    
+    plot(-1000,-1000,main=sprintf('%d cps, %s s',condition[1],list('0.125'='4', '0.167'='3')[sprintf('%0.3f',condition[2])]),
+         xlab='illusion strength [deg]', ylab='relative density',
+         xlim=c(-20,80), ylim=c(-.2,1),
+         bty='n',ax=F)
+    
+    lines(c(0,0),c(0,1),col='#999999',lty=1)
+    
+    IS <- condition[1]
+    ES <- condition[2]
+    
+    distribution <- rep(0,101)
+    directions <- c()
+    
+    for (ppno in participants) {
+      
+      ppdir <- idd$initialdirection[ which( idd$internalspeed == condition[1] &
+                                            idd$externalspeed == condition[2] &
+                                            idd$participant   == ppno)]
+      
+      dd <- density(
+        ppdir,
+        n=101, from=-20, to=80
+      )$y
+      
+      distribution <- distribution + (dd / max(dd))
+      directions <- c(directions, mean(ppdir))
+      
+    }
+    
+    distribution <- distribution / max(distribution)
+    
+    lines(c(-20:80),distribution)
+    points(x=directions,y=rep(-.1,length(directions)))
+    
+    axis(side=1,at=seq(0,60,20))
+    axis(side=2,at=c(0,1))
+
+  }
+  
+  plot(-1000,-1000,
+       main='participant 4, 3 cps, 4 s',xlab='cm',ylab='cm',
+       xlim=c(-.25,.5), ylim=c(-.1,.9),
+       bty='n',ax=F, asp=1)
+  
+  df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',4))
+  tasktrials <- unique(df$trial[df$taskname == 're-trace'])
+  taskdf <- df[which(df$trial_no %in% tasktrials),]
+  
+  trials <- unique(taskdf$trial_no[which(taskdf$externalMovement == 0.125 &
+                                           abs(taskdf$internalMovement) == 3)])
+  
+  # loop through those trials:
+  for (trialno in trials) {
+    
+    trialdf <- taskdf[taskdf$trial_no == trialno,]
+    
+    step.idx <- which(trialdf$step == 99) # only for re-trace
+    
+    x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 0.6
+    y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 0.6
+    t <- trialdf$time_ms[step.idx]
+    
+    if (trialdf$internalMovement[1] < 0) x <- -x
+    
+    point <- which(sqrt(x^2 + y^2) > 0.15)[1] # WHERE IS THIS POINT?
+    percept <- (atan2(y[point], x[point]) / pi) * 180
+    #initialdirection <- c(initialdirection, 90 - percept)
+    
+    # why do this and also the smoothed spline?
+    # this only says that at some point X is going back to the midline
+    # but it's not a good estimate of where that happens
+    boundary <- which(diff(x) < 0)[1]
+    
+    if (is.na(boundary)) {
+      # no reset point detected!
+      # lines(x,y,col='#66666699')
+      lines(x,y,col=colors[['lightblue']]$s)
+    } else {
+      
+      smspl <- smooth.spline(t, x, spar=.25)
+      x_p <- predict(smspl$fit, t)$y
+      
+      localmaxima <- which(diff(sign(diff(x_p)))==-2)+1
+      
+      lmd <- sqrt(x[localmaxima]^2 + y[localmaxima]^2)
+      localmaxima <- localmaxima[which(lmd > 0.1)]
+      
+      lmd <- sqrt((x[localmaxima]-x[length(x)])^2 + (y[localmaxima]-y[length(y)])^2)
+      localmaxima <- localmaxima[which(lmd > 0.01)]
+      
+      if (length(localmaxima) > 0) {
+        
+        boundX <- x[localmaxima[1]]
+        boundY <- y[localmaxima[1]]
+        
+        # points(boundX,boundY,col='#b400e4ff')
+        points(boundX,boundY,col=colors[['purple']]$s)
+        
+        boundary <- localmaxima[1]
+        # lines(x[1:boundary],y[1:boundary],col='#b400e4ff')
+        lines(x[1:boundary],y[1:boundary],col=colors[['purple']]$s)
+        lines(x[boundary:length(x)],y[boundary:length(x)],col='#CCCCCCFF')
+        
+      } else {
+        # lines(x,y,col='#66666699')
+        lines(x,y,col=colors[['lightblue']]$s)
+      }
+      
+    }
+    
+  }
+  
+  axis(side=1,at=c(0,2,4)/13.5,labels=c('0','2','4'))
+  axis(side=2,at=c(0,4,8,12)/13.5,labels=c('0','4','8','12'))
+  
+  if (target %in% c('pdf', 'svg')) {
+    dev.off()
+  }
+  
+}
+
+plotValidity <- function(target='inline') {
+  
+  #graphics.off()
+  
+  if (target == 'pdf') {
+    cairo_pdf(filename='doc/onePass_V4_boundaries.pdf',onefile=TRUE,width=8,height=8)
+  }
+  if (target == 'svg') {
+    svglite(file='doc/onePass_V4_boundaries.svg',width=8,height=8)
+  }
+  
+  colors <- getColors()
+  
   df <- getTimeNormalizedData(illusionMinimum = 0)
   
-  par(mfrow=c(1,2),mar=c(4.5, 4.5, 2.1, 0.1))
+  avg_df <- aggregate(cbind(arrowdirection_mean, initialdirection_mean) ~ internalspeed + externalspeed, data=df, FUN=mean)
+  
+  par(mfrow=c(2,2),mar=c(4.5, 4.5, 2.1, 0.1))
   
   #solids <- list('2'='#b400e4ff', '3'='#e51636ff', '4'='#ff8200ff')
   solids <- list('2'=colors[['purple']]$s, '3'=colors[['yorkred']]$s, '4'=colors[['orange']]$s)
   #transp <- list('2'='#b400e42f', '3'='#e516362f', '4'='#ff82002f')
   transp <- list('2'=colors[['purple']]$t, '3'=colors[['yorkred']]$t, '4'=colors[['orange']]$t)
   
+  plot(-1000,-1000,
+       main='line orientation',xlab=expression(paste(tan^{-1}, (V[i]/V[e]))),ylab='illusion strength',
+       xlim=c(0,pi/2),ylim=c(0,50),
+       bty='n',ax=F)
+  
+  #arctan (internal speed / external speed)
+  # 0.58 cycles / cm
+  
+  internalspeed <- df$internalspeed / 0.58 # in cm/s 
+  externalspeed <- 13.5 / df$externalspeed # in cm/s
+  
+  xcoords <- atan(internalspeed / externalspeed)
+  
+  
+  IS <- seq(2.4,7.9,.05)
+  CTmodel <- functionCavanaghTse2019(internal=IS, external=unique(externalspeed), k=0.81)
+  
+  angles <- seq(0,pi/2,.05)
+  lines(angles,(angles/pi)*180,col='gray',lty=2)
+  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  
+  # print(angles)
+  # print(0.81*((angles/pi)*180))
+  
+  # print(unique(xcoords))
+  
+  # print(unique(externalspeed))
+  # print(unique(internalspeed))
+  
+  avg_xcoords <- atan((avg_df$internalspeed / 0.58) / (13.5 / avg_df$externalspeed))
+  
+  # print(length(xcoords))
+  # print(length(internalspeed))
+  # print(range( atan(internalspeed / externalspeed) ) )
+  # print(unique( atan(internalspeed / externalspeed) ) )
+  
+  idxE3 <- which(df$externalspeed == 3)
+  idxE4 <- which(df$externalspeed == 4)
+  
+  points(xcoords[idxE3], df$arrowdirection_mean[idxE3], col=colors$blue$t, pch=16)
+  points(xcoords[idxE4], df$arrowdirection_mean[idxE4], col=colors$yorkred$t, pch=16)
+  
+  avg_idxE3 <- which(avg_df$externalspeed == 3)
+  avg_idxE4 <- which(avg_df$externalspeed == 4)
+  
+  points(avg_xcoords[avg_idxE3], avg_df$arrowdirection_mean[avg_idxE3], col=colors$blue$s, pch=1)
+  points(avg_xcoords[avg_idxE4], avg_df$arrowdirection_mean[avg_idxE4], col=colors$yorkred$s, pch=1)
+  
+  
+  axis(side=1,at=seq(0,pi/2,pi/8),labels=c('0','','pi/4','','pi/2'))
+  axis(side=2,at=seq(0,50,10))
+  
+  plot(-1000,-1000,
+       main='re-tracing halfway points',xlab=expression(paste(tan^{-1}, (V[i]/V[e]))),ylab='illusion strength',
+       xlim=c(0,pi/2),ylim=c(0,50),
+       bty='n',ax=F)
+  
+  angles <- seq(0,pi/2,.05)
+  lines(angles,(angles/pi)*180,col='gray',lty=2)
+  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  lines(angles,0.4*((angles/pi)*180),col=colors$purple$s,lty=1)
+  
+  xcoords <- atan(internalspeed / externalspeed)
+  
+  points(xcoords[idxE3], df$initialdirection_mean[idxE3], col=colors$blue$t, pch=16)
+  points(xcoords[idxE4], df$initialdirection_mean[idxE4], col=colors$yorkred$t, pch=16)
+  
+  points(avg_xcoords[avg_idxE3], avg_df$initialdirection_mean[avg_idxE3], col=colors$blue$s, pch=1)
+  points(avg_xcoords[avg_idxE4], avg_df$initialdirection_mean[avg_idxE4], col=colors$yorkred$s, pch=1)
+  
+  axis(side=1,at=seq(0,pi/2,pi/8),labels=c('0','','pi/4','','pi/2'))
+  axis(side=2,at=seq(0,50,10))
   
   # PANEL A
   
