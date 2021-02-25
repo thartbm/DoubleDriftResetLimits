@@ -353,10 +353,14 @@ plotBoundedTracking_V2 <- function(target='inline') {
     adX <- (cos((PPavgDir$direction/180)*pi) * scale)
     adY <- (sin((PPavgDir$direction/180)*pi) * scale)
     lines(adX,adY,col=colors[['blue']]$s,lw=2)
-    
+    # text(0,0,)
   }
   
   polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, mincol=c(1,1,1), border=NA, ylim=c(0,1), main='group average', overlay=FALSE)
+  
+  ppAvgDirs <-  90 - colMeans( matrix(avgDir, ncol=length(participants), byrow=FALSE)  ) 
+  print(ppAvgDirs)
+  print(mean(ppAvgDirs))
   
   avgDir <- (rowMeans( matrix(avgDir, ncol=length(participants), byrow=FALSE) ) / 180) * pi
   text(0, 1.2, sprintf('%0.1f°',90 - ( ( mean(avgDir) / pi) * 180 ) ) )
