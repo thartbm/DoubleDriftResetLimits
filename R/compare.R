@@ -19,8 +19,14 @@ functionCavanaghTse2019 <- function(internal=c(), external=c(), k=0.81) {
   
 }
 
-plotStrengthComparison <- function() {
+plotStrengthComparison <- function(target='svg') {
   
+  if (target == 'pdf') {
+    cairo_pdf(filename='doc/tracking_CTmodel.pdf',onefile=TRUE,width=5,height=5)
+  }
+  if (target == 'svg') {
+    svglite(file='doc/tracking_CTmodel.svg',width=5,height=5)
+  }
   
   colors <- getColors()
   
@@ -58,6 +64,7 @@ plotStrengthComparison <- function() {
       # }
       
       # also get the average, to plot on top of the polar heat map:
+      # or justs to plot a point for comparison with the Cavanagh & Tse 2019 model
       PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
       
       internalspeed <- c(internalspeed, internalSpeed)
@@ -73,6 +80,10 @@ plotStrengthComparison <- function() {
   headingdir$avgheading[idx] <- headingdir$avgheading[idx] * -1 
   headingdir$internalspeed[idx] <- headingdir$internalspeed[idx] * -1 
   
+  #str(headingdir)
+  
+  headingdir <- aggregate(cbind(avgheading, participant) ~ internalspeed + participant, data=headingdir, FUN=mean)
+  #str(headingdir)
   #plot(c(5:35),IS['7.800',], type='l')
   
   # plot(-1000,-1000,xlim=c(0,25), ylim=c(0,60), xlab='external motion [dva/s]', ylab='illusion strength [deg]', bty='n', ax=F)
@@ -123,7 +134,7 @@ plotStrengthComparison <- function() {
   # # text(x=3.5,y=-2.5,'1b',adj=c(0.5,0.5))
   # # 
   # # # data for exp 1b:
-  # # points(x=c(3.5), y=c(28.9), col='blue', pch=19)
+  # # points(x=c(4.5), y=c(28.9), col='blue', pch=19)
   # 
   # 
   # legend(x=4, y=62, legend=c('Cavanagh & Tse (2019)', 'experiment 1'), col=c('#999999', '#FF0000'), pch=c(NA,19), lty=c(1,0), bty='n')
@@ -160,7 +171,9 @@ plotStrengthComparison <- function() {
   axis(side=1, at=seq(0,7,1))
   axis(side=2, at=seq(0,40,10))
   
-  
+  if (target %in% c('svg', 'pdf')) {
+    dev.off()
+  }
   
 }
 
