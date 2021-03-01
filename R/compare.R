@@ -206,3 +206,43 @@ plotStrengthComparison2 <- function() {
   axis(side=2, at=seq(0,40,10))
   
 }
+
+plotStrengthComparison3 <- function() {
+  
+  colors <- getColors()
+  
+  df <- getAverageHeading()
+  
+  internalspeed <- df$internalspeed / 0.58 # in cm/s 
+  externalspeed <- 13.5             / 2    # in cm/s
+  
+  xcoords <- atan(internalspeed / externalspeed)
+  
+
+  plot(-1000,-1000,
+       main='',xlab=expression(paste(tan^{-1}, (V[i]/V[e]))),ylab='illusion strength [°]',
+       xlim=c(pi*-((0.25)/9),pi/4),ylim=c(-5,45),
+       bty='n',ax=F)
+  
+  angles <- seq(0,pi/2,.05)
+  lines(angles,(angles/pi)*180,col='gray',lty=2)
+  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  
+  
+  points(xcoords, df$avgheading, col=colors$lightblue$s, pch=1, cex=1.0)
+  
+  agg.df <- aggregate(avgheading ~ internalspeed, data=df, FUN=mean)
+  
+  points(atan((agg.df$internalspeed / 0.58) / externalspeed), agg.df$avgheading, col=colors$yorkred$s, pch=1, cex=1.5)
+  
+  
+  legend(x=2.5, y=10, 
+         legend=c('participants', 'average', 'Cavanagh & Tse (2019)'), 
+         col=c(colors$lightblue$s, colors$yorkred$s, '#999999'), 
+         pch=c(1,1,NA), lty=c(0,0,1), 
+         bty='n', cex=1)
+  
+  axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
+  axis(side=2,at=seq(0,45,15))
+  
+}

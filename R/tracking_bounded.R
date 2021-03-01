@@ -147,23 +147,87 @@ getSegmentDirections <- function(version=1) {
   
 }
 
-# Figures -----
 
+getAverageHeading <- function(mirror=TRUE) {
+  
+  stdsegments <- read.csv('data/bounded_tracking/segment_directions.csv', stringsAsFactors = F)  
+  
+  stdsegments$direction[which(stdsegments$direction < 0)] <- NA
+  stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
+  
+  internalSpeeds <- sort(unique(stdsegments$internalSpeed))
+  participants <- sort(unique(stdsegments$participant))
+  
+  internalspeed <- c()
+  participant <- c()
+  avgheading <- c()
+  
+  for (internalSpeed.idx in c(1:length(internalSpeeds))) {
+    
+    internalSpeed <- internalSpeeds[internalSpeed.idx]
+    
+    for (pp in participants) {
+      
+      # this is the part of the data we're dealing with now:
+      idx <- which(stdsegments$internalSpeed == internalSpeed & stdsegments$participant == pp)
+      
+      # # we put it into a normalized 2D histogram:
+      # pfreq <- hist2d(x=stdsegments$direction[idx], y=stdsegments$sample_no[idx], nbins=NA, edges=list(seq(0,180,length.out=61), seq(1,101,4)+0.5))
+      # 
+      # if (!is.matrix(freq2D)) {
+      #   freq2D <- pfreq$freq2D
+      # } else {
+      #   freq2D <- freq2D + pfreq$freq2D
+      # }
+      
+      # also get the average, to plot on top of the polar heat map:
+      # or justs to plot a point for comparison with the Cavanagh & Tse 2019 model
+      PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
+      
+      internalspeed <- c(internalspeed, internalSpeed)
+      participant <- c(participant, pp)
+      avgheading <- c(avgheading, 90-mean(PPavgDir$direction))
+      
+    }
+    
+  }
+  
+  headingdir <- data.frame(internalspeed, participant, avgheading)
+  
+  
+  if (mirror) {
+    idx <- which(headingdir$internalspeed < 0)
+    headingdir$avgheading[idx] <- headingdir$avgheading[idx] * -1 
+    headingdir$internalspeed[idx] <- headingdir$internalspeed[idx] * -1 
+    
+    headingdir <- aggregate(cbind(avgheading) ~ internalspeed + participant, data=headingdir, FUN=mean)
+    
+  }
+  
+  return(headingdir)
+  
+}
+
+
+# Figures -----
 
 
 plotBoundedTracking <- function(target='inline') {
   
   colors <- getColors()
-
+  
   stdsegments <- read.csv('data/bounded_tracking/segment_directions.csv', stringsAsFactors = F)  
-
+  
   stdsegments$direction[which(stdsegments$direction < 0)] <- NA
   stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
   
   
   if (target=='svg') {
-    svglite(file='doc/Fig03b.svg',width=6,height=6)
+    svglite(file='doc/Fig03b.svg',width=8,height=5)
   }
+  
+  
+  layout(matrix(c(1,2,1,3), nrow = 2, ncol = 2, byrow = T), heights=c(1.25,2.25), widths=c(1,1))
   
   # 5 conditions or internal speeds (columns)
   # row 1: heading distribution
@@ -172,9 +236,84 @@ plotBoundedTracking <- function(target='inline') {
   internalSpeeds <- sort(unique(stdsegments$internalSpeed))
   participants <- sort(unique(stdsegments$participant))
   
-  par(mar=c(4.1,4.1,2.1,0.1),mfrow=c(1,1))
+  par(mar=c(3.75,3.75,2.1,0.1))
   
-  plot(-1000,-1000,main='',ylim=c(0.5,length(participants)+2),xlim=c(0.5,5.5),ylab='participant',xlab='internal speed [cps]',asp=1,bty='n',ax=F)
+  
+  plot(-1000,-1000,main='online tracking',
+       ylim=c(0.75,(length(participants)*1.5)+0.75),xlim=c(0.5,5.5),
+       ylab='',xlab='',
+       asp=1,bty='n',ax=F)
+  
+  title(xlab='internal speed [cps]', line=2.5)
+  title(ylab='participant', line=2.5)
+  
+  
+  # four choice trials that _might_ have a reset...
+  outlierTrials <- data.frame( 'participant'   = c(  8,  7,  3, 8  ),
+                               'internalSpeed' = c( -3,  1,  3, 3  ),
+                               'trial_no'      = c( 33,  1, 10, 25 ))
+  
+  # outlierTrials <- outlierTrials[which(outlierTrials$trial_no > 9),]
+  # print(outlierTrials)
+  
+  speeds <- c(-3,-1,0,1,3)
+  
+  for (ppidx in c(1:length(participants))) {
+    
+    ppno <- participants[ppidx]
+    
+    df <- read.csv(sprintf('data/bounded_tracking/bounded_tracking_p%02d.csv',ppno))
+    
+    df <- df[which(df$step == 2),]
+    
+    for (speedidx in c(1:length(speeds))) {
+      
+      speed <- speeds[speedidx]
+      
+      outlier_trials <- outlierTrials$trial_no[which(outlierTrials$participant == ppno & outlierTrials$internalSpeed == speed)]
+      
+      sdf <- df[which(df$internalSpeed == speed),]
+      
+      trials <- unique(sdf$trial_no) 
+      
+      for (trialno in trials) {
+        
+        idx <- which(sdf$trial_no == trialno)
+        
+        t <- sdf$time_ms[idx]
+        t <- (t - t[1]) / 1000
+        x <- sdf$handx_pix[idx] * sdf[idx,]$externalDirection[1]
+        y <- sdf$handy_pix[idx]
+        
+        x <- (x / 960)
+        x <- x + speedidx
+        #x <- x + ppidx
+        
+        y <- (y / 960)
+        y <- y + (ppidx * 1.5)
+        #y <- y + speedidx
+        
+        col <- '#0000000f'
+        if (trialno %in% outlier_trials) {
+          col <- colors[['yorkred']]$s
+        }
+        
+        lines(x,y,col=col,lw=2)
+        
+      }
+      
+    }
+    
+  }
+  
+  axis(side=2,at=seq(1:length(participants))*1.5,labels=sprintf('%d',c(1:length(participants))))
+  axis(side=1,at=c(1:length(speeds)),labels = sprintf('%d',speeds))
+  
+  
+  plot(-1000,-1000,main='heading',ylim=c(1,1.7),xlim=c(0.5,5.5),ylab='',xlab='',asp=1,bty='n',ax=F)
+  
+  title(xlab='internal speed [cps]', line=2.5)
+  # title(ylab='participant', line=2.5)
   
   #outlierTrials <- NA
   
@@ -204,97 +343,70 @@ plotBoundedTracking <- function(target='inline') {
       PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
       avgDir <- c(avgDir, PPavgDir$direction)
       
-      # # determin the extra-ordinary trials: mean +/- 3 std? (for every timepoint?)
-      # #PPstdDir <- aggregate(direction ~ sample_no, data = allsegments[idx,], FUN=sd, na.rm=T)
-      # stdDir <- sd(stdsegments$direction[idx], na.rm=T)
-      # outliers <- which(stdsegments$direction[idx] - mean(stdsegments$direction[idx], na.rm=T) > (4 * stdDir))
-      # 
-      # if (length(outliers) > 3) {
-      #   #cat(sprintf('speed: %d, participant: %d\n', internalSpeed, participant))
-      #   outlierdf <- unique(stdsegments[idx[outliers],c('participant','internalSpeed','trial_no')])
-      #   if (is.data.frame(outlierTrials)) {
-      #     outlierTrials <- rbind(outlierTrials, outlierdf)
-      #   } else {
-      #     outlierTrials <- outlierdf
-      #   }
-      # }
-      
-      
     }
     
-    polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, mincol=c(1,1,1), border=NA, ylim=c(0,1), main=sprintf('%d cps', internalSpeed), overlay=TRUE, origin=c(internalSpeed.idx,5), scale=0.65)
+    polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, 
+                 mincol=c(1,1,1), border=NA, ylim=c(0,1), 
+                 main=sprintf('%d cps', internalSpeed), 
+                 overlay=TRUE, origin=c(internalSpeed.idx,1), scale=0.65)
     
     avgDir <- (rowMeans( matrix(avgDir, ncol=length(participants), byrow=FALSE) ) / 180) * pi
-    text(internalSpeed.idx, 5.85, sprintf('%0.1f°',90 - ( ( mean(avgDir) / pi) * 180 ) ) )
+    text(internalSpeed.idx, 1.85, sprintf('%0.1f°',90 - ( ( mean(avgDir) / pi) * 180 ) ) )
     scale <- ((PPavgDir$sample_no+30) / (max(PPavgDir$sample_no)+30)) * 0.65
     adX <- (cos(avgDir) * scale) + internalSpeed.idx
-    adY <- (sin(avgDir) * scale) + 5
+    adY <- (sin(avgDir) * scale) + 1
     lines(adX,adY,col=colors[['blue']]$s,lw=2)
     
   }
   
-  # four choice trials that _might_ have a reset...
-  outlierTrials <- data.frame( 'participant'   = c(  8,  7,  3, 8  ),
-                               'internalSpeed' = c( -3,  1,  3, 3  ),
-                               'trial_no'      = c( 33,  1, 10, 25 ))
-  
-  # outlierTrials <- outlierTrials[which(outlierTrials$trial_no > 9),]
-  # print(outlierTrials)
-  
-  speeds <- c(-3,-1,0,1,3)
-  
-  for (ppidx in c(1:length(participants))) {
-    
-    ppno <- participants[ppidx]
-    
-    df <- read.csv(sprintf('data/bounded_tracking/bounded_tracking_p%02d.csv',ppno))
-    
-    df <- df[which(df$step == 2),]
-    
-    for (speedidx in c(1:length(speeds))) {
-      
-      speed <- speeds[speedidx]
-      
-      outlier_trials <- outlierTrials$trial_no[which(outlierTrials$participant == ppno & outlierTrials$internalSpeed == speed)]
-      
-      #plot(-1000,-1000,main='',ylim=c(-0.5,0.5),xlim=c(-0.5,0.5),xlab='',ylab='',asp=1,bty='n',ax=F)
-      
-      sdf <- df[which(df$internalSpeed == speed),]
-      
-      trials <- unique(sdf$trial_no) 
-      
-      for (trialno in trials) {
-        
-        idx <- which(sdf$trial_no == trialno)
-        
-        t <- sdf$time_ms[idx]
-        t <- (t - t[1]) / 1000
-        x <- sdf$handx_pix[idx] * sdf[idx,]$externalDirection[1]
-        y <- sdf$handy_pix[idx]
-        
-        x <- (x / 960)
-        x <- x + speedidx
-        #x <- x + ppidx
-        
-        y <- (y / 960)
-        y <- y + ppidx
-        #y <- y + speedidx
-        
-        col <- '#0000000f'
-        if (trialno %in% outlier_trials) {
-          col <- colors[['yorkred']]$s
-        }
-        
-        lines(x,y,col=col,lw=2)
-        
-      }
-      
-    }
-    
-  }
-  
-  axis(side=2,at=c(1:length(participants),5.4),labels = c(sprintf('%d',participants),'heading'))
   axis(side=1,at=c(1:length(speeds)),labels = sprintf('%d',speeds))
+  
+  
+  df <- getAverageHeading()
+  
+  internalspeed <- df$internalspeed / 0.58 # in cm/s 
+  externalspeed <- 13.5             / 2    # in cm/s
+  
+  xcoords <- atan(internalspeed / externalspeed)
+  
+  
+  plot(-1000,-1000,main='illusion strength',
+       xlab=expression(paste(tan^{-1}, (V[i]/V[e]))),ylab='illusion strength [°]',
+       xlim=c(pi*-((0.25)/9),pi/4),ylim=c(-5,45),
+       bty='n',ax=F)
+  
+  angles <- c(0,pi/4)
+  lines(angles,(angles/pi)*180,col='gray',lty=2)
+  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  
+  
+  points(xcoords, df$avgheading, col=colors$lightblue$s, pch=1, cex=1.0)
+  
+  agg.df <- aggregate(avgheading ~ internalspeed, data=df, FUN=mean)
+  
+  points(atan((agg.df$internalspeed / 0.58) / externalspeed), agg.df$avgheading, col=colors$yorkred$s, pch=1, cex=1.5)
+  
+  
+  
+  # get the best k for this data:
+  X <- (xcoords/pi)*180
+  Y <- as.numeric(unlist(df$avgheading))
+  linmod <- lm(Y ~ X - 1)
+  slope <- summary(linmod)$coefficients['X','Estimate']
+  
+  # plot that as a line:
+  lines(angles,slope*((angles/pi)*180),col=colors$purple$s,lty=1)
+  
+  
+  
+  legend(x=0, y=45, 
+         legend=c('Cavanagh & Tse (2019)', 'participants', 'average'), 
+         col=c('black', colors$lightblue$s, colors$yorkred$s), 
+         pch=c(NA,1,1), lty=c(1,0,0), 
+         bty='n', cex=1)
+  
+  axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
+  axis(side=2,at=seq(0,45,15))
   
   
   if (target %in% c('svg')) {
@@ -302,6 +414,161 @@ plotBoundedTracking <- function(target='inline') {
   }
   
 }
+
+# plotBoundedTrackingOld <- function(target='inline') {
+#   
+#   colors <- getColors()
+# 
+#   stdsegments <- read.csv('data/bounded_tracking/segment_directions.csv', stringsAsFactors = F)  
+# 
+#   stdsegments$direction[which(stdsegments$direction < 0)] <- NA
+#   stdsegments <- stdsegments[which(!is.na(stdsegments$direction)),]
+#   
+#   
+#   if (target=='svg') {
+#     svglite(file='doc/Fig03b.svg',width=6,height=6)
+#   }
+#   
+#   # 5 conditions or internal speeds (columns)
+#   # row 1: heading distribution
+#   # row 2-5: participants
+#   
+#   internalSpeeds <- sort(unique(stdsegments$internalSpeed))
+#   participants <- sort(unique(stdsegments$participant))
+#   
+#   par(mar=c(3.75,3.75,2.1,0.1),mfrow=c(1,1))
+#   
+#   plot(-1000,-1000,main='',ylim=c(0.5,length(participants)+2),xlim=c(0.5,5.5),ylab='',xlab='',asp=1,bty='n',ax=F)
+#   
+#   title(xlab='internal speed [cps]', line=2.5)
+#   title(ylab='participant', line=2.5)
+#   
+#   #outlierTrials <- NA
+#   
+#   for (internalSpeed.idx in c(1:length(internalSpeeds))) {
+#     
+#     internalSpeed <- internalSpeeds[internalSpeed.idx]
+#     
+#     freq2D <- NA
+#     avgDir <- c()
+#     
+#     for (participant in participants) {
+#       
+#       # this is the part of the data we're dealing with now:
+#       idx <- which(stdsegments$internalSpeed == internalSpeed & stdsegments$participant == participant)
+#       
+#       # we put it into a normalized 2D histogram:
+#       pfreq <- hist2d(x=stdsegments$direction[idx], y=stdsegments$sample_no[idx], nbins=NA, edges=list(seq(0,180,length.out=61), seq(1,101,4)+0.5))
+#       #pfreq$freq2D <- sqrt(pfreq$freq2D / sum(pfreq$freq2D))
+#       
+#       if (!is.matrix(freq2D)) {
+#         freq2D <- pfreq$freq2D
+#       } else {
+#         freq2D <- freq2D + pfreq$freq2D
+#       }
+#       
+#       # also get the average, to plot on top of the polar heat map:
+#       PPavgDir <- aggregate(direction ~ sample_no, data = stdsegments[idx,], FUN=mean, na.rm=T)
+#       avgDir <- c(avgDir, PPavgDir$direction)
+#       
+#       # # determin the extra-ordinary trials: mean +/- 3 std? (for every timepoint?)
+#       # #PPstdDir <- aggregate(direction ~ sample_no, data = allsegments[idx,], FUN=sd, na.rm=T)
+#       # stdDir <- sd(stdsegments$direction[idx], na.rm=T)
+#       # outliers <- which(stdsegments$direction[idx] - mean(stdsegments$direction[idx], na.rm=T) > (4 * stdDir))
+#       # 
+#       # if (length(outliers) > 3) {
+#       #   #cat(sprintf('speed: %d, participant: %d\n', internalSpeed, participant))
+#       #   outlierdf <- unique(stdsegments[idx[outliers],c('participant','internalSpeed','trial_no')])
+#       #   if (is.data.frame(outlierTrials)) {
+#       #     outlierTrials <- rbind(outlierTrials, outlierdf)
+#       #   } else {
+#       #     outlierTrials <- outlierdf
+#       #   }
+#       # }
+#       
+#       
+#     }
+#     
+#     polarHeatMap(x=pfreq$x.edges, y=pfreq$y.edges+30, z=freq2D, mincol=c(1,1,1), border=NA, ylim=c(0,1), main=sprintf('%d cps', internalSpeed), overlay=TRUE, origin=c(internalSpeed.idx,5), scale=0.65)
+#     
+#     avgDir <- (rowMeans( matrix(avgDir, ncol=length(participants), byrow=FALSE) ) / 180) * pi
+#     text(internalSpeed.idx, 5.85, sprintf('%0.1f°',90 - ( ( mean(avgDir) / pi) * 180 ) ) )
+#     scale <- ((PPavgDir$sample_no+30) / (max(PPavgDir$sample_no)+30)) * 0.65
+#     adX <- (cos(avgDir) * scale) + internalSpeed.idx
+#     adY <- (sin(avgDir) * scale) + 5
+#     lines(adX,adY,col=colors[['blue']]$s,lw=2)
+#     
+#   }
+#   
+#   # four choice trials that _might_ have a reset...
+#   outlierTrials <- data.frame( 'participant'   = c(  8,  7,  3, 8  ),
+#                                'internalSpeed' = c( -3,  1,  3, 3  ),
+#                                'trial_no'      = c( 33,  1, 10, 25 ))
+#   
+#   # outlierTrials <- outlierTrials[which(outlierTrials$trial_no > 9),]
+#   # print(outlierTrials)
+#   
+#   speeds <- c(-3,-1,0,1,3)
+#   
+#   for (ppidx in c(1:length(participants))) {
+#     
+#     ppno <- participants[ppidx]
+#     
+#     df <- read.csv(sprintf('data/bounded_tracking/bounded_tracking_p%02d.csv',ppno))
+#     
+#     df <- df[which(df$step == 2),]
+#     
+#     for (speedidx in c(1:length(speeds))) {
+#       
+#       speed <- speeds[speedidx]
+#       
+#       outlier_trials <- outlierTrials$trial_no[which(outlierTrials$participant == ppno & outlierTrials$internalSpeed == speed)]
+#       
+#       #plot(-1000,-1000,main='',ylim=c(-0.5,0.5),xlim=c(-0.5,0.5),xlab='',ylab='',asp=1,bty='n',ax=F)
+#       
+#       sdf <- df[which(df$internalSpeed == speed),]
+#       
+#       trials <- unique(sdf$trial_no) 
+#       
+#       for (trialno in trials) {
+#         
+#         idx <- which(sdf$trial_no == trialno)
+#         
+#         t <- sdf$time_ms[idx]
+#         t <- (t - t[1]) / 1000
+#         x <- sdf$handx_pix[idx] * sdf[idx,]$externalDirection[1]
+#         y <- sdf$handy_pix[idx]
+#         
+#         x <- (x / 960)
+#         x <- x + speedidx
+#         #x <- x + ppidx
+#         
+#         y <- (y / 960)
+#         y <- y + ppidx
+#         #y <- y + speedidx
+#         
+#         col <- '#0000000f'
+#         if (trialno %in% outlier_trials) {
+#           col <- colors[['yorkred']]$s
+#         }
+#         
+#         lines(x,y,col=col,lw=2)
+#         
+#       }
+#       
+#     }
+#     
+#   }
+#   
+#   axis(side=2,at=c(1:length(participants),5.4),labels = c(sprintf('%d',participants),'heading'))
+#   axis(side=1,at=c(1:length(speeds)),labels = sprintf('%d',speeds))
+#   
+#   
+#   if (target %in% c('svg')) {
+#     dev.off()
+#   }
+#   
+# }
 
 
 plotBoundedTracking_V2 <- function(target='inline') {
