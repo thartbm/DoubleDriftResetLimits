@@ -31,6 +31,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
     externalspeed <- c()
     fixationside <- c()
     initialdirection <- c()
+    illusionstrength <- c()
     boundX <-c()
     boundY <-c()
     
@@ -88,6 +89,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#00000033')
               
               initialdirection <- c(initialdirection, 90 - percept)
+              illusionstrength <- c(illusionstrength, 90 - percept)
               boundX <- c(boundX, NA)
               boundY <- c(boundY, NA)
               
@@ -107,14 +109,17 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               #   # print(y)
               # }
               
-              
               if (trialdf$internalMovement[1] < 0) x <- -x
               
+              # this has to be redone once the reset point is found!
               point <- which(sqrt(x^2 + y^2) > 0.15)[1]
               percept <- (atan2(y[point], x[point]) / pi) * 180
               initialdirection <- c(initialdirection, 90 - percept)
+              # IDcoords <- c(x[point],y[point])
               
               # why do this and also the smoothed spline?
+              # to test if we should be doing the splines at all?
+              # and the splines find the "more correct" point... hmmm...
               boundary <- which(diff(x) < 0)[1]
               
               if (is.na(boundary)) {
@@ -122,6 +127,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
                 
                 boundX <- c(boundX, NA)
                 boundY <- c(boundY, NA)
+                illusionstrength <- c(illusionstrength, NA)
                 
               } else {
                 
@@ -132,20 +138,36 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
                 smspl <- smooth.spline(t, x, spar=.25)
                 x_p <- predict(smspl$fit, t)$y
                 
+                # these are sign changes from positive to negative
                 localmaxima <- which(diff(sign(diff(x_p)))==-2)+1
+                # distance of local max has to be more tha (0.1) but the trajectory is scaled to 0-0.6 (??? why)
                 lmd <- sqrt(x[localmaxima]^2 + y[localmaxima]^2)
                 localmaxima <- localmaxima[which(lmd > 0.1)]
+                # the maxima can also not be very close to the end of the trajectory:
                 lmd <- sqrt((x[localmaxima]-x[length(x)])^2 + (y[localmaxima]-y[length(y)])^2)
                 localmaxima <- localmaxima[which(lmd > 0.01)]
+                # do we have any left?
                 if (length(localmaxima) > 0) {
                   
                   #   points(x[localmaxima[1]]+participant-0.5,IM.idx-0.1,col='#FF0000')
                   #   points(participant-0.7,y[localmaxima[1]]+IM.idx-0.9,col='#FF0000')
-                  Xbounds <- c(Xbounds, x[localmaxima[1]])
-                  Ybounds <- c(Ybounds, y[localmaxima[1]])
+                  
+                  # store the first local maximum as reset point:
+                  # Xbounds <- c(Xbounds, x[localmaxima[1]])
+                  # Ybounds <- c(Ybounds, y[localmaxima[1]])
                   
                   boundX <- c(boundX, x[localmaxima[1]])
                   boundY <- c(boundY, y[localmaxima[1]])
+                  
+                  # **********************************
+                  # ACTUAL HALFWAY POINTS HERE:
+                  #print(sqrt(sum(IDcoords^2)))
+                  hwd <- sqrt(sum(c(x[localmaxima[1]],y[localmaxima[1]])^2)) / 2
+                  hwp <- which(sqrt(x^2 + y^2) > hwd)[1]
+                  hwpercept <- (atan2(y[hwp], x[hwp]) / pi) * 180
+                  illusionstrength <- c(illusionstrength, 90 - hwpercept)
+                  
+                  #print(percept - hwpercept)
                   
                   points(x[localmaxima[1]]+(participant.idx*2)-2+EM.idx,y[localmaxima[1]]+IM.idx-0.9,col='#b400e4ff')
                   
@@ -153,10 +175,13 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
                   lines(x[1:boundary]+(participant.idx*2)-2+EM.idx,y[1:boundary]+IM.idx-0.9,col='#b400e4ff')
                   lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC33')
                   
+                  
+                  
                 } else {
                   lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
                   boundX <- c(boundX, NA)
                   boundY <- c(boundY, NA)
+                  illusionstrength <- c(illusionstrength, NA)
                 }
                 
               }
@@ -204,7 +229,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
     # boundX <-c()
     # boundY <-c()
     
-    df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, boundX, boundY)
+    df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, illusionstrength, boundX, boundY)
     write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
     
   }
@@ -239,17 +264,22 @@ summarizeTraceBoundsV4 <- function() {
   tempdf <- aggregate(boundY ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
   aggdf['boundY_sd'] <- tempdf$boundY
   
-  tempdf <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
-  aggdf['initialdirection_mean'] <- tempdf$initialdirection
+  # tempdf <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
+  # aggdf['initialdirection_mean'] <- tempdf$initialdirection
+  # 
+  # tempdf <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
+  # aggdf['initialdirection_sd'] <- tempdf$initialdirection
+  tempdf <- aggregate(illusionstrength ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
+  aggdf['initialdirection_mean'] <- tempdf$illusionstrength
   
-  tempdf <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
-  aggdf['initialdirection_sd'] <- tempdf$initialdirection
+  tempdf <- aggregate(illusionstrength ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
+  aggdf['initialdirection_sd'] <- tempdf$illusionstrength
   
   tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=mean, na.rm=TRUE)
-  aggdf['arrowdirection_mean'] <- tempdf$initialdirection
+  aggdf['arrowdirection_mean'] <- tempdf2$initialdirection
   
   tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=sd, na.rm=TRUE)
-  aggdf['arrowdirection_sd'] <- tempdf$initialdirection
+  aggdf['arrowdirection_sd'] <- tempdf2$initialdirection
   
   return(aggdf)
   
@@ -720,11 +750,12 @@ plotExampleData <- function(target='inline') {
 
 plotData <- function(target='inline') {
   
+  
   if (target == 'pdf') {
-    cairo_pdf(filename='doc/onePass_V4_boundaries.pdf',onefile=TRUE,width=8,height=4)
+    cairo_pdf(filename='doc/Fig4_trajectories_resetpoints_illusionstrength.pdf',onefile=TRUE,width=8,height=4)
   }
   if (target == 'svg') {
-    svglite(file='doc/onePass_V4_boundaries.svg',width=8,height=4)
+    svglite(file='doc/Fig4_trajectories_resetpoints_illusionstrength.svg',width=8,height=4)
   }
   
   par(mar=c(3.5, 3.5, 2.5, 0.5))
@@ -737,8 +768,6 @@ plotData <- function(target='inline') {
   # 3: Cavangh & Tse comparison
   
   layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = T), widths=c(1.2,1.2,1.5))
-  
-  
   
   # **********************************
   # EXAMPLE PARTICIPANT PLOT:
@@ -771,8 +800,8 @@ plotData <- function(target='inline') {
     
     if (trialdf$internalMovement[1] < 0) x <- -x
     
-    point <- which(sqrt(x^2 + y^2) > 0.15)[1] # WHERE IS THIS POINT?
-    percept <- (atan2(y[point], x[point]) / pi) * 180
+    # point <- which(sqrt(x^2 + y^2) > 0.15)[1] # WHERE IS THIS POINT?
+    # percept <- (atan2(y[point], x[point]) / pi) * 180
     #initialdirection <- c(initialdirection, 90 - percept)
     
     # why do this and also the smoothed spline?
@@ -821,6 +850,7 @@ plotData <- function(target='inline') {
   
   axis(side=1,at=c(0,2,4)/13.5,labels=c('0','2','4'))
   axis(side=2,at=c(0,4,8,12)/13.5,labels=c('0','4','8','12'))
+  
   
   # ***********************************************
   # 2D overview of reset points:
@@ -874,7 +904,6 @@ plotData <- function(target='inline') {
   
   avg_df <- aggregate(cbind(arrowdirection_mean, initialdirection_mean) ~ internalspeed + externalspeed, data=df, FUN=mean)
   
-  
   internalspeed <- df$internalspeed / 0.58 # in cm/s 
   externalspeed <- 13.5 / df$externalspeed # in cm/s
   
@@ -889,7 +918,6 @@ plotData <- function(target='inline') {
   
   avg_idxE3 <- which(avg_df$externalspeed == 3)
   avg_idxE4 <- which(avg_df$externalspeed == 4)
-  
   
   plot(-1000,-1000,
        main='re-tracing halfway points',xlab='',ylab='',
@@ -924,9 +952,7 @@ plotData <- function(target='inline') {
   axis(side=1,at=seq(0,3*(pi/8),pi/8),labels=c('0',expression(pi/8),expression(pi/4),expression(3*pi/8)))
   axis(side=2,at=seq(0,45,15))
   
-  
-  
-  
+
   if (target %in% c('pdf','svg')) {
     dev.off()
   }
@@ -1580,12 +1606,12 @@ plotModels <- function(target='inline') {
   
   plot(-1000,-1000,main='combined limits',xlab='',ylab='',xlim=c(5,45),ylim=c(0,1),bty='n',ax=F)
   
-  title(xlab='illusion strength (initial direction) [°]', line=2.4, cex=0.8)
+  title(xlab='illusion strength [°]', line=2.4, cex=0.8)
   title(ylab='horizontal reset distance [cm]', line=2.4, cex=0.8)
   
   
   par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
-  
+  print(par)
   
   model_angles <- seq(10,40)
   model_directions <- ((90-model_angles)/180)*pi

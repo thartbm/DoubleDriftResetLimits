@@ -6,9 +6,9 @@ author:
 - Patrick Cavanagh 1,2,3
 output:
   word_document: default
+  pdf_document: default
   html_document:
     df_print: paged
-  pdf_document: default
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -104,7 +104,7 @@ We first segmented the tracking trajectories according to stimulus passes (in be
 
 In Figure 2 (top right), we plot the average instantaneous heading during the middle second of each 2 _s_ pass for each of the 5 internal motion speeds. The average angle of the tracked path is given in degrees deviation from straight forward. It seems that continuous tracking is sensitive to the strength of the illusion, and this is confirmed by a repeated-measures F-test on the average angles, using internal motion as a within-subjects factor ( _F_(4,12)=102.6, _p_<.001, $\eta^2$=0.97 ). With FDR-corrected, paired t-tests, we find a difference in heading between 0 _cps_ internal motion and both 1 _cps_ ( _p_=.022) and -1 _cps_ ( _p_=.025) as well as between -3 and -1 _cps_ and 3 and 1 _cps_ (both _p_ <.001). This makes it clear that continuous tracking does not prevent the illusion from occurring. We will use heading angle as a measure of the strength of the illusion.
 
-```{r fig2, echo=FALSE, message=FALSE, fig.width=8, fig.height=5, fig.cap="\\label{fig:fig2}**Figure 2. Online Tracking Data** **Left:** Individual trajectories. Note that there are only a few obvious discontinuities (highlighted in red). In general, the traced paths showed rough linearity. **Top right:** Average heading in the middle 1 _s_ of each pass. Distance from origin is time, angle is angle. Dark blue lines the average heading, in light blue a polar heatmap with the distribution of heading. **Bottom right: The strength of the illusion in degrees angle deviation from the physical path over unity slope (internal / external velocity). In red are the average illusions strengths for 0 _cps_, ±1 _cps_ and ±3 _cps_, and in light blue the data for individual participants. Gray dashed line: unity. Black line: fit from Cavanagh & Tse (2019), 81% slope. Purple: fit to the data, 72% slope. **"}
+```{r fig2, echo=FALSE, message=FALSE, fig.width=8, fig.height=5, fig.cap="\\label{fig:fig2}**Figure 2. Online Tracking Data** **Left:** Individual trajectories. Note that there are only a few obvious discontinuities (highlighted in red). In general, the traced paths showed rough linearity. **Top right:** Average heading in the middle 1 _s_ of each pass. Distance from origin is time, angle is angle. Dark blue lines the average heading, in light blue a polar heatmap with the distribution of heading. **Bottom right:** The strength of the illusion in degrees angle deviation from the physical path over unity slope (internal / external velocity). In red are the average illusions strengths for 0 _cps_, ±1 _cps_ and ±3 _cps_, and in light blue the data for individual participants. Gray dashed line: unity. Black line: fit from Cavanagh & Tse (2019), 81% slope. Purple: fit to the data, 72% slope."}
 plotBoundedTracking()
 ```
 
@@ -162,7 +162,7 @@ plotData()
 
 On average, the algorithm detects resets in ~75% of trials. For three participants, only about half the trials show resets (42%, 44% and 58%). For the remaining six participants the algorithm detects resets in 72%-99% of trials, with an average of 88%. The minimum number of resets in each of the six conditions for any participant is 7 (out of 24 trials), with the average at ~17. Since participants experiencing a "hit-the-wall reset" (as opposed to a "jump" reset) might not always display a direction change in their paths, 50% of trials with resets seems reasonable. Either type of perceived resets appears valid, and the average reset positions still indicates some limit to the illusion. Therefore, we keep all participants and resets (reset points in Figure 4, middle).
 
-We compare the strength of the illusion as measured with half-way points (see Fig 4, right), with an earlier study [@Cavanagh2019]. A line through the origin with slope 0.42 predicts illusion strength fairly well in this data, which is weaker than earlier (0.81) or with online tracking (0.72). We can also see that illusion strength measured with re-tracing is more variable. While the illusion is weaker, it is nevertheless there and depends on the relationship between internal and external speed, as expected.
+We compare the strength of the illusion as measured with half-way points (see Fig 4, right), with an earlier study [@Cavanagh2019]. A line through the origin with slope 0.49 predicts illusion strength fairly well in this data, which is weaker than earlier (0.81) or with online tracking (0.72). We can also see that illusion strength measured with re-tracing is more variable. While the illusion is weaker, it is nevertheless there and depends on the relationship between internal and external speed, as expected.
 
 ## Single Limits on the Double-Drift Illusion
 
@@ -181,7 +181,7 @@ And a spatial limit ($L_x$) would predict Y coordinates:
 
 $y = L_x \cdot s$
 
-Where $L_y$ and $L_x$ are a temporal (y) and spatial (x) limit that are free parameters, and s corresponds to the calculated slope. If we fit these simple models by minimizing the mean square error (as the absolute distance in centimeters between predicted and actual reset points), the optimal parameters indicate a temporal limit of ~1.4 _s_ (AIC=-167.8) and a spatial limit of ~1.7 _cm_ (AIC=-208.6), as illustrated in Figure 6 (left and middle). This is close to the mean values of the respective coordinates (Figure 5, middle). The model with the spatial limit fits the data better than the model with a temporal limit ( _p_<.001, relative log-likelihood based on AICs). This again indicates that a spatial limit explains more of the data.
+Where $L_y$ and $L_x$ are a temporal (y) and spatial (x) limit that are free parameters, and s corresponds to the calculated slope. If we fit these simple models by minimizing the mean square error (as the absolute distance in centimeters between predicted and actual reset points), the optimal parameters indicate a temporal limit of ~1.4 _s_ (AIC=-167.1) and a spatial limit of ~1.8 _cm_ (AIC=-220.7), as illustrated in Figure 6 (left and middle). This is close to the mean values of the respective coordinates (Figure 5, middle). The model with the spatial limit fits the data better than the model with a temporal limit ( _p_<.001, relative log-likelihood based on AICs). This again indicates that a spatial limit explains more of the data.
 
 ## Combined Limits
 
@@ -193,7 +193,7 @@ $y = L_x \cdot s + L_y$
 
 Figure 5 (right) shows both the actual reset point coordinates (dots), given the illusion strength as the angle to a sample half-way to the reset point, as well as the model's predictions of reset point coordinates (lines).
 
-The limits that optimally fit the model to the data are a 1.42 _cm_ spatial limit and a 0.28 _s_ temporal limit. While the AIC of the model (-209.8) is slightly lower than that of the model with the single spatial limit, it does not explain the data better ( _p_=.53). This means that a simple spatial limit accounts for most of the data. It is possible that the way we've modeled the additional temporal delay after crossing the spatial limit is not accurate, as it may not follow a normal distribution, which we do not account for here. However, regardless of whether or not a temporal limit adds anything, a spatial limit appears to explain the majority of spontaneous double-drift resets.
+The limits that optimally fit the model to the data are a 1.47 _cm_ spatial limit and a 0.33 _s_ temporal limit. While the AIC of the model (-226.9) is slightly lower than that of the model with the single spatial limit, it does not explain the data better ( _p_=.45). This means that a simple spatial limit accounts for most of the data. It is possible that the way we've modeled the additional temporal delay after crossing the spatial limit is not accurate, e.g. it may not follow a normal distribution. However, regardless of whether or not a temporal limit adds anything, a spatial limit appears to explain the majority of spontaneous double-drift resets.
 
 ## Comparison with PSE data
 
