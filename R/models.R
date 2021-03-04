@@ -424,9 +424,13 @@ compareAllModels <- function(verbosity=0) {
     print(MSEs)
     
     # the AIC parameters are the same for both models, except the MSEs
+    # Gunnar says number of independent observations can be 
     # N <- (9*6)-1
     N <- length(df$boundX_mean)
     # this is then used for C:
+    
+    # Patrick says N should be number of participants:
+    N <- 9
     
     AICs <- AIC(MSE=MSEs, k=c(1,1,2), N=N)
     cat('\nmodel AICs:\n')
