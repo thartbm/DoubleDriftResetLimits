@@ -920,7 +920,7 @@ plotData <- function(target='inline') {
   avg_idxE4 <- which(avg_df$externalspeed == 4)
   
   plot(-1000,-1000,
-       main='re-tracing halfway points',xlab='',ylab='',
+       main='illusion strength',xlab='',ylab='',
        xlim=c(0,3*(pi/8)),ylim=c(0,45),
        bty='n',ax=F)
   
@@ -948,6 +948,20 @@ plotData <- function(target='inline') {
   
   points(avg_xcoords[avg_idxE3], avg_df$initialdirection_mean[avg_idxE3], col=colors$blue$s, pch=1)
   points(avg_xcoords[avg_idxE4], avg_df$initialdirection_mean[avg_idxE4], col=colors$yorkred$s, pch=1)
+  
+  legend(x=0, y=45, 
+         legend = c('participant (3 s)', 'participant (4 s)', 'group averages', 'K=1', 'K=0.81', 'K=0.49'), 
+         pch=c(16,16,1,NA,NA,NA), col=c(colors$blue$t, colors$yorkred$t, 'black', 'gray', 'black', colors$purple$s), 
+         lty = c(0,0,0,2,1,1),
+         bty='n')
+  
+  #  legend(15,10,c('reset distance','reset time'),col=c(colors[['blue']]$s, colors[['yorkred']]$s), lty=c(1,1), title='reset coordinate:',bty='n')
+  
+  # legend(x=0, y=45, 
+  #        legend=c('Cavanagh & Tse (2019)', 'participants', 'average'), 
+  #        col=c('black', colors$lightblue$s, colors$yorkred$s), 
+  #        pch=c(NA,1,1), lty=c(1,0,0), 
+  #        bty='n', cex=1)
   
   axis(side=1,at=seq(0,3*(pi/8),pi/8),labels=c('0',expression(pi/8),expression(pi/4),expression(3*pi/8)))
   axis(side=2,at=seq(0,45,15))
@@ -1611,7 +1625,6 @@ plotModels <- function(target='inline') {
   
   
   par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
-  print(par)
   
   model_angles <- seq(10,40)
   model_directions <- ((90-model_angles)/180)*pi
