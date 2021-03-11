@@ -553,6 +553,13 @@
       "Repository": "CRAN",
       "Hash": "edbf4cb1aefae783fd8d3a008ae51943"
     },
+    "rsvg": {
+      "Package": "rsvg",
+      "Version": "2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f3d32ee70ee9e5ca65b06ee61b4ce813"
+    },
     "scales": {
       "Package": "scales",
       "Version": "1.0.0",
