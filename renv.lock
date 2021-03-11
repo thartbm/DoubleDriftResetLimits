@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "3.6.2",
+    "Version": "3.6.1",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -191,10 +191,10 @@
     },
     "crul": {
       "Package": "crul",
-      "Version": "1.1.0",
+      "Version": "0.7.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "345d571cc120a54c91ac952c6da4392e"
+      "Hash": "7aa2e51f61e8663697d953c7bf680429"
     },
     "curl": {
       "Package": "curl",
@@ -268,10 +268,10 @@
     },
     "fs": {
       "Package": "fs",
-      "Version": "1.5.0",
+      "Version": "1.3.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "44594a07a42e5f91fac9f93fda6d0109"
+      "Hash": "0e26be4558dbbc713d7cfe4a4c361f38"
     },
     "ggplot2": {
       "Package": "ggplot2",
@@ -324,10 +324,10 @@
     },
     "httpcode": {
       "Package": "httpcode",
-      "Version": "0.3.0",
+      "Version": "0.2.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "13641a1c6d2cc98801b76764078e17ea"
+      "Hash": "221d12f5ee446b4d6691f52f081c8740"
     },
     "httr": {
       "Package": "httr",
@@ -625,10 +625,10 @@
     },
     "rsvg": {
       "Package": "rsvg",
-      "Version": "2.1",
+      "Version": "1.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "f3d32ee70ee9e5ca65b06ee61b4ce813"
+      "Hash": "acc8fef238eec5b007088e2cb8a858c9"
     },
     "scales": {
       "Package": "scales",
