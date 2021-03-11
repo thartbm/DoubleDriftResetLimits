@@ -371,7 +371,7 @@ plotBoundedTracking <- function(target='inline') {
   
   
   plot(-1000,-1000,main='illusion strength',
-       xlab=expression(paste(tan^{-1}, (V[i]/V[e]))),ylab='illusion strength [°]',
+       xlab=expression(paste(tan^{-1}, (V[i]/V[e]), ' [°]')),ylab='illusion strength [°]',
        xlim=c(pi*-((0.25)/9),pi/4),ylim=c(-5,45),
        bty='n',ax=F)
   
@@ -405,7 +405,8 @@ plotBoundedTracking <- function(target='inline') {
          pch=c(NA,1,1), lty=c(1,0,0), 
          bty='n', cex=1)
   
-  axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
+  #axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
+  axis(side=1,at=seq(0,pi/4,pi/12),labels=sprintf('%d',seq(0,45,15)))
   axis(side=2,at=seq(0,45,15))
   
   
