@@ -6,19 +6,15 @@ source('R/common.R')
 
 # Data handling -----
 
-preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='pdf') {
+preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrite=FALSE) {
+  
+  if (file.exists('data/onepass_V4/onePass_V4_re-trace.csv') & !overwrite) {
+    return()
+  }
+  
   
   internalMovements <- c(2,3,4)
   externalMovements <- rev(c(.125, .167))
-  
-  if (target == 'pdf') {
-    cairo_pdf(filename='doc/onePass_V4_all_participants.pdf',onefile=TRUE,width=11,height=8)
-  }
-  if (target == 'svg') {
-    svglite(file='doc/onePass_V4_all_participants.svg',width=11,height=8)
-  }
-  
-  par(mfrow=c(2,1),mar=c(4,4,2,0.1))
   
   for (task in c('arrow','re-trace')) {
     
@@ -36,8 +32,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
     boundY <-c()
     
     
-    plot(-1000,-1000,main=task,xlab='participant',ylab='internal motion',xlim=c(0,(length(participants)*2)+1),ylim=c(0,3),bty='n',ax=FALSE,asp=1)
-    
     for (participant.idx in c(1:length(participants))) {
       
       ppno <- participants[participant.idx]
@@ -51,10 +45,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
       for (EM.idx in c(1:length(externalMovements))) {
         
         for (IM.idx in c(1:length(internalMovements))) {
-          
-          if (task %in% c('track','re-trace')) {
-            lines(c(0,0)+(participant.idx*2)-2+EM.idx,c(0.1,0.9)+IM.idx-1,col='#000000',lty=3)
-          }
           
           trials <- unique(taskdf$trial_no[which(taskdf$externalMovement == externalMovements[EM.idx] & abs(taskdf$internalMovement) == internalMovements[IM.idx])])
           
@@ -73,20 +63,14 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
             externalspeed <- c(externalspeed, externalMovements[EM.idx])
             fixationside <- c(fixationside, trialdf$fixationside[1])
             
-            
-            
             if (task %in% c('arrow','ruler')) {
               
               percept <- trialdf$percept[1]
-              
-              #if (task == 'arrow') percept <- 90 - (percept - 90)
               
               if (trialdf$internalMovement[1] < 0) percept <- 90 - (percept - 90)
               
               x <- c(0,cos((percept/180)*pi)) * 0.6
               y <- c(0,sin((percept/180)*pi)) * 0.6
-              
-              lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#00000033')
               
               initialdirection <- c(initialdirection, 90 - percept)
               illusionstrength <- c(illusionstrength, 90 - percept)
@@ -99,9 +83,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               
               step.idx <- which(trialdf$step == step)
               
-              # x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 0.6
-              # y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 0.6
-              
               x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0)
               y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5)
               x <- x - x[1]
@@ -109,15 +90,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               prop <- max(y)
               x <- x / prop
               y <- y / prop
-              # x <- x
-              # y <- y
               t <- trialdf$time_ms[step.idx]
-              
-              # if (trial == 2 & participant == 1) {
-              #   print(step.idx)
-              #   # print(x)
-              #   # print(y)
-              # }
               
               if (trialdf$internalMovement[1] < 0) x <- -x
               
@@ -125,7 +98,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               point <- which(sqrt(x^2 + y^2) > 0.15)[1]
               percept <- (atan2(y[point], x[point]) / pi) * 180
               initialdirection <- c(initialdirection, 90 - percept)
-              # IDcoords <- c(x[point],y[point])
               
               # why do this and also the smoothed spline?
               # to test if we should be doing the splines at all?
@@ -133,17 +105,12 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
               boundary <- which(diff(x) < 0)[1]
               
               if (is.na(boundary)) {
-                lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
                 
                 boundX <- c(boundX, NA)
                 boundY <- c(boundY, NA)
                 illusionstrength <- c(illusionstrength, NA)
                 
               } else {
-                
-                #lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
-                #lines(x[1:boundary]+(participant.idx*2)-2+EM.idx,y[1:boundary]+IM.idx-0.9,col='#b400e4ff')
-                # lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC33')
                 
                 smspl <- smooth.spline(t, x, spar=.25)
                 x_p <- predict(smspl$fit, t)$y
@@ -159,12 +126,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
                 # do we have any left?
                 if (length(localmaxima) > 0) {
                   
-                  #   points(x[localmaxima[1]]+participant-0.5,IM.idx-0.1,col='#FF0000')
-                  #   points(participant-0.7,y[localmaxima[1]]+IM.idx-0.9,col='#FF0000')
-                  
                   # store the first local maximum as reset point:
-                  # Xbounds <- c(Xbounds, x[localmaxima[1]])
-                  # Ybounds <- c(Ybounds, y[localmaxima[1]])
                   
                   boundX <- c(boundX, x[localmaxima[1]])
                   boundY <- c(boundY, y[localmaxima[1]])
@@ -178,17 +140,9 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
                   illusionstrength <- c(illusionstrength, 90 - hwpercept)
                   
                   #print(percept - hwpercept)
-                  
-                  points(x[localmaxima[1]]+(participant.idx*2)-2+EM.idx,y[localmaxima[1]]+IM.idx-0.9,col='#b400e4ff')
-                  
                   boundary <- localmaxima[1]
-                  lines(x[1:boundary]+(participant.idx*2)-2+EM.idx,y[1:boundary]+IM.idx-0.9,col='#b400e4ff')
-                  lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC33')
-                  
-                  
                   
                 } else {
-                  lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
                   boundX <- c(boundX, NA)
                   boundY <- c(boundY, NA)
                   illusionstrength <- c(illusionstrength, NA)
@@ -235,9 +189,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
       
     }
     
-    axis(side=1,at=(c(1:length(participants)*2)-0.5),labels=c(1:length(participants)))
-    axis(side=2,at=c(0.5,1.5,2.5),labels=c('2','3','4'))
-    
     # write out csv file:
     
     # participant <- c()
@@ -251,10 +202,6 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='
     df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, illusionstrength, boundX, boundY)
     write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
     
-  }
-  
-  if (target %in% c('pdf','svg')) {
-    dev.off()
   }
   
 }
@@ -1057,3 +1004,255 @@ plotModels <- function(target='inline') {
 
 # Code graveyard -----
 
+# preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), target='pdf') {
+#   
+#   internalMovements <- c(2,3,4)
+#   externalMovements <- rev(c(.125, .167))
+#   
+#   if (target == 'pdf') {
+#     cairo_pdf(filename='doc/onePass_V4_all_participants.pdf',onefile=TRUE,width=11,height=8)
+#   }
+#   if (target == 'svg') {
+#     svglite(file='doc/onePass_V4_all_participants.svg',width=11,height=8)
+#   }
+#   
+#   par(mfrow=c(2,1),mar=c(4,4,2,0.1))
+#   
+#   for (task in c('arrow','re-trace')) {
+#     
+#     # we will generate data files for both tasks, with these columns:
+#     # except that there is no bound in the arrow task
+#     participant <- c()
+#     trial <- c()
+#     internalspeed <- c()
+#     internaldirection <- c()
+#     externalspeed <- c()
+#     fixationside <- c()
+#     initialdirection <- c()
+#     illusionstrength <- c()
+#     boundX <-c()
+#     boundY <-c()
+#     
+#     
+#     plot(-1000,-1000,main=task,xlab='participant',ylab='internal motion',xlim=c(0,(length(participants)*2)+1),ylim=c(0,3),bty='n',ax=FALSE,asp=1)
+#     
+#     for (participant.idx in c(1:length(participants))) {
+#       
+#       ppno <- participants[participant.idx]
+#       
+#       df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',ppno))
+#       
+#       tasktrials <- unique(df$trial[df$taskname == task])
+#       
+#       taskdf <- df[which(df$trial_no %in% tasktrials),]
+#       
+#       for (EM.idx in c(1:length(externalMovements))) {
+#         
+#         for (IM.idx in c(1:length(internalMovements))) {
+#           
+#           if (task %in% c('track','re-trace')) {
+#             lines(c(0,0)+(participant.idx*2)-2+EM.idx,c(0.1,0.9)+IM.idx-1,col='#000000',lty=3)
+#           }
+#           
+#           trials <- unique(taskdf$trial_no[which(taskdf$externalMovement == externalMovements[EM.idx] & abs(taskdf$internalMovement) == internalMovements[IM.idx])])
+#           
+#           Xbounds <- c()
+#           Ybounds <- c()
+#           
+#           for (trialno in trials) {
+#             
+#             trialdf <- taskdf[taskdf$trial_no == trialno,]
+#             
+#             
+#             participant <- c(participant, ppno)
+#             trial <- c(trial, trialno)
+#             internalspeed <- c(internalspeed, internalMovements[IM.idx])
+#             internaldirection <- c(internaldirection, ifelse(trialdf$internalMovement[1] > 0, 1, -1))
+#             externalspeed <- c(externalspeed, externalMovements[EM.idx])
+#             fixationside <- c(fixationside, trialdf$fixationside[1])
+#             
+#             
+#             
+#             if (task %in% c('arrow','ruler')) {
+#               
+#               percept <- trialdf$percept[1]
+#               
+#               #if (task == 'arrow') percept <- 90 - (percept - 90)
+#               
+#               if (trialdf$internalMovement[1] < 0) percept <- 90 - (percept - 90)
+#               
+#               x <- c(0,cos((percept/180)*pi)) * 0.6
+#               y <- c(0,sin((percept/180)*pi)) * 0.6
+#               
+#               lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#00000033')
+#               
+#               initialdirection <- c(initialdirection, 90 - percept)
+#               illusionstrength <- c(illusionstrength, 90 - percept)
+#               boundX <- c(boundX, NA)
+#               boundY <- c(boundY, NA)
+#               
+#             } else {
+#               
+#               step <- list('track'=2,'re-trace'=99)[[task]]
+#               
+#               step.idx <- which(trialdf$step == step)
+#               
+#               # x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 0.6
+#               # y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 0.6
+#               
+#               x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0)
+#               y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5)
+#               x <- x - x[1]
+#               y <- y - y[1]
+#               prop <- max(y)
+#               x <- x / prop
+#               y <- y / prop
+#               # x <- x
+#               # y <- y
+#               t <- trialdf$time_ms[step.idx]
+#               
+#               # if (trial == 2 & participant == 1) {
+#               #   print(step.idx)
+#               #   # print(x)
+#               #   # print(y)
+#               # }
+#               
+#               if (trialdf$internalMovement[1] < 0) x <- -x
+#               
+#               # this has to be redone once the reset point is found!
+#               point <- which(sqrt(x^2 + y^2) > 0.15)[1]
+#               percept <- (atan2(y[point], x[point]) / pi) * 180
+#               initialdirection <- c(initialdirection, 90 - percept)
+#               # IDcoords <- c(x[point],y[point])
+#               
+#               # why do this and also the smoothed spline?
+#               # to test if we should be doing the splines at all?
+#               # and the splines find the "more correct" point... hmmm...
+#               boundary <- which(diff(x) < 0)[1]
+#               
+#               if (is.na(boundary)) {
+#                 lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
+#                 
+#                 boundX <- c(boundX, NA)
+#                 boundY <- c(boundY, NA)
+#                 illusionstrength <- c(illusionstrength, NA)
+#                 
+#               } else {
+#                 
+#                 #lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
+#                 #lines(x[1:boundary]+(participant.idx*2)-2+EM.idx,y[1:boundary]+IM.idx-0.9,col='#b400e4ff')
+#                 # lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC33')
+#                 
+#                 smspl <- smooth.spline(t, x, spar=.25)
+#                 x_p <- predict(smspl$fit, t)$y
+#                 
+#                 # these are sign changes from positive to negative
+#                 localmaxima <- which(diff(sign(diff(x_p)))==-2)+1
+#                 # distance of local max has to be more tha (0.1) but the trajectory is scaled to 0-0.6 (??? why)
+#                 lmd <- sqrt(x[localmaxima]^2 + y[localmaxima]^2)
+#                 localmaxima <- localmaxima[which(lmd > 0.1)]
+#                 # the maxima can also not be very close to the end of the trajectory:
+#                 lmd <- sqrt((x[localmaxima]-x[length(x)])^2 + (y[localmaxima]-y[length(y)])^2)
+#                 localmaxima <- localmaxima[which(lmd > 0.01)]
+#                 # do we have any left?
+#                 if (length(localmaxima) > 0) {
+#                   
+#                   #   points(x[localmaxima[1]]+participant-0.5,IM.idx-0.1,col='#FF0000')
+#                   #   points(participant-0.7,y[localmaxima[1]]+IM.idx-0.9,col='#FF0000')
+#                   
+#                   # store the first local maximum as reset point:
+#                   # Xbounds <- c(Xbounds, x[localmaxima[1]])
+#                   # Ybounds <- c(Ybounds, y[localmaxima[1]])
+#                   
+#                   boundX <- c(boundX, x[localmaxima[1]])
+#                   boundY <- c(boundY, y[localmaxima[1]])
+#                   
+#                   # **********************************
+#                   # ACTUAL HALFWAY POINTS HERE:
+#                   #print(sqrt(sum(IDcoords^2)))
+#                   hwd <- sqrt(sum(c(x[localmaxima[1]],y[localmaxima[1]])^2)) / 2
+#                   hwp <- which(sqrt(x^2 + y^2) > hwd)[1]
+#                   hwpercept <- (atan2(y[hwp], x[hwp]) / pi) * 180
+#                   illusionstrength <- c(illusionstrength, 90 - hwpercept)
+#                   
+#                   #print(percept - hwpercept)
+#                   
+#                   points(x[localmaxima[1]]+(participant.idx*2)-2+EM.idx,y[localmaxima[1]]+IM.idx-0.9,col='#b400e4ff')
+#                   
+#                   boundary <- localmaxima[1]
+#                   lines(x[1:boundary]+(participant.idx*2)-2+EM.idx,y[1:boundary]+IM.idx-0.9,col='#b400e4ff')
+#                   lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC33')
+#                   
+#                   
+#                   
+#                 } else {
+#                   lines(x+(participant.idx*2)-2+EM.idx,y+IM.idx-0.9,col='#66666699')
+#                   boundX <- c(boundX, NA)
+#                   boundY <- c(boundY, NA)
+#                   illusionstrength <- c(illusionstrength, NA)
+#                 }
+#                 
+#               }
+#               
+#             } 
+#             
+#           }
+#           
+#           # done all trials, can now draw distributions of end points
+#           
+#           # if (task %in% c('track', 're-trace')) {
+#           #   
+#           #   print(Xbounds)
+#           #   
+#           #   Xavg <- mean(Xbounds, na.rm=TRUE)
+#           #   Xstd <- sd(Xbounds, na.rm=TRUE)
+#           #   Yavg <- mean(Ybounds, na.rm=TRUE)
+#           #   Ystd <- sd(Ybounds, na.rm=TRUE)
+#           #   
+#           #   print(c(Xavg,Xstd,Yavg,Ystd))
+#           #   
+#           #   XdistrX <- seq(-0.1, 0.6,  .01)
+#           #   XdistrY <- dnorm(XdistrX,mean=Xavg,sd=Xstd) / dnorm(c(Xavg),mean=Xavg,sd=Xstd)
+#           #   XdistrY <- XdistrY / 10
+#           #   
+#           #   YdistrY <- seq(0.0, 0.70, .01)
+#           #   YdistrX <- dnorm(YdistrY,mean=Yavg,sd=Ystd) / dnorm(c(Yavg),mean=Yavg,sd=Ystd)
+#           #   YdistrX <- YdistrX / 10
+#           #   
+#           #   lines(XdistrX+(participant.idx*2)-2+EM.idx,XdistrY+IM.idx-1.1,col='#0fd2e2ff')
+#           #   lines(YdistrX+(participant.idx*2)-2.2+EM.idx,YdistrY+IM.idx-0.9,col='#0fd2e2ff')
+#           #   
+#           #   
+#           #   # lines(x[boundary:length(x)]+(participant.idx*2)-2+EM.idx,y[boundary:length(x)]+IM.idx-0.9,col='#CCCCCC')
+#           #   
+#           # }
+#           
+#         }
+#         
+#       }
+#       
+#     }
+#     
+#     axis(side=1,at=(c(1:length(participants)*2)-0.5),labels=c(1:length(participants)))
+#     axis(side=2,at=c(0.5,1.5,2.5),labels=c('2','3','4'))
+#     
+#     # write out csv file:
+#     
+#     # participant <- c()
+#     # internalspeed <- c()
+#     # externalspeed <- c()
+#     # fixationside <- c()
+#     # initialdirection <- c()
+#     # boundX <-c()
+#     # boundY <-c()
+#     
+#     df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, illusionstrength, boundX, boundY)
+#     write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
+#     
+#   }
+#   
+#   if (target %in% c('pdf','svg')) {
+#     dev.off()
+#   }
+#   
+# }
