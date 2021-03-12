@@ -20,6 +20,10 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101, version=1)
     filestr <- 'bounded_tracking_V2_'
   }
   
+  if (file.exists(sprintf('%sstandardized_segments.csv',folderstr))) {
+    return()
+  }
+  
   # read all the data into one data frame:
   # BTdata <- NA
   BTSdata <- NA
@@ -42,6 +46,7 @@ getBoundedTrackingStandardizedSegments <- function(segmentpoints=101, version=1)
     for (trialnum in trials) {
       #print(length(trialnum))
       trialdf <- ppdf[which(ppdf$trial_no == trialnum),]
+      #str(trialdf)
       # normalize for external direction:
       trialdf$handx_pix <- trialdf$handx_pix * trialdf$externalDirection[1]
       
@@ -126,6 +131,10 @@ getSegmentDirections <- function(version=1) {
   folderstr <- 'data/bounded_tracking/'
   if (version == 2) {
     folderstr <- 'data/bounded_tracking_V2/'
+  }
+  
+  if (file.exists(sprintf('%ssegment_directions.csv',folderstr))) {
+    return()
   }
   
   allsegmentdata <- read.csv(sprintf('%sstandardized_segments.csv', folderstr), stringsAsFactors = F) 
