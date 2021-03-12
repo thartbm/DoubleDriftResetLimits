@@ -78,9 +78,7 @@ resetMSE <- function(par,data,fitFUN) {
 
 library('optimx')
 
-fitSingleLimitModels <- function() {
-  
-  df <- getData()
+fitSingleLimitModels <- function(df) {
   
   # create search "grids":
   Lx=seq(0, 8, length.out = 41)
@@ -145,9 +143,7 @@ fitSingleLimitModels <- function() {
   
 }
 
-fitTwoLimitModel <- function() {
-  
-  df <- getData()
+fitTwoLimitModel <- function(df) {
   
   # create search grid:
   Lx=seq(0, 8, length.out = 41) # more than 8 centimeters is useless (the data goes up to ~5 or ~6)
@@ -206,9 +202,11 @@ relativeLikelihood <- function(crit) {
 
 
 compareModels <- function(N=9,AICfun=AIC,verbosity=1) {
+  
+  df <- getData()
 
-  single <- fitSingleLimitModels()
-  double <- fitTwoLimitModel()
+  single <- fitSingleLimitModels(df)
+  double <- fitTwoLimitModel(df)
   
   if (verbosity > 0) {
 
@@ -270,7 +268,15 @@ getData <- function(illusionMinimum=5) {
   df$X <- df$boundX_mean * 13.5
   df$Y <- df$boundY_mean * 13.5
   
-  df <- df[,c('X', 'Y', 'speed', 'slope', 'angle', 'sin.a', 'cos.a')]
+  df$X.sd <- df$boundX_sd * 13.5
+  df$Y.sd <- df$boundY_sd * 13.5
+  
+  df$RT <- sqrt(df$X^2 + df$Y^2) / df$speed
+  
+  df$Vi <- df$internalspeed
+  df$Ve <- df$externalspeed
+  
+  df <- df[,c('participant','X', 'Y', 'X.sd', 'Y.sd', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve')]
   
   return(df)
   

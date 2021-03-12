@@ -418,42 +418,45 @@ plotData <- function(target='inline') {
   # ***********************************************
   # 2D overview of reset points:
   
-  df <- getTimeNormalizedData()
+  #df <- summarizeTraceBoundsV4()
+  
+  df <- getData()
+  
   
   # PANEL A: raw spatial coordinates:
   
   # scatter of reset points
-  plot(df$boundX_mean, df$boundY_mean, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.45), ylim=c(-0.1, 1.35), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  plot(df$X, df$Y, main='reset point coordinates', asp=1, xlim=c(-1, 6), ylim=c(-1, 14.5), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
   
-  title(xlab='horizontal reset distance [cm]', line=2.5)
-  title(ylab='reset time [s]',  line=2.5)
+  title(xlab='horizontal reset coordinate [cm]', line=2.5)
+  title(ylab='vertical reset coordinate [cm]',  line=2.5)
   #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
   
   
   
-  segments(x0=df$boundX_mean-df$boundX_sd, y0=df$boundY_mean, x1=df$boundX_mean+df$boundX_sd, y1=df$boundY_mean, col=colors[['purple']]$t)
-  segments(x0=df$boundX_mean, y0=df$boundY_mean-df$boundY_sd, x1=df$boundX_mean, y1=df$boundY_mean+df$boundY_sd, col=colors[['purple']]$t)
+  segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
   
   # path of gabor:
   #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
-  arrows(0,0,0,1,length=0.2,col='#999999',lwd=2,angle=20)
+  arrows(0,0,0,13.5,length=0.2,col='#999999',lwd=2,angle=20)
   
   # X coordinates:
-  medX <- mean(df$boundX_mean)
-  text(x=medX+0.01,y=1.05,labels=sprintf('%0.1f cm',medX*13.5),pos=4,adj=c(1,0))
-  lines(rep(medX,2),c(0.025,1.05),col=colors[['blue']]$s,lty=2,lw=2)
+  medX <- mean(df$X)
+  text(x=medX+0.1,y=1.05,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.25,10.5),col=colors[['blue']]$s,lty=2,lw=2)
   
   # Y coordinates:
-  medY <- mean(df$boundY_mean)
-  text(6/13.5,medY+0.05,sprintf('%0.1f s',medY*4))
-  lines(c(-0.05,0.45),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  medY <- mean(df$Y)
+  text(6,medY+0.5,sprintf('%0.1f cm',medY))
+  lines(c(-0.5,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
   
   # sensible tick marks on the axes:
   # xtick_cm <- c(-1,1,3)
   xtick_cm <- c(-2,0,2,4)
-  axis(side=1, at=xtick_cm/13.5, labels=xtick_cm)
-  ytick_s <- seq(0,5,length.out = 6)
-  axis(side=2, at=ytick_s/4, labels=ytick_s)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_cm <- seq(0,13.5,length.out = 4)
+  axis(side=2, at=ytick_cm, labels=ytick_cm)
   
   # ***********************************************************
   # COMPARISON WITH CAVANAGH & TSE (2019) DATA / MODEL
@@ -463,24 +466,24 @@ plotData <- function(target='inline') {
   transp <- list('2'=colors[['purple']]$t, '3'=colors[['yorkred']]$t, '4'=colors[['orange']]$t)
   
   
-  df <- getTimeNormalizedData(illusionMinimum = 0)
+  #df <- getTimeNormalizedData(illusionMinimum = 0)
   
-  avg_df <- aggregate(cbind(arrowdirection_mean, initialdirection_mean) ~ internalspeed + externalspeed, data=df, FUN=mean)
+  df <- getData()
   
-  internalspeed <- df$internalspeed / 0.58 # in cm/s 
-  externalspeed <- 13.5 / df$externalspeed # in cm/s
+  avg_df <- aggregate(angle ~ Vi + speed, data=df, FUN=mean)
   
-  xcoords <- atan(internalspeed / externalspeed)
+  Vi <- df$Vi / 0.58 # in cm/s 
+  Ve <- df$speed # in cm/s
   
+  xcoords <- atan(Vi / Ve)
   
+  avg_xcoords <- atan((avg_df$Vi / 0.58) / (avg_df$speed))
   
-  avg_xcoords <- atan((avg_df$internalspeed / 0.58) / (13.5 / avg_df$externalspeed))
+  idxE3 <- which(df$Ve == 0.167)
+  idxE4 <- which(df$Ve == 0.125)
   
-  idxE3 <- which(df$externalspeed == 3)
-  idxE4 <- which(df$externalspeed == 4)
-  
-  avg_idxE3 <- which(avg_df$externalspeed == 3)
-  avg_idxE4 <- which(avg_df$externalspeed == 4)
+  avg_idxE3 <- which(avg_df$speed == 13.5/3)
+  avg_idxE4 <- which(avg_df$speed == 13.5/4)
   
   plot(-1000,-1000,
        main='illusion strength',xlab='',ylab='',
@@ -494,11 +497,11 @@ plotData <- function(target='inline') {
   lines(angles,(angles/pi)*180,col='gray',lty=2)
   lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
   
-  xcoords <- atan(internalspeed / externalspeed)
+  #xcoords <- atan(internalspeed / externalspeed)
   
   # get the best k for this data:
   X <- (xcoords/pi)*180
-  Y <- as.numeric(unlist(df$initialdirection_mean))
+  Y <- 90 - ((as.numeric(unlist(df$angle))/pi)*180)
   linmod <- lm(Y ~ X - 1)
   slope <- summary(linmod)$coefficients['X','Estimate']
   
@@ -517,11 +520,11 @@ plotData <- function(target='inline') {
   #   
   # }
   
-  points(xcoords[idxE3], df$initialdirection_mean[idxE3], col=colors$blue$t, pch=16)
-  points(xcoords[idxE4], df$initialdirection_mean[idxE4], col=colors$yorkred$t, pch=16)
+  points(xcoords[idxE3], 90 - ((df$angle[idxE3]/pi)*180), col=colors$blue$t, pch=16)
+  points(xcoords[idxE4], 90 - ((df$angle[idxE4]/pi)*180), col=colors$yorkred$t, pch=16)
   
-  points(avg_xcoords[avg_idxE3], avg_df$initialdirection_mean[avg_idxE3], col=colors$blue$s, pch=1)
-  points(avg_xcoords[avg_idxE4], avg_df$initialdirection_mean[avg_idxE4], col=colors$yorkred$s, pch=1)
+  points(avg_xcoords[avg_idxE3], 90 - ((avg_df$angle[avg_idxE3]/pi)*180), col=colors$blue$s, pch=1)
+  points(avg_xcoords[avg_idxE4], 90 - ((avg_df$angle[avg_idxE4]/pi)*180), col=colors$yorkred$s, pch=1)
   
   legend(x=0, y=45, 
          legend = c('9 participants (3 s)', '9 participants (4 s)', 'group averages', 'K=1', 'K=0.81', sprintf('K=%0.2f',slope)), 
@@ -540,6 +543,366 @@ plotData <- function(target='inline') {
   
 }
 
+
+plotNData <- function(target='inline') {
+  
+  
+  if (target == 'pdf') {
+    cairo_pdf(filename='doc/Fig4_trajectories_resetpoints_illusionstrength.pdf',onefile=TRUE,width=8,height=4)
+  }
+  if (target == 'svg') {
+    svglite(file='doc/Fig4_trajectories_resetpoints_illusionstrength.svg',width=8,height=4)
+  }
+  
+  par(mar=c(3.5, 3.5, 2.5, 0.5))
+  
+  colors <- getColors()
+  
+  # there will be three plots:
+  # 1: example participant
+  # 2: 2D overview of average reset points
+  # 3: Cavangh & Tse comparison
+  
+  layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = T))
+  
+  
+  
+  # ***********************************************
+  # 2D overview of reset points:
+  
+  #df <- summarizeTraceBoundsV4()
+  
+  df <- getData()
+  
+  
+  # PANEL A: raw spatial coordinates:
+  
+  # scatter of reset points
+  plot(-1000, -1000, main='participant X condition [N=54]', asp=1, xlim=c(-1, 6), ylim=c(-1, 14.5), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  idxE4 <- which(df$speed > (13.5/3.5))
+  idxE3 <- which(df$speed < (13.5/3.5))
+  
+  points(df$X[idxE4], df$Y[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(df$X[idxE3], df$Y[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  title(xlab='horizontal reset coordinate [cm]', line=2.5)
+  title(ylab='vertical reset coordinate [cm]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  
+  # segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  # segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,13.5,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(df$X)
+  text(x=medX+0.1,y=1.05,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.25,10.5),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(df$Y)
+  text(6,medY+0.5,sprintf('%0.1f cm',medY))
+  lines(c(-0.5,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(-2,0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_cm <- seq(0,13.5,length.out = 4)
+  axis(side=2, at=ytick_cm, labels=ytick_cm)
+  
+  # B: condition
+  
+  cdf <- aggregate(cbind(X,Y) ~ Vi + Ve + speed, data=df, FUN=mean)
+  
+  
+  # scatter of reset points
+  plot(-1000,-1000, main='condition [N=6]', asp=1, xlim=c(-1, 6), ylim=c(-1, 14.5), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  idxE4 <- which(cdf$speed > (13.5/3.5))
+  idxE3 <- which(cdf$speed < (13.5/3.5))
+  
+  points(cdf$X[idxE4], cdf$Y[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(cdf$X[idxE3], cdf$Y[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  title(xlab='horizontal reset coordinate [cm]', line=2.5)
+  title(ylab='vertical reset coordinate [cm]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  
+  #segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  #segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,13.5,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(cdf$X)
+  text(x=medX+0.1,y=1.05,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.25,10.5),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(cdf$Y)
+  text(6,medY+0.5,sprintf('%0.1f cm',medY))
+  lines(c(-0.5,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(-2,0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_cm <- seq(0,13.5,length.out = 4)
+  axis(side=2, at=ytick_cm, labels=ytick_cm)
+  
+  
+  
+  
+  
+  
+  
+  
+  # C: participant averages
+
+  ppdf <- aggregate(cbind(X,Y,RT) ~ participant + speed, data=df, FUN=mean)
+  
+  # scatter of reset points
+  plot(-1000, -1000, main='participant [N=9]', asp=1, xlim=c(-1, 6), ylim=c(-1, 14.5), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  
+  idxE4 <- which(ppdf$speed > (13.5/3.5))
+  idxE3 <- which(ppdf$speed < (13.5/3.5))
+  
+  points(ppdf$X[idxE4], ppdf$Y[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(ppdf$X[idxE3], ppdf$Y[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  
+  
+  title(xlab='horizontal reset coordinate [cm]', line=2.5)
+  title(ylab='vertical reset coordinate [cm]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  
+  # segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  # segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,13.5,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(ppdf$X)
+  text(x=medX+0.1,y=1.05,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.25,10.5),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(ppdf$Y)
+  text(6,medY+0.5,sprintf('%0.1f cm',medY))
+  lines(c(-0.5,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(-2,0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_cm <- seq(0,13.5,length.out = 4)
+  axis(side=2, at=ytick_cm, labels=ytick_cm)
+  
+  
+  
+  if (target %in% c('pdf','svg')) {
+    dev.off()
+  }
+  
+}
+
+
+
+
+plotNRTData <- function(target='inline') {
+  
+  
+  if (target == 'pdf') {
+    cairo_pdf(filename='doc/Fig4_trajectories_resetpoints_illusionstrength.pdf',onefile=TRUE,width=8,height=4)
+  }
+  if (target == 'svg') {
+    svglite(file='doc/Fig4_trajectories_resetpoints_illusionstrength.svg',width=8,height=4)
+  }
+  
+  par(mar=c(3.5, 3.5, 2.5, 0.5))
+  
+  colors <- getColors()
+  
+  # there will be three plots:
+  # 1: example participant
+  # 2: 2D overview of average reset points
+  # 3: Cavangh & Tse comparison
+  
+  layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = T))
+  
+  
+  
+  # ***********************************************
+  # 2D overview of reset points:
+  
+  #df <- summarizeTraceBoundsV4()
+  
+  df <- getData()
+  
+  
+  # PANEL A: raw spatial coordinates:
+  
+  # scatter of reset points
+  plot(-1000, -1000, main='participant X condition [N=54]', xlim=c(-1, 6), ylim=c(-.25, 4.25), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  idxE4 <- which(df$speed > (13.5/3.5))
+  idxE3 <- which(df$speed < (13.5/3.5))
+  
+  points(df$X[idxE4], df$RT[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(df$X[idxE3], df$RT[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  title(xlab='reset offset [cm]', line=2.5)
+  title(ylab='reset time [s]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  
+  # segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  # segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,4,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(df$X)
+  text(x=medX+0.025,y=.2,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.2,3.75),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(df$RT)
+  text(4.2,medY-0.1,sprintf('%0.1f s',medY))
+  lines(c(0.25,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_s <- c(0:4)
+  axis(side=2, at=ytick_s, labels=ytick_s)
+  
+  # B: condition
+  
+  cdf <- aggregate(cbind(X,Y,RT) ~ Vi + Ve + speed, data=df, FUN=mean)
+  
+  
+  # scatter of reset points
+  plot(-1000,-1000, main='condition [N=6]', xlim=c(-1, 6), ylim=c(-.25, 4.25), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  idxE4 <- which(cdf$speed > (13.5/3.5))
+  idxE3 <- which(cdf$speed < (13.5/3.5))
+  
+  points(cdf$X[idxE4], cdf$RT[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(cdf$X[idxE3], cdf$RT[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  title(xlab='reset offset [cm]', line=2.5)
+  title(ylab='reset time [s]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  #segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  #segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,4,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(cdf$X)
+  text(x=medX+0.025,y=.2,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.2,3.75),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(cdf$RT)
+  text(4.2,medY-0.1,sprintf('%0.1f s',medY))
+  lines(c(0.25,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  
+  legend(medX+.2,4,c('4 s passes','3 s passes'),pch=c(1,19), col=colors[['purple']]$s, bty='n')
+  
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_s <- c(0:4)
+  axis(side=2, at=ytick_s, labels=ytick_s)
+  
+  
+  
+  
+  
+  
+  
+  
+  # C: participant averages
+  
+  ppdf <- aggregate(cbind(X,Y,RT) ~ participant + speed, data=df, FUN=mean)
+  
+  # scatter of reset points
+  plot(-1000, -1000, main='participant [N=9 or N=18?]', xlim=c(-1, 6), ylim=c(-.25, 4.25), bty='n', ax=F, xlab='', ylab='', col=colors[['purple']]$s)
+  
+  
+  idxE4 <- which(ppdf$speed > (13.5/3.5))
+  idxE3 <- which(ppdf$speed < (13.5/3.5))
+  
+  points(ppdf$X[idxE4], ppdf$RT[idxE4], pch=1,  col=colors[['purple']]$s)
+  points(ppdf$X[idxE3], ppdf$RT[idxE3], pch=19, col=colors[['purple']]$s)
+  
+  
+  
+  title(xlab='reset offset [cm]', line=2.5)
+  title(ylab='reset time [s]',  line=2.5)
+  #plot(-1000, -1000, main='reset point coordinates', asp=1, xlim=c(-0.15, 0.35), ylim=c(-0.1, 1.1), bty='n', ax=F, xlab='X coordinate [cm]', ylab='Y coordinate [s]', col=colors[['purple']]$s)
+  
+  
+  
+  # segments(x0=df$X-df$X.sd, y0=df$Y, x1=df$X+df$X.sd, y1=df$Y, col=colors[['purple']]$t)
+  # segments(x0=df$X, y0=df$Y-df$Y.sd, x1=df$X, y1=df$Y+df$Y.sd, col=colors[['purple']]$t)
+  
+  # path of gabor:
+  #lines(c(0,0),c(0,1),col='#999999', lw=2, lty=1)
+  arrows(0,0,0,4,length=0.2,col='#999999',lwd=2,angle=20)
+  
+  # X coordinates:
+  medX <- mean(ppdf$X)
+  text(x=medX+0.025,y=.2,labels=sprintf('%0.1f cm',medX),pos=4,adj=c(1,0))
+  lines(rep(medX,2),c(0.2,3.75),col=colors[['blue']]$s,lty=2,lw=2)
+  
+  # Y coordinates:
+  medY <- mean(ppdf$RT)
+  text(4.2,medY-0.1,sprintf('%0.1f s',medY))
+  lines(c(0.25,4.5),rep(medY,2),col=colors[['yorkred']]$s,lty=2,lw=2)
+  
+  # sensible tick marks on the axes:
+  # xtick_cm <- c(-1,1,3)
+  xtick_cm <- c(0,2,4)
+  axis(side=1, at=xtick_cm, labels=xtick_cm)
+  ytick_s <- c(0:4)
+  axis(side=2, at=ytick_s, labels=ytick_s)
+  
+  
+  
+  if (target %in% c('pdf','svg')) {
+    dev.off()
+  }
+  
+}
 
 
 
@@ -561,31 +924,44 @@ plotModels <- function(target='inline') {
   par(mar=c(3.4, 3.4, 2.1, 3.75))
   layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = T), widths = c(1,1,1))
   
-  df <- getTimeNormalizedData()
+  #df <- getTimeNormalizedData()
+  df <- getData()
   
   # ***************************************
   # PLOT SINGLE LIMIT MODELS: TIME LIMIT
   
-  fit <- fitSeparateXYresetModels(directions=df$initialdirection_mean,
-                                  X=df$boundX_mean * 13.5,
-                                  Y=df$boundY_mean * 13.5)
+  fit <- fitSingleLimitModels(df=df)
   
   directions <- c(10:40)
   raddirections <- ((90 - directions) / 180) * pi
-  slopes <- sin(raddirections) / cos(raddirections)
+  slope <- sin(raddirections) / cos(raddirections)
   
   # PANEL B: x coords from time limit
   
   #plot(df$initialdirection_mean, df$boundX_mean*13.5, main=sprintf('time limit (%0.1f s)', fit$par['Ly']*(4/13.5)), xlab='', ylab='', bty='n', ax=F, xlim=c(5,45), ylim=c(0,10), col=colors[['blue']]$s)
-  plot(df$initialdirection_mean, df$boundX_mean*13.5, main='time limit', xlab='', ylab='', bty='n', ax=F, xlim=c(5,45), ylim=c(0,13.5), col=colors[['blue']]$s)
+  plot(90-((df$angle/pi)*180), df$X, col=colors[['blue']]$s, 
+       main='time limit', xlab='', ylab='', 
+       xlim=c(5,45), ylim=c(0,13.5), 
+       bty='n', ax=F)
   
   title(xlab='illusion strength [°]', line=2.4, cex=0.8)
   title(ylab='horizontal reset distance [cm]', line=2.4, cex=0.8)
   
   #lines(x=range(directions),y=rep(fit$par['Lx'],2),col=colors[['yorkred']]$s,lty=1)
   
-  fittedX <- resetXfromYlim(fit$par,slopes)$X
-  lines(directions,fittedX,col=colors[['blue']]$s)
+  #fittedX <- resetXfromYlim(fit$par,slopes)$X
+  #lines(directions,fittedX,col=colors[['blue']]$s)
+  
+  sin.a <- sin(raddirections)
+  cos.a <- cos(raddirections)
+  
+  data <- data.frame(sin.a, cos.a, slope)
+  
+  for (spd in c(3.375, 4.5)) {
+    data$speed <- spd
+    fittedX <- YlimResets(fit$Ylim$par,data=data)
+    lines(directions,fittedX$X,col=colors[['blue']]$s)
+  }
   
   # median models
   # XfromMedY <- resetXfromYlim(c('Ly'=medY*13.5),slopes)$X
@@ -603,7 +979,10 @@ plotModels <- function(target='inline') {
   # PANEL C: Y coords from space limit
   
   #plot(df$initialdirection_mean, df$boundY_mean*4, main=sprintf('space limit (%0.1f cm)', fit$par['Lx']), xlab='', ylab='', bty='n', ax=F, xlim=c(5,45), ylim=c(0,4), col=colors[['yorkred']]$s)
-  plot(df$initialdirection_mean, df$boundY_mean*4, main='space limit', xlab='', ylab='', bty='n', ax=F, xlim=c(5,45), ylim=c(0,4), col=colors[['yorkred']]$s)
+  plot(90-((df$angle/pi)*180), df$RT, col=colors[['yorkred']]$s,
+       main='space limit', xlab='', ylab='',
+       xlim=c(5,45), ylim=c(0,4), 
+       bty='n', ax=F)
   
   title(xlab='illusion strength [°]', line=2.4, cex=0.8)
   title(ylab='reset time [s]', line=2.4, cex=0.8)
@@ -611,8 +990,17 @@ plotModels <- function(target='inline') {
   #print( (fit$par['Ly']/13.5)*4 )
   #lines(x=range(directions),y=rep((fit$par['Ly']/13.5)*4,2),col=colors[['blue']]$s)
   
-  fittedY <- resetYfromXlim(fit$par,slopes)$Y
-  lines(directions,fittedY/4,col=colors[['yorkred']]$s)
+  # fittedY <- resetYfromXlim(fit$par,slopes)$Y
+  # lines(directions,fittedY/4,col=colors[['yorkred']]$s)
+  
+  
+  fittedY <- XlimResets(fit$Xlim$par,data=data)
+  for (spd in c(3.375,4.5)) {
+    resetTime <- sqrt(fittedY$Y^2 + fittedY$X^2) / spd
+    lines(directions,resetTime,col=colors[['yorkred']]$s)
+  }
+  
+  
   
   # median models
   # YfromMedX <- resetYfromXlim(c('Lx'=medX*4),slopes)$Y
@@ -624,30 +1012,28 @@ plotModels <- function(target='inline') {
   # ***********************************************
   # COMBINED LIMIT MODEL
   
-  
-  #colors <- getColors()
-  
-  
-  plot(-1000,-1000,main='combined limits',xlab='',ylab='',xlim=c(5,45),ylim=c(0,1),bty='n',ax=F)
+  plot(-1000,-1000,main='combined limits',
+       xlab='',ylab='',
+       xlim=c(5,45),ylim=c(0,1),
+       bty='n',ax=F)
   
   title(xlab='illusion strength [°]', line=2.4, cex=0.8)
   title(ylab='horizontal reset distance [cm]', line=2.4, cex=0.8)
   
-  
-  par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
-  
-  model_angles <- seq(10,40)
-  model_directions <- ((90-model_angles)/180)*pi
-  model_slopes <- sin(model_directions) / cos(model_directions)
-  model_resets <- resetModelSeq(par,slopes=model_slopes,verbose=TRUE)
+  points(90-((df$angle/pi)*180),df$X/13.5,col=colors[['blue']]$s)
+  points(90-((df$angle/pi)*180),df$RT/4,col=colors[['yorkred']]$s)
   
   
-  lines(model_angles,model_resets$X/13.5,col=colors[['blue']]$s)
-  lines(model_angles,model_resets$Y/13.5,col=colors[['yorkred']]$s)
+  #par <- fitResetModelSeq(slopes=df$slope, X=df$boundX_mean*13.5, Y=df$boundY_mean*13.5)
+  fit <- fitTwoLimitModel(df)
   
-  points(df$initialdirection_mean,df$boundX_mean,col=colors[['blue']]$s)
-  points(df$initialdirection_mean,df$boundY_mean,col=colors[['yorkred']]$s)
-  
+  for (spd in c(3.375, 4.5)) {
+    data$speed <- spd
+    fitted <- twoLimResets(par=fit$par, data=data)
+    lines(directions,fitted$X/13.5,col=colors[['blue']]$s)
+    resetTime <- sqrt(fitted$Y^2 + fitted$X^2) / spd
+    lines(directions,resetTime/4,col=colors[['yorkred']]$s)
+  }
   
   #legend(25,0.8,c('X','Y'),col=c(colors[['blue']]$s, colors[['yorkred']]$s), lty=c(1,1), title='reset\ncoordinate:',bty='n')
   
