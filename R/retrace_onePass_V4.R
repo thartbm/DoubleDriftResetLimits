@@ -12,11 +12,24 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
     return()
   }
   
+  angle_deg <- seq(5,50,0.5)
+  angle_rad <- (angle_deg / 180) * pi
+  cos.a <- cos(angle_rad)
+  sin.a <- sin(angle_rad)
+  #slope <- sin.a / cos.a
+  slope <- cos.a / sin.a
+  
+  modeldf <- data.frame(angle_deg, angle_rad, cos.a, sin.a, slope)
+  
+  Lx_MSE <- c()
+  Ly_MSE <- c()
+  LxLy_MSE <- c()
   
   internalMovements <- c(2,3,4)
   externalMovements <- rev(c(.125, .167))
   
-  for (task in c('arrow','re-trace')) {
+  #for (task in c('arrow','re-trace')) {
+  for (task in c('re-trace')) {
     
     # we will generate data files for both tasks, with these columns:
     # except that there is no bound in the arrow task
@@ -30,9 +43,24 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
     illusionstrength <- c()
     boundX <-c()
     boundY <-c()
+    boundXraw <- c()
+    boundYraw <- c()
     
+    # ***************************
+    # 
+    
+    pdf(file='doc/individual_participants_trials.pdf',width=12,height=8)
+    
+    #layout(matrix(c(1,2,3,4,5,6),byrow=TRUE,ncol=3,nrow=2))
     
     for (participant.idx in c(1:length(participants))) {
+      
+      plot(-1000,-1000,
+           main=sprintf('participant %d',participants[participant.idx]),xlab='',ylab='',
+           xlim=c(-4.5,10),ylim=c(-.5,14),
+           bty='n',ax=F)
+      
+      lines(x=c(0,0),y=c(0,13.5),col='blue')
       
       ppno <- participants[participant.idx]
       
@@ -76,6 +104,8 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
               illusionstrength <- c(illusionstrength, 90 - percept)
               boundX <- c(boundX, NA)
               boundY <- c(boundY, NA)
+              boundXraw <- c(boundXraw, NA)
+              boundYraw <- c(boundYraw, NA)
               
             } else {
               
@@ -87,12 +117,17 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
               y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5)
               x <- x - x[1]
               y <- y - y[1]
-              prop <- max(y)
+              oldprop <- max(y) # this puts the Y-coordinate at the end of 4s or 3s
+              prop <- sqrt(x[length(x)]^2 + y[length(y)]^2) # now we got it as d to end of trajectory
+              #print(c(oldprop,prop))
               x <- x / prop
               y <- y / prop
               t <- trialdf$time_ms[step.idx]
               
+              # flip for internal motion direction
               if (trialdf$internalMovement[1] < 0) x <- -x
+              
+              lines((x-x[1])*13.5,(y-y[1])*13.5,col=rgb(127,127,127,44, maxColorValue = 255))
               
               # this has to be redone once the reset point is found!
               point <- which(sqrt(x^2 + y^2) > 0.15)[1]
@@ -108,6 +143,8 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
                 
                 boundX <- c(boundX, NA)
                 boundY <- c(boundY, NA)
+                boundXraw <- c(boundXraw, NA)
+                boundYraw <- c(boundYraw, NA)
                 illusionstrength <- c(illusionstrength, NA)
                 
               } else {
@@ -128,8 +165,12 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
                   
                   # store the first local maximum as reset point:
                   
+                  points(x[localmaxima[1]]*13.5,y[localmaxima[1]]*13.5,col='purple')
+                  
                   boundX <- c(boundX, x[localmaxima[1]])
                   boundY <- c(boundY, y[localmaxima[1]])
+                  boundXraw <- c(boundXraw, prop * x[localmaxima[1]])
+                  boundYraw <- c(boundYraw, prop * y[localmaxima[1]])
                   
                   # **********************************
                   # ACTUAL HALFWAY POINTS HERE:
@@ -145,6 +186,8 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
                 } else {
                   boundX <- c(boundX, NA)
                   boundY <- c(boundY, NA)
+                  boundXraw <- c(boundXraw, NA)
+                  boundYraw <- c(boundYraw, NA)
                   illusionstrength <- c(illusionstrength, NA)
                 }
                 
@@ -187,7 +230,215 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
         
       }
       
-    }
+    }  
+    #   ppno <- participants[participant.idx]
+    #   ppdat.idx <- which(participant == ppno & !is.na(illusionstrength))
+    #   ppdat <- data.frame('trial.idx'=ppdat.idx,
+    #                       'initial.dir'=initialdirection[ppdat.idx],
+    #                       'illusion.strength'=illusionstrength[ppdat.idx],
+    #                       'X'=boundX[ppdat.idx],
+    #                       'Y'=boundY[ppdat.idx],
+    #                       'Xraw'=boundXraw[ppdat.idx],
+    #                       'Yraw'=boundYraw[ppdat.idx],
+    #                       'speed'=round(0.5/externalspeed[ppdat.idx]),
+    #                       'sin.a'=sin( (illusionstrength[ppdat.idx]/180)*pi ),
+    #                       'cos.a'=cos( (illusionstrength[ppdat.idx]/180)*pi ) )
+    #   
+    #   #print(  summary(binned.trials$illusion.strength)  )
+    #   
+    #   ppdat <- ppdat[which(!is.na(ppdat$X)),]
+    #   ppdat <- ppdat[which(ppdat$illusion.strength > 5),]
+    #   #ppdat$slope <- ppdat$sin.a / ppdat$cos.a
+    #   ppdat$slope <- ppdat$cos.a / ppdat$sin.a
+    #   ppdat <- ppdat[which(is.finite(ppdat$slope) & ppdat$slope > 0),]
+    #   
+    #   #print(ppdat)
+    #   
+    #   sortedIS <- sort(ppdat$illusion.strength)
+    #   #print(sortedIS)
+    #   bins <- seq(5, sortedIS[length(sortedIS)-6], length.out=11)
+    #   binned.trials <- ppdat
+    #   binned.trials$bin <- NA
+    #   for (binno in c(1:(length(bins)-1))) {
+    #     
+    #     bin.trial.idx <- which(binned.trials$illusion.strength > bins[binno] & binned.trials$illusion.strength < bins[binno+1])
+    #     
+    #     binned.trials$bin[bin.trial.idx] <- binno
+    #     
+    #   }
+    #   
+    #   #print(length(which(is.na(binned.trials$bin))))
+    #   
+    #   binned.trials <- binned.trials[which(!is.na(binned.trials$bin)),]
+    #   # print(binned.trials)
+    #   
+    #   binned.trials <- aggregate(cbind(X, Y, Xraw, Yraw) ~ bin, data=binned.trials, FUN=mean)
+    #   #print(binned.trials)
+    #   
+    #   # ****************
+    #   # plot raw & binned average reset points
+    #   
+    #   plot(-1000,-1000,
+    #        main=sprintf('participant %d (raw)',participants[participant.idx]),xlab='',ylab='',
+    #        xlim=c(-4.5,10),ylim=c(-.5,14),
+    #        bty='n',ax=F)
+    #   
+    #   lines(x=c(0,0),y=c(0,13.5),col='blue')
+    #   
+    #   
+    #   points(binned.trials$Xraw*13.5, binned.trials$Yraw*13.5, col='purple')
+    #   
+    #   # **************************
+    #   # plot normalized & binned average reset points
+    #   
+    #   plot(-1000,-1000,
+    #        main=sprintf('participant %d (normalized)',participants[participant.idx]),xlab='',ylab='',
+    #        xlim=c(-4.5,10),ylim=c(-.5,14),
+    #        bty='n',ax=F)
+    #   
+    #   lines(x=c(0,0),y=c(0,13.5),col='blue')
+    #   
+    #   points(binned.trials$X*13.5, binned.trials$Y*13.5, col='purple')
+    #   
+    #   # ****************************
+    #   # plot RT over A
+    #   
+    #   ppdat$RT <- sqrt((ppdat$X*13.5)^2 + (ppdat$Y*13.5)^2) / ppdat$speed
+    #   
+    #   plot(-1000,-1000,
+    #        main=sprintf('single limit models (participant %d)',participants[participant.idx]),
+    #        xlab='',ylab='',
+    #        xlim=c(5,50),ylim=c(0,14),
+    #        bty='n',ax=F)
+    #   
+    #   points(ppdat$illusion.strength, ppdat$Y*13.5, col='blue')
+    #   points(ppdat$illusion.strength, ppdat$X*13.5, col='red')
+    #   
+    #   title(xlab='illusion strength')
+    #   title(ylab='coordinates [cm]')
+    #   
+    #   # ********************
+    #   # DO MODELS!
+    #   
+    #   ppdat$X <- ppdat$X * 13.5
+    #   ppdat$Y <- ppdat$Y * 13.5
+    #   
+    #   # print(dim(ppdat)) SIX MORE TRIALS.... ?
+    #   
+    #   singleFits <- fitSingleLimitModels(df=ppdat)
+    #   doubleFit <- fitTwoLimitModel(df=ppdat)
+    #   #print(singleFits)
+    #   
+    #   XlimFitted <- XlimResets(par=singleFits$Xlim$par, data=modeldf)
+    #   A <- as.numeric(modeldf$angle_deg)
+    #   RT <- as.numeric(XlimFitted$Y)
+    #   
+    #   lines(A, RT, col='blue')
+    #   
+    #   speeds <- 13.5/c(4, 3)
+    #   
+    #   for (speedno in c(1:length(speeds))) {
+    #     
+    #     speeddf <- modeldf
+    #     speeddf$speed <- speeds[speedno]
+    #     
+    #     YlimFitted <- YlimResets(par=singleFits$Ylim$par, data=speeddf)
+    #     X <- as.numeric(YlimFitted$X)
+    #     # print(YlimFitted)
+    #     # print(c(length(A),length(X)))
+    #     
+    #     
+    #     lines(A, X, col='red', lty=speedno)
+    #     
+    #   }      
+    #   
+    #   Lx_MSE <- c(Lx_MSE, singleFits$Xlim$MSE)
+    #   Ly_MSE <- c(Ly_MSE, singleFits$Ylim$MSE)
+    #   LxLy_MSE <- c(LxLy_MSE, doubleFit$MSE)
+    #   
+    #   
+    #   MSEs <- c(singleFits$Xlim$MSE, singleFits$Ylim$MSE)
+    #   AICs <- AIC(MSE=MSEs, k=c(1,1), N=1)
+    #   rLL <- relativeLikelihood(AICs)
+    #   
+    #   labels <- c(sprintf('Y << Lx (MSE:%0.1f, AIC: %0.1f, rLL: %0.3f)', singleFits$Xlim$MSE['Lx'], AICs['Lx'], rLL['Lx']),
+    #               sprintf('X << Ly (MSE:%0.1f, AIC: %0.1f, rLL: %0.3f)', singleFits$Ylim$MSE['Ly'], AICs['Ly'], rLL['Ly']))
+    #   
+    #   legend(10,14,legend = labels, col=c('blue','red'), box.col='white', box.lwd=0, pch=1, lty=1, bg=rgb(1,1,1,0.75))
+    #   
+    #   
+    #   axis(side=1,at=seq(5,50,15))
+    #   axis(side=2,at=seq(0,13.5,length.out = 4))
+    #   
+    #   # *******************
+    #   # DOUBLE LIMIT MODEL?
+    #   
+    #   
+    #   plot(-1000,-1000,
+    #        main=sprintf('two-limit model (participant %d)',participants[participant.idx]),
+    #        xlab='',ylab='',
+    #        xlim=c(5,50),ylim=c(0,14),
+    #        bty='n',ax=F)
+    #   
+    #   points(ppdat$illusion.strength, ppdat$Y, col='blue')
+    #   points(ppdat$illusion.strength, ppdat$X, col='red')
+    #   
+    #   title(xlab='illusion strength')
+    #   title(ylab='coordinates [cm]')
+    #   
+    #   for (speedno in c(1:length(speeds))) {
+    #     
+    #     speeddf <- modeldf
+    #     speeddf$speed <- speeds[speedno]
+    #     
+    #     XYfit <- twoLimResets(par=doubleFit$par, data=speeddf)
+    #     
+    #     X <- as.numeric(XYfit$X)
+    #     Y <- as.numeric(XYfit$Y)
+    # 
+    #     lines(A, Y, col='blue', lty=speedno)
+    #     lines(A, X, col='red', lty=speedno)
+    #     
+    #   }     
+    #   
+    #   MSEs <- c(MSEs, 'Lx.Ly'=doubleFit$MSE)
+    #   AICs <- AIC(MSE=MSEs, k=c(1,1,2), N=1)
+    #   #print(AICs)
+    #   rLL <- relativeLikelihood(AICs)
+    #   
+    #   
+    #   legend(10,14,legend=c(sprintf('Lx.Ly (MSE: %0.1f, AIC: %0.1f, rLL: %0.3f)', doubleFit$MSE, AICs[3], rLL[3])),
+    #          box.col='white', box.lwd=0, bg=rgb(1,1,1,0.75))
+    #   
+    #   axis(side=1,at=seq(5,50,15))
+    #   axis(side=2,at=seq(0,13.5,length.out = 4))
+    #   
+    #   # *************************
+    #   # Reset time distribution
+    #   
+    #   plot(-1000,-1000,
+    #        main=sprintf('reset time distribution (participant %d)',participants[participant.idx]),
+    #        xlab='',ylab='',
+    #        xlim=c(0,5),ylim=c(-0.5,1.5),
+    #        bty='n',ax=F)
+    #   
+    #   title(xlab='reset time [s]', line=2.5)
+    #   title(ylab='relative denisty', line=2.5)
+    #   
+    #   ResetTimes <- sqrt(ppdat$X^2 + ppdat$Y^2) / ppdat$speed
+    #   
+    #   points(ResetTimes, rep(-0.25, length(ResetTimes)))
+    #   
+    #   distr <- density(ResetTimes, n=501 , from=0, to=5)
+    #   lines(seq(0, 5, length.out = 501), distr$y)
+    #   
+    #   axis(side=1, at=c(0:4))
+    #   axis(side=2, at=c(0,1))
+    #   
+    #   
+    # }
+    # 
+    # dev.off()
     
     # write out csv file:
     
@@ -203,6 +454,21 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
     write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
     
   }
+  
+  # Lx_MSE <- unname(Lx_MSE)
+  # Ly_MSE <- unname(Ly_MSE)
+  # LxLy_MSE <- unname(LxLy_MSE)
+  # 
+  # Lx_MSE <- mean(Lx_MSE)
+  # Ly_MSE <- mean(Ly_MSE)
+  # LxLy_MSE <- mean(LxLy_MSE)
+  # MSEs <- c('Lx'=Lx_MSE, 'Ly'=Ly_MSE, 'Lx.Ly'=LxLy_MSE)
+  # print(MSEs)
+  # AICs <- AIC(MSE=MSEs, k=c(9,9,18), N=9)
+  # print(AICs)
+  # rLL <- relativeLikelihood(AICs)
+  # print(rLL)
+  
   
 }
 
@@ -251,6 +517,102 @@ summarizeTraceBoundsV4 <- function() {
   
 }
 
+
+getCVRdata <- function() {
+  
+  
+  participants <- c(1,2,3,4,5,6,7,8,9)
+  
+  par(mfrow=c(3,3))
+  
+  participant <- c()
+  trial <- c()
+  internalspeed <- c()
+  internaldirection <- c()
+  fixationside <- c()
+  initialdirection <- c()
+  resetX <-c()
+  resetY <-c()
+  
+  
+  # scale: c(-262,262) -> 524 px == 13.5 cm
+  
+  # page one: raw traces
+  
+  for (ppno in participants) {
+    
+    ppdf <- read.csv(sprintf('data/CVRdemo/CVRdemo_OPV4_resets_p%04d.csv', ppno), stringsAsFactors=F)
+    
+    trialnos <- unique(ppdf$trial_no)
+    
+    for (trialno in trialnos) {
+      
+      trialdf <- ppdf[which(ppdf$trial_no == trialno & ppdf$step == 99),]
+      
+      X <- trialdf$handx_pix / 38.814814815 # is this pixels per centimeter? yes
+      Y <- (trialdf$handy_pix + 262) / 38.814814815
+      
+      # if the endpoint Y-coordinate is negative (or close to 0?) we don't trust it
+      # if it is beyond 8 cm, we also don't trust it
+      
+      participant <- c(participant, ppno)
+      trial <- c(trial, trialno)
+      internalspeed <- c(internalspeed, trialdf$internalMovement[1])
+      internaldirection <- ifelse(trialdf$internalMovement[1] > 0, 1, -1)
+      fixationside <- trialdf$fixationside[1]
+      
+      # something something
+      
+      X <- X * internaldirection
+      # endpoint <- c(X[length(X)], Y[length(Y)])
+      farpointidx <- which.max(sqrt(X^2 + Y^2))
+      resetpoint <- c(X[farpointidx], Y[farpointidx]) 
+      
+      if ((resetpoint[2] > 0) & (resetpoint[2] < 8)) {
+        
+        #print('good one')
+        
+        indirpoint <- which(sqrt(X^2 + Y^2) > (sqrt(sum(resetpoint^2))/2))[1]
+        angle <- 90 - ((atan2(Y[indirpoint], X[indirpoint]) / pi) * 180)
+        initialdirection <- c(initialdirection, angle)
+        resetX <- c(resetX, resetpoint[1])
+        resetY <- c(resetY, resetpoint[2])
+        
+
+      } else {
+        
+        initialdirection <- c(initialdirection, NA)
+        resetX <-c(resetX, NA)
+        resetY <-c(resetY, NA)
+        
+      }
+
+    }
+
+  }
+  
+  df <- data.frame(participant,trial,internalspeed,internaldirection,fixationside,initialdirection,resetX,resetY)
+  
+  df$X     <- df$resetX # cm
+  df$Y     <- df$resetY # cm
+  df$speed <- 13.5/4 # external speed in cm/s
+  df$RT    <- sqrt(df$X^2 + df$Y^2) / df$speed
+  
+  df$angle <- ((90-df$initialdirection)/180) * pi
+  df$sin.a <- sin(df$angle)
+  df$cos.a <- cos(df$angle)
+  df$slope <- df$sin.a / df$cos.a
+    
+  df$Vi    <- abs(df$internalspeed)
+  df$Ve    <- df$speed
+  
+  df <- df[,c('participant','X', 'Y', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve')]
+  
+  df <- df[which(!is.na(df$X)),]
+  
+  return(df)
+  
+}
 
 
 
@@ -367,7 +729,7 @@ plotData <- function(target='inline') {
   
   #df <- summarizeTraceBoundsV4()
   
-  df <- getData()
+  df <- getData54()
   
   
   # PANEL A: raw spatial coordinates:
@@ -415,9 +777,29 @@ plotData <- function(target='inline') {
   
   #df <- getTimeNormalizedData(illusionMinimum = 0)
   
-  df <- getData()
+  df <- getData54()
   
-  avg_df <- aggregate(angle ~ Vi + speed, data=df, FUN=mean)
+  avg_df <- aggregate(angle ~ Vi + speed + participant, data=df, FUN=mean)
+  avg_df <- aggregate(angle ~ Vi + speed, data=avg_df, FUN=mean)
+  
+  
+  participants <- unique(df$participant)
+  p_k <- c()
+  for (participant in participants) {
+    
+    pdf <- df[which(df$participant == participant),]
+    avg_pdf <- aggregate(angle ~ Vi + speed, data=pdf, FUN=mean)
+    avg_p_xcoords <- atan((avg_pdf$Vi / 0.58) / (avg_pdf$speed))
+    
+    X <- (avg_p_xcoords/pi)*180
+    Y <- 90 - ((as.numeric(unlist(avg_pdf$angle))/pi)*180)
+    linmod <- lm(Y ~ X - 1)
+    p_k <- c( p_k, summary(linmod)$coefficients['X','Estimate'] )
+    
+  }
+  
+  bs_k <- rowMeans( matrix(sample(p_k, size=1000*length(participants),replace = TRUE), nrow = 1000, ncol=length(participants)) )
+  CI95 <- quantile(bs_k, probs=c(0.025,0.50,0.975))
   
   Vi <- df$Vi / 0.58 # in cm/s 
   Ve <- df$speed # in cm/s
@@ -440,15 +822,20 @@ plotData <- function(target='inline') {
   title(xlab=expression(paste(tan^{-1}, (V[i]/V[e]), ' [°]')), line=2.5)
   title(ylab='illusion strength [°]', line=2.5)
   
-  angles <- seq(0,pi/2,.05)
+  polygon(x = c(0,rep(5*(pi/12),2),0),
+          y = c(0,(75 * CI95[c(1,3)]),0),
+          col=colors$purple$t,
+          border=NA)
+  
+  angles <- c(0,5*(pi/12))
   lines(angles,(angles/pi)*180,col='gray',lty=2)
   lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
   
   #xcoords <- atan(internalspeed / externalspeed)
   
   # get the best k for this data:
-  X <- (xcoords/pi)*180
-  Y <- 90 - ((as.numeric(unlist(df$angle))/pi)*180)
+  X <- (avg_xcoords/pi)*180
+  Y <- 90 - ((as.numeric(unlist(avg_df$angle))/pi)*180)
   linmod <- lm(Y ~ X - 1)
   slope <- summary(linmod)$coefficients['X','Estimate']
   
@@ -467,8 +854,8 @@ plotData <- function(target='inline') {
   #   
   # }
   
-  points(xcoords[idxE3], 90 - ((df$angle[idxE3]/pi)*180), col=colors$blue$t, pch=16)
-  points(xcoords[idxE4], 90 - ((df$angle[idxE4]/pi)*180), col=colors$yorkred$t, pch=16)
+  # points(xcoords[idxE3], 90 - ((df$angle[idxE3]/pi)*180), col=colors$blue$t, pch=16)
+  # points(xcoords[idxE4], 90 - ((df$angle[idxE4]/pi)*180), col=colors$yorkred$t, pch=16)
   
   points(avg_xcoords[avg_idxE3], 90 - ((avg_df$angle[avg_idxE3]/pi)*180), col=colors$blue$s, pch=1)
   points(avg_xcoords[avg_idxE4], 90 - ((avg_df$angle[avg_idxE4]/pi)*180), col=colors$yorkred$s, pch=1)
@@ -483,7 +870,7 @@ plotData <- function(target='inline') {
   axis(side=1,at=seq(0,5*(pi/12),pi/12),labels=sprintf('%d',seq(0,75,15)))
   axis(side=2,at=seq(0,45,15))
   
-
+  
   if (target %in% c('pdf','svg')) {
     dev.off()
   }
@@ -872,7 +1259,7 @@ plotModels <- function(target='inline') {
   layout(matrix(c(1,2,3), nrow = 1, ncol = 3, byrow = T), widths = c(1,1,1))
   
   #df <- getTimeNormalizedData()
-  df <- getData()
+  df <- getData54()
   
   # ***************************************
   # PLOT SINGLE LIMIT MODELS: TIME LIMIT
@@ -998,9 +1385,279 @@ plotModels <- function(target='inline') {
   
 }
 
+plot6points <- function() {
+  
+  df <- getData()
+  
+  colors <- getColors()
+  
+  adf <- aggregate(cbind(X,Y,RT,speed,angle) ~ Vi + Ve, data=df, FUN=mean)
+  sdf <- aggregate(cbind(X,Y,RT,speed,angle) ~ Vi + Ve, data=df, FUN=sd)
+  
+  plot(-1000,-1000,main='N=6',
+       xlab='',ylab='',
+#       xlim=c(0,5),ylim=c(0,4.5),
+       xlim=c(0,5),ylim=c(0,14),
+       bty='n',ax=F)
+  
+  title(xlab='reset X [cm]')
+  title(ylab='reset Y [cm]')
+  
+  for (rown in c(1:dim(adf)[1])) {
+    
+    # print(adf[rown,])
+    col <- colors[[c('lightblue','purple','orange')[adf$Vi[rown]-1]]]
+    pch <- c(1,19)[round(0.5/adf$Ve[rown])-2]
+    lty <- c(2,1)[round(0.5/adf$Ve[rown])-2]
+    
+    mX  <- adf$X[rown]
+    mRT <- adf$RT[rown]
+    mY  <- adf$Y[rown]
+    sX  <- sdf$X[rown]
+    sRT <- sdf$RT[rown]
+    sY  <- sdf$Y[rown]
+    
+    # segments(mX-sX,mRT,mX+sX,mRT,col=col$t, lw=3, lty=lty)
+    # segments(mX,mRT-sRT,mX,mRT+sRT,col=col$t, lw=3, lty=lty)
+    
+    idx <- which(df$Vi == adf$Vi[rown] & df$Ve == adf$Ve[rown])
+    #CE <- confidenceEllipse(x=df$X[idx], y=df$RT[idx])
+    CE <- confidenceEllipse(x=df$X[idx], y=df$Y[idx])
+    lines(CE$poly$x, CE$poly$y, col=col$s, lty=lty)
+    
+    points(mX, mY, col=col$s, pch=pch, cex=1.5)
+    
+  }
+  
+  # segments(adf$X-sdf$X,adf$RT,adf$X+sdf$X,adf$RT,col=colors$purple$t)
+  # segments(adf$X,adf$RT-sdf$RT,adf$X,adf$RT+sdf$RT,col=colors$purple$t)
+  # 
+  # points(adf$X, adf$RT, col=colors$purple$s)
+  
+  #legend(0,4.5,
+  legend(0,13.5,
+                legend=c('Vi=2','Vi=3','Vi=4','Ve=3','Ve=4'),
+         col=c(colors$lightblue$s,
+               colors$purple$s,
+               colors$orange$s,
+               'black',
+               'gray'),
+         pch=c(19,19,19,1,19),
+         lty=c(2,2,2,2,1),
+         seg.len = 3,
+         bty='n')
+  
+  axis(side=1,at=c(0,1,2,3,4))
+  #axis(side=2,at=seq(0,1.5,2,3.5))
+  axis(side=2,at=seq(0,13.5,length.out = 3))
+  
+  
+}
+
+plotIndividual6points <- function() {
+  
+  df <- getData()
+  
+  pdf(file='doc/individual_6_points.pdf', width=8,height=8)
+  
+  layout(matrix(c(1:9),byrow=TRUE,ncol=3,nrow=3))
+  
+  for (ppno in unique(df$participant)) {
+
+    plot(-1000,-1000,
+         main=sprintf('participant %d',ppno),
+         xlim=c(0,5),ylim=c(0,5),bty='n',ax=F,
+         xlab='reset offset [cm]',ylab='reset time [s]')
+    
+    for (speed in unique(df$speed)) {
+      
+      color = list('3.375'='orange','4.500'='purple')[[sprintf('%0.3f',speed)]]
+      df.idx <- which(df$participant == ppno & df$speed == speed)
+      
+      points(df$X[df.idx], df$RT[df.idx],col=color)
+
+    }
+    
+    if (ppno == 11) {
+      legend(0,5,legend=c('4 s passes', '3 s passes'),col=c('purple','orange'),bty='n',pch=1)
+    }
+    
+    axis(side=1,at=c(0:4))
+    axis(side=2,at=c(0:4))
+    
+  }
+  
+  dev.off()
+  
+}
+
 # Statistics -----
 
+test6points <- function() {
+  
+  df <- getData()
+  
+  # MANOVA: no way to compare with ANOVAs
+  #RPman <- manova(cbind(X, RT) ~ angle, data = df)
+  # summary(RPman)
+  
+  # ANOVAs: have to use illusion strength as dependent variable...
+  # RPaov <- aov(angle ~ X + RT, data = df)
+  # RTaov <- aov(angle ~ RT, data = df)
+  # Xaov <- aov(angle ~ X, data = df)
+  # print(anova(RPaov, Xaov, test="Chisq"))
+  
+  # # linear models:
+  # RPlm <- lm(angle ~ X + RT, data = df)
+  # Xlm <- lm(angle ~ X, data = df)
+  # RTlm <- lm(angle ~ RT, data = df)
+  # 
+  # cat('\ncompare: TIME+OFFSET to OFFSET only\n\n')
+  # print(anova(RPlm, RTlm))
+  # cat('\ncompare: TIME+OFFSET to TIME only\n\n')
+  # print(anova(RPlm, Xlm))
+  # cat('\ncompare: TIME only to OFFSET only\n\n')
+  # print(anova(RTlm, Xlm))
+  
+  # prep for separate ANOVAs:
+  
+  df$condition <- ((round(0.5 / unique(df$Ve))-3) * 3)+1 + (df$Vi-2)
+  
+  
+  df$Vi <- as.factor(df$Vi)
+  df$Ve <- as.factor(df$Ve)
+  df$participant <- as.factor(df$participant)
+  df$condition <- as.factor(df$condition)
+  
+  
+  cat('\n RESET TIME: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=RT,wid=participant,within=c(Vi,Ve),data=df,detailed = T)))
+  cat('\n RESET Y: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=Y ,wid=participant,within=c(Vi,Ve),data=df,detailed = T)))
+  cat('\n RESET X: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=X, wid=participant,within=c(Vi,Ve),data=df,detailed = T)))
+  
 
+  cat('\n RESET TIME: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=RT,wid=participant,within=condition,data=df,detailed = T)))
+  cat('\n RESET Y: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=Y ,wid=participant,within=condition,data=df,detailed = T)))
+  cat('\n RESET X: \n\n')
+  print(ezANOVA.pes(ez::ezANOVA(dv=X, wid=participant,within=condition,data=df,detailed = T)))
+  
+  
+}
+
+#' ezANOVA wrapper to calculate 
+#'
+#'
+#' @param ezANOVAResult ezANOVA result
+#' @return ezANOVA with partial eta-squared
+#' @details ezANOVA must be run with parameter 'detailed=T'.
+#' @author Frank Papenmeier
+#' @export
+#'
+ezANOVA.pes <- function (ezANOVAResult)
+{
+  if (is.null(ezANOVAResult$ANOVA$SSn) | is.null(ezANOVAResult$ANOVA$SSd))
+  {
+    stop("ezANOVA must be run with parameter 'detailed=T'.")
+  }
+  
+  ezANOVAResult$ANOVA$pes <- ezANOVAResult$ANOVA$SSn/(ezANOVAResult$ANOVA$SSn+ezANOVAResult$ANOVA$SSd)
+  
+  return(ezANOVAResult)
+}
+
+# from my SMCL package:
+
+confidenceEllipse <- function(x, y=NA, interval=.95, vectors=360) {
+  
+  # get the square root of the chi-squared value for the specified confidence interval:
+  chisq.val <- sqrt(qchisq(p=interval, df=2))
+  
+  # get the covariance matrix of the data:
+  if (is.matrix(x)) {
+    covmat <- cov( x )
+  } else {
+    x <- matrix(c(x,y), ncol = 2, byrow = FALSE)
+    covmat <- cov( x )
+  }
+  
+  # get the centre of the ellipse:
+  centre <- colMeans(x)
+  
+  # get the eigen decomposition of the covariance matrix
+  ev <- eigen(covmat)
+  
+  # get eigenvalues and -vectors separately:
+  eigenvalues <- ev$values
+  eigenvectors <- ev$vectors
+  
+  # determine which is the maximum eigenvalue and -vector:
+  max.EigVal.ind <- which.max(eigenvalues)
+  
+  max.EigVal <- eigenvalues[max.EigVal.ind]
+  max.EigVec <- eigenvectors[,max.EigVal.ind]
+  
+  # and which are the minimum eigenvalue and -vector:
+  min.EigVal.ind <- which.min(eigenvalues)
+  min.EigVal <- eigenvalues[min.EigVal.ind]
+  min.EigVec <- eigenvectors[,min.EigVal.ind]
+  
+  # calculate the angle of the largest eigen vector:
+  phi = ( ( atan2(max.EigVec[2], max.EigVec[1]) %% (2*pi) ) / pi ) * 180;
+  
+  # ellipse angles:
+  thetas <- seq(0,2*pi,length.out=vectors)
+  
+  # the semi-major and -minor axes:
+  a <- chisq.val*sqrt(max.EigVal);
+  b <- chisq.val*sqrt(min.EigVal);
+  
+  # get X and Y coordinates for the flat ellipse:
+  X <- a*cos( thetas );
+  Y <- b*sin( thetas );
+  
+  # rotate the ellipse:
+  ellipse <- rotateCoordinates(df=data.frame(x=X, y=Y),angle=phi,origin=c(0,0))
+  
+  # re-centre:
+  circumference <- data.frame('x' = ellipse$x + centre[1],
+                              'y' = ellipse$y + centre[2])
+  
+  ellipse <- list()
+  ellipse[['poly']] <- circumference
+  ellipse[['major']] <- a
+  ellipse[['minor']] <- b
+  ellipse[['angle']] <- phi
+  ellipse[['centre']] <- centre
+  
+  return(ellipse)
+  
+}
+
+rotateCoordinates <- function(df,angle,origin=c(0,0)) {
+  
+  df.names <- names(df)
+  
+  # create rotation matrix to rotate the X,Y coordinates
+  th <- (angle/180) * pi
+  R <- t(matrix(data=c(cos(th),sin(th),-sin(th),cos(th)),nrow=2,ncol=2))
+  
+  # put coordinates in a matrix, and subtract origin
+  coordinates <- sweep(as.matrix(df), 2, origin)
+  
+  # rotate the coordinates, add the origin back in
+  df <- as.data.frame(sweep(coordinates %*% R, 2, origin*-1))
+  
+  # restore column names
+  names(df) <- df.names
+  
+  # return the rotated coordinates
+  return(df)
+  
+}
 
 # Code graveyard -----
 
