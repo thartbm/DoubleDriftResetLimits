@@ -16,7 +16,7 @@ OSFdata <- function(overwrite=FALSE, removezip=FALSE, extradata=FALSE) {
   
   zipfiles <- c('bounded_tracking.zip','onepass_V4.zip')
   if (extradata) {
-    zipciles <- c(zipfiles, 'infinite_tracking.zip', 'pilots2.zip', 'CVRdemo.zip')
+    zipfiles <- c(zipfiles, 'infinite_tracking.zip', 'pilots2.zip', 'CVRdemo.zip')
   }
   
   if (overwrite) {
