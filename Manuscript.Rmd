@@ -60,7 +60,6 @@ Toronto, ON M3J1P3\
 Canada\
 [thartbm@gmail.com](thartbm@gmail.com)\
 
-
 # Abstract
 
 If a gabor pattern drifts in one direction while its internal texture drifts in the orthogonal direction, its perceived position deviates further and further away from  its true path. We first evaluated the illusion using manual tracking. Participants followed the gabor with a stylus on a drawing tablet that coincided optically with the horizontal monitor surface. Their hand and the stylus were not visible during the tracking. The magnitude of the tracking illusion corresponded closely to previous perceptual and pointing measures indicating that manual tracking is a valid measure for the illusion. This allowed us to use it in a second experiment to capture the behavior of the illusion as it eventually degrades and breaks down in single trials. Specifically, the deviation of the gabor stops accumulating at some point and either stays at a fixed offset or resets toward the veridical position. To report the perceived trajectory of the gabor, participants drew it after the gabor was removed from the monitor. Resets were detected and analyzed and they suggest that there is a spatial limit beyond which the illusion saturates or resets.
@@ -76,7 +75,6 @@ Fig1 <- image_read_svg('doc/methods_fig_1.svg')
 par(mai=c(0,0,0,0))
 plot(Fig1)
 ```
-
 
 The strength of the double-drift illusion probably arises because of the very poor location information for a gabor pattern in the periphery when it has the same mean luminance as the background [@Gurnsey2012; @Kwon2015; @Cavanagh2019]. With poor positional certainty, the motion information contributes to the location estimate, generating a shift in perceived position. If the gabor itself is not moving [@DeValois1991], the shift saturates quickly [40 _ms_: @Chung2007; 100 _ms_: @Arnold2007], perhaps because the accumulating evidence of actual location of the stationary gabor patch is sufficient to anchor its position. However, when the gabor itself also moves as in the double-drift stimulus, there is no stable location information to anchor the position estimate and the build-up continues well beyond 100 ms. The perceived location conintues to move away from its physical position by up to several times the size of the gabor. The strength of the illusion, the deviation of perceived path of the gabor from its true path, depends on the speed of both the internal and external motion [@Tse2006; @Shapiro2010; @Kwon2015; @Cavanagh2019]. In our first experiment, participants track their percept with a stylus as the gabor moves back and forth on its trajectory (Fig. 1) with 5 speeds of the internal motion. We analyze the angle of the tracking to determine if the manual response is susceptible to the illusion.
 
@@ -165,7 +163,7 @@ In both kinds of trials, participants first had to move the stylus to the start 
 
 ### Analyses
 
-The individual trajectories reveal some points that are potential spontaneous resets that we try to extract. Using a smooth spline interpolated version of the trajectory we detect right-left direction changes, based on sign changes. Since the initial movement is often jittery, we only take direction changes further than ~0.39 cm ( ~0.23 _dva_ ) away from the starting point. The first (if any) of the remaining direction changes, are then taken as reset points. By first averaging the x and y coordinates (in _cm_) of reset points in all 9 participants and 6 stimulus conditions, we obtain 54 average reset points for further analyses and modelling. Both the horizontal and vertical (straight ahead) distance of the reset point from the origin of the trajectory are converted to centimeters, and trajectories are scaled in both dimensions so that vertical distance from the origin is 13.5 cm. The vertical component can then be converted to time as 1 _cm_ = 3.375 _s_ in the 4 _s_ condition and 1 _cm_ = 4.5 _s_ in the 3 _s_ condition.  
+The individual trajectories reveal some points that are potential spontaneous resets that we try to extract. Using a smooth spline interpolated version of the trajectory we detect right-left direction changes, based on sign changes. Since the initial movement is often jittery, we only take direction changes further than ~0.39 cm ( ~0.23 _dva_ ) away from the starting point. The first (if any) of the remaining direction changes, are then taken as reset points. By first averaging the x and y coordinates (in _cm_) of reset points in all 9 participants and 6 stimulus conditions, we obtain 54 average reset points for further analyses and modelling. Both the horizontal and vertical (straight ahead) distance of the reset point from the origin of the trajectory are converted to centimeters, and trajectories are scaled in both dimensions so that vertical distance from the origin is 13.5 cm. The vertical component can then be converted to time as 1 _cm_ = 3.375 _s_ in the 4 _s_ condition and 1 _cm_ = 4.5 _s_ in the 3 _s_ condition.
 
 Apart from reset points, we need a measure of illusion strength. We take a trajectory sample halfway between the starting point and the detected reset point. We then use the angular difference between the gabor's real trajectory and a straight line drawn through that point and the start of the trajectory as a measure of illusion strength.
 
@@ -184,28 +182,28 @@ We compare the strength of the illusion as measured with half-way points (see Fi
 
 ## Limits on the Double-Drift Illusion
 
-Now we look at the distribution of reset points, and whether they can be explained by a temporal or spatial limit. In Figure 4 (middle), we can see that the reset points vary more in when they occur, than how far they are from the real path of the stimulus. That is, predicting reset points from a single Y coordinate (time limit) would leave larger residuals than predicting reset points from a single X coordinate (or spatial limit). This already indicates that a spatial limit explains more of the variance in reset points than a temporal limit.
+Now we look at the distribution of reset points, and whether they can be explained by a temporal or spatial limit. In Figure 4 (middle), we can see that the reset points vary more along the y-axis, than along the x-axis. That is, it looks like predicting reset points from a single X coordinate (or spatial limit) than predicing reset points from a given time.
 
-```{r fig5, echo=FALSE, message=FALSE, fig.width=8, fig.height=3, fig.cap="\\label{fig:fig5}**Figure 5:** Reset Models. **Left:** Distance of reset from true path predicted from a single temporal limit. **Middle:** Time of reset predicted from a single spatial limit. **Right:** Both spatial offset and time of resets predicted from a temporal and a spatial limit."}
+```{r fig5, echo=FALSE, message=FALSE, fig.width=7, fig.height=5.5, fig.cap="\\label{fig:fig5}**Figure 5:** Reset Models. Model limit shown here are given by weighted bootstrapping from all participants, lines are median parameter values, shaded areas the 95% confidence interval of the limits. Gray dots are the reset points from all participants. **Left:** Distance of reset from true path as a single spatial limit. **Right:** Reset coordinates predicted from a single temporal limit (at two speeds)."}
 #plotResetPoints()
-plotModels()
+#plotModels()
+plotBootstrappedFits()
 ```
 
-We test this with three simple models, based on straighforward trigonometry. First, we calculate the slope of a line ($s$, time/illusory offset) through the origin and a sample halfway to the reset point, indicating the strength of the illusion. If the perceived path of the gabor is approximated by a straight line (up to a reset), and reset points occur at a set limit, then a temporal limit ($L_y$) would predict spatial offset from the physical path at the time of the reset, $x$:
+We test this with a series of simple models, based on straighforward trigonometry. First, we calculate the angle of a line through the origin and a sample on the trajectory halfway to the reset point (with coordinates $X$ and $Y$), as the strength of the illusion ($a = atan2(X,Y)$ expressing the angular deviation the line $x=0$ which is the real path of the gabor). This can then be used to calculate a slope ($s = \frac{sin(a)}{cos(a)}$).
 
-[2]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_y / s$
+If the perceived path of the gabor is approximated by a straight line (up to a reset), and reset points occur at a set limit, then a spatial limit ($L_x$) would predict the y-coordinate of the first reset, $y$:
 
-And a spatial limit ($L_x$) would predict time until the first reset, $y$:
+[2]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_x \cdot s$
 
-[3]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_x \cdot s$
+And a temporal limit ($L_t$) would predict both coordinates of the reset, $x$ and $y$:
 
-While resets relying on both limits would use these two equations:
+[3a]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_t \cdot v \cdot cos(a)$
+[3b]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_t \cdot v \cdot sin(a)$
 
-[4a]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_x + L_y / s$
+Where $L_t$ and $L_x$ are a temporal and spatial limit (in seconds and cm respectively) that are free parameters, $a$ and $s$ corresponds to the calculated angle and slope expressing the strength of the illusion, and speed ($v$ in _cm/s_) is given by the stimulus. If we fit the two simple models for each participant separately, by minimizing the mean square error (error as absolute distance in centimeters between predicted and actual reset points), most participants are best fit with a spatial limit (MSE: 6/9, AIC: 7/9) and the remaining participants are best fit with a temporal limit. We can also combine limits to see if they are complementary. Here, we see that for 4/9 participants (same for MSE and AIC) the best fit boils down to a spatial limit as the other limit is set to 0. Of the remaining participants 4 are best fit with a combined spatial and temporal limit (4/9) and one participant is best fit combining a vertical offset with a temporal limit. This indicates that in this data, a spatial limit explains the reset points best. However even the spatial limit does not explain the data very well.
 
-[4b]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_x \cdot s + L_y$
-
-Where $L_y$ and $L_x$ are a temporal and spatial limit that are free parameters, and $s$ corresponds to the calculated slope from the start of the trajectory to the halfway point. If we fit these simple models by minimizing the mean square error (errors are the absolute distance in centimeters between predicted and actual reset points), the optimal parameters for the single limit models indicate a temporal limit of ~1.82 _s_ (Eq. 2; AIC=-20.3) and a spatial limit of ~2.46 _cm_ (Eq. 3; AIC=-28.4), as illustrated in Figure 6 (left and middle). This is close to, but not the same as, the mean values of the respective coordinates of reset points (Fig. 5, middle). The model with two limits uses a temporal limit of 0.55 _s_ and a spatial limit of 1.89 _cm_ (Eq. 4a,b; AIC=-28.8). The model with a single spatial limit fits the data better than the model with a temporal limit ( _p_=.016, relative log-likelihood based on AICs) but is not better than the model with combined limits ( _p_=.87). This indicates that a spatial limit explains most of the data.
+To obtain population level values for the spatial and temporal limits, we resample reset points from each participant, using the smallest number of detected reset points that fall in the first quadrant, in the group (44), to ensure that each participant contributes the same number of reset points. Both models based on a spatial limit (eq. 2) and on a temporal limit (eq. 3) as well as a model combining these two were fit 1000 times. In the models with two limits there is a strong negative correlation between fitted spatial and temporal limits (r(998)=-0.985, p>.001) indicating parameter redundancy in the combined limit models. That means that the two limits probably explain the same parts of the data, making a two-limit model very hard to interpret. Hence, only the bootstrapped confidence intervals for the two single limit models are shown in Figure 5. Further, since temporal limits might be fit better with an exponential distribution (and minimizing errors amounts to using a normal distribution), we repeated fitting single limit models based on normal, exponential and gamma likelihood distributions for all participants, but found that of the best temporal models, most used a normal distribution (6/9) and the rest an exponential distribution (3/9). All model fits combined show that while the reset point data reported here do somewhat favour a spatial limit, they can not conclusively rule out other limits - most notably a temporal limit.
 
 # Discussion
 
