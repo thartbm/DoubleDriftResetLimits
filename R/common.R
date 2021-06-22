@@ -530,4 +530,79 @@ polarHeatMap <- function(x,y,z,mincol=c(0.94,0.98,0.99),maxcol=c(0.06,0.82,0.88)
   
 }
 
+density2D <- function(x, y, bw=1, weights=NULL, n=100, from=NULL, to=NULL, cut=3, na.rm=FALSE) {
+  
+  # have weights:
+  if (!is.null(weights)) {
+    if (length(x) != length(weights)) {
+      cat('denisty2d error: weights need to be the same length as x and y\n')
+      return()
+    }
+    weights <- weights / sum(weights)
+  } else {
+    weights <- rep(1/length(x), length(x))
+  }
 
+  # remove NA values, if specified:
+  if (na.rm) {
+    idx <- intersect( which(!is.na(x)), which(!is.na(y)) )
+    x <- x[idx]
+    y <- y[idx]
+    weights <- weights[idx]
+  }
+  
+  # make sure we have bandwidth in the correct shape:
+  if (length(bw) == 1) {
+    bw <- c(bw,bw)
+  }
+  
+  # set up the coordinates for the grid:
+  if (is.null(from) | is.null(to)) {
+    from <- c(min(x)-(cut*bw[1]),min(y)-(cut*bw[2]))
+    to   <- c(max(x)+(cut*bw[1]),max(y)+(cut*bw[2]))
+  }
+  if (length(n) == 1) {
+    n = c(n,n)
+  }
+  
+  # make the actual grid:
+  X <- seq(from[1], to[1], length.out=n[1])
+  Y <- seq(from[2], to[2], length.out=n[2])
+  grid <- expand.grid('x'=X,'y'=Y,'z'=NA)
+  
+  
+  # get density at the grid points:
+  for (idx in c(1:dim(grid)[1])) {
+    grid$z[idx] <- sum( weights * ( 1/(2*pi*bw[1]+bw[2]) * exp( -1 * ((x-grid$x[idx])^2/(2*(bw[1]^2)) + (y-grid$y[idx])^2/(2*(bw[2]^2)))) ) )
+  }
+  
+  return( list('x'=X,
+               'y'=Y,
+               'z'=matrix(grid$z, nrow=length(X)) ) )
+  
+}
+
+
+
+## Transparent colors
+## Mark Gardener 2015
+## www.dataanalytics.org.uk
+
+t_col <- function(color, percent = 50, name = NULL) {
+  #      color = color name
+  #    percent = % transparency
+  #       name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+               max = 255,
+               alpha = (100 - percent) * 255 / 100,
+               names = name)
+  
+  ## Save the color
+  invisible(t.col)
+}
+## END
