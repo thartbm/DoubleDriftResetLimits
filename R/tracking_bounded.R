@@ -409,7 +409,7 @@ plotBoundedTracking <- function(target='inline') {
   
   
   legend(x=0, y=45, 
-         legend=c('Cavanagh & Tse (2019)', 'participants', 'average'), 
+         legend=c('Cavanagh & Tse (2019)', 'participants (N=4)', 'average'), 
          col=c('black', colors$lightblue$s, colors$yorkred$s), 
          pch=c(NA,1,1), lty=c(1,0,0), 
          bty='n', cex=1)
