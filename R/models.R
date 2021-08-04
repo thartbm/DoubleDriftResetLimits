@@ -1241,8 +1241,17 @@ bootStrapFits <- function(bootstraps=1000) {
   
 }
 
-plotBootstrappedFits <- function() {
+plotBootstrappedFits <- function(target='inline') {
  
+  
+  if (target == 'pdf') {
+    cairo_pdf(filename='doc/FigY_modeled_limits.pdf',onefile=TRUE,width=5,height=4)
+  }
+  if (target == 'svg') {
+    svglite(file='doc/FigY_modeled_limits.svg',width=5,height=4)
+  }
+  
+  
   colors=getColors()
   layout(matrix(c(1,2),nrow=1,ncol=2,byrow=TRUE))
   
@@ -1310,5 +1319,9 @@ plotBootstrappedFits <- function() {
   
   axis(side=1, at=c(0,4,8))
   axis(side=2, at=seq(0,13.5,length.out = 4))
+  
+  if (target %in% c('pdf','svg')) {
+    dev.off()
+  }
   
 }
