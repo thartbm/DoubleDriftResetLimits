@@ -1068,7 +1068,7 @@ plotIllusionStrength <- function(target='inline') {
   
   angles <- c(0,5*(pi/12))
   lines(angles,(angles/pi)*180,col='gray',lty=2)
-  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  lines(angles,0.74*((angles/pi)*180),col='black',lty=1)
   
   #xcoords <- atan(internalspeed / externalspeed)
   
@@ -1085,7 +1085,7 @@ plotIllusionStrength <- function(target='inline') {
   points(avg_xcoords[avg_idxE4], 90 - ((avg_df$angle[avg_idxE4]/pi)*180), col=colors$orange$s, pch=16)
   
   legend(x=0, y=45, 
-         legend = c('group means (3 s)', 'group means (4 s)', 'K=1', 'K=0.81', sprintf('K=%0.2f',slope)), 
+         legend = c('group means (3 s)', 'group means (4 s)', 'K=1', 'K=0.74', sprintf('K=%0.2f',slope)), 
          pch=c(16,16,NA,NA,NA), col=c(colors$purple$s, colors$orange$s, 'gray', 'black', colors$lightblue$s), 
          lty = c(0,0,2,1,1),
          bty='n', cex=0.8)
