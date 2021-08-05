@@ -221,7 +221,7 @@ getAverageHeading <- function(mirror=TRUE) {
 # Figures -----
 
 
-plotBoundedTracking <- function(target='inline') {
+plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   
   colors <- getColors()
   
@@ -303,7 +303,7 @@ plotBoundedTracking <- function(target='inline') {
         #y <- y + speedidx
         
         col <- '#0000000f'
-        if (trialno %in% outlier_trials) {
+        if (trialno %in% outlier_trials & discontinuous) {
           col <- colors[['yorkred']]$s
         }
         
@@ -318,6 +318,9 @@ plotBoundedTracking <- function(target='inline') {
   axis(side=2,at=seq(1:length(participants))*1.5,labels=sprintf('%d',c(1:length(participants))))
   axis(side=1,at=c(1:length(speeds)),labels = sprintf('%d',speeds))
   
+  # # 3 # # # # # # # # # # #
+  # AVERAGE HEADING
+  # # 3 # # # # # # # # # # #
   
   plot(-1000,-1000,main='heading',ylim=c(1,1.7),xlim=c(0.5,5.5),ylab='',xlab='',asp=1,bty='n',ax=F)
   
@@ -378,6 +381,10 @@ plotBoundedTracking <- function(target='inline') {
   
   xcoords <- atan(internalspeed / externalspeed)
   
+  # # # # # 3 # # # # # # # # # # # # #
+  # COMPARING ILLUSION STRENGTH
+  # # # # # 3 # # # # # # # # # # # # #
+  
   
   plot(-1000,-1000,main='illusion strength',
        xlab=expression(paste(tan^{-1}, (V[i]/V[e]), ' [°]')),ylab='illusion strength [°]',
@@ -386,7 +393,7 @@ plotBoundedTracking <- function(target='inline') {
   
   angles <- c(0,pi/4)
   lines(angles,(angles/pi)*180,col='gray',lty=2)
-  lines(angles,0.81*((angles/pi)*180),col='black',lty=1)
+  lines(angles,0.74*((angles/pi)*180),col='black',lty=1)
   
   
   points(xcoords, df$avgheading, col=colors$lightblue$s, pch=1, cex=1.0)
@@ -409,7 +416,7 @@ plotBoundedTracking <- function(target='inline') {
   
   
   legend(x=0, y=45, 
-         legend=c('Cavanagh & Tse (2019)', 'participants (N=4)', 'average'), 
+         legend=c('Heller et al. (2021)', 'participants (N=4)', 'average'), 
          col=c('black', colors$lightblue$s, colors$yorkred$s), 
          pch=c(NA,1,1), lty=c(1,0,0), 
          bty='n', cex=1)
