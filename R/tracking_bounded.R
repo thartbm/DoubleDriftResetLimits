@@ -392,7 +392,7 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
        bty='n',ax=F)
   
   angles <- c(0,pi/4)
-  lines(angles,(angles/pi)*180,col='gray',lty=2)
+  #lines(angles,(angles/pi)*180,col='gray',lty=2)
   lines(angles,0.74*((angles/pi)*180),col='black',lty=1)
   
   
