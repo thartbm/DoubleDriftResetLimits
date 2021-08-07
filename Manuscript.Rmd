@@ -7,9 +7,9 @@ author:
 output:
   word_document:
     reference_docx: template.docx
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -195,7 +195,7 @@ Now we look at the distribution of reset points, and whether they can be explain
 plotIllusionStrength()
 ```
 
-We test this with a series of simple models. First, for every reset point (with coordinates $X$ and $Y$) we use the illusion strength based on a point earlier in the trajectory, expressed as either an angle (Fig. 4, left: $a = \arctan{(X/Y)}$) or a slope ($s = sin(a)/cos(a)$) to predict reset points.
+We test this with a series of simple models. First, for every reset point (with coordinates $X$ and $Y$) we use the illusion strength based on a point earlier in the trajectory, expressed as either an angle (Fig. 4, left: $a = \arctan{(X/Y)}$) or a slope ($s = \sin{(a)}/\cos{(a)}$) to predict reset points.
 
 If the perceived path of the gabor is approximated by a straight line (up to a reset), and reset points occur at a set limit, then a spatial limit ($L_x$) would equal the x-coordinate and predict the y-coordinate, $y$, of the first reset:
 
@@ -203,9 +203,9 @@ If the perceived path of the gabor is approximated by a straight line (up to a r
 
 And a temporal limit ($L_t$) would predict both coordinates of the reset, $x$ and $y$:
 
-[3a]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_t \cdot v \cdot cos(a)$
+[3a]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_t \cdot v \cdot \cos{(a)}$
 
-[3b]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_t \cdot v \cdot sin(a)$
+[3b]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_t \cdot v \cdot \sin{(a)}$
 
 Where $L_t$ and $L_x$ are a temporal and spatial limit (in seconds and cm respectively) that are free parameters, $a$ and $s$ correspond to the calculated angle and slope expressing the strength of the illusion, and speed ($v$ in _cm/s_) is given by the stimulus. If we fit the two simple models for each participant separately, by minimizing the mean square error (in isometric space, with absolute distance in centimeters between predicted and actual reset points), most participants are best fit with a spatial limit (MSE: 6/9, AIC: 7/9). This indicates that in this data, a spatial limit explains the reset points best, but neither limit explains the data very well.
 
