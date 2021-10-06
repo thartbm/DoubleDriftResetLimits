@@ -548,7 +548,7 @@ relativeLikelihood <- function(crit) {
 # # # # # # # # # # # # # #
 
 
-mdvar <- function(coords, ddof=0) {
+D2var <- function(coords, ddof=0) {
   
   # subtract the mean of each column from values in column:
   mcoords <- apply(coords, 2, scale, scale=FALSE, center=TRUE)
@@ -557,26 +557,18 @@ mdvar <- function(coords, ddof=0) {
   
 }
 
-mdexplvar <- function(actual, predicted, ddof) {
+D2explvar <- function(actual, predicted, ddof) {
   
   # raw data variance:
-  mdv.a <- mdvar(actual)
+  mdv.a <- D2var(coords=actual, 
+                 ddof=ddof)
   # variance of residuals:
-  mdv.r <- mdvar(actual-predicted)
+  mdv.r <- D2var(coords=actual-predicted, 
+                 ddof=ddof)
   
-  fraction <- ( (mdv.a-mdv.r) / mdv.a)
-  #fraction <- ( mdv.r / mdv.a)
+  # exp.var <- ( (mdv.a-mdv.r) / mdv.a)
   
-  # if (fraction < 0) {
-  #   exp.var <- -1 - fraction
-  # } else {
-  #   exp.var <- 1 - fraction
-  # }
-  
-  exp.var <- 1 - fraction
-  
-  #print(fraction)
-  #print(exp.var)
+  exp.var <- 1 - ( mdv.r / mdv.a)
   
   return(exp.var)
   
@@ -750,7 +742,7 @@ getData54 <- function(illusionMinimum=5) {
   
   # only get substantial illusion strengths:
   if (is.numeric(illusionMinimum)) {
-    df <- df[which(df$initialdirection_mean > illusionMinimum),]
+    df <- df[which(df$initialdirection_mean > illusionMinimum & df$initialdirection_mean < 100),]
   }
   
   # add slopes conveniently:
@@ -759,11 +751,11 @@ getData54 <- function(illusionMinimum=5) {
   df$cos.a <- cos(df$angle)
   df$slope <- df$sin.a / df$cos.a
   
-  df$X <- df$boundX_mean * 13.5
-  df$Y <- df$boundY_mean * 13.5
+  df$X <- df$resetX_mean #* 13.5
+  df$Y <- df$resetY_mean #* 13.5
   
-  df$X.sd <- df$boundX_sd * 13.5
-  df$Y.sd <- df$boundY_sd * 13.5
+  df$X.sd <- df$resetX_sd #* 13.5
+  df$Y.sd <- df$resetY_sd #* 13.5
   
   df$RT <- sqrt(df$X^2 + df$Y^2) / df$speed
   
@@ -778,21 +770,23 @@ getData54 <- function(illusionMinimum=5) {
 
 getDataTrials <- function(illusionMinimum=5, illusionMaximum=85) {
   
+  # load re-trace resets and illusion strengths
   df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
   
   # remove trials without reset:
-  df <- df[!is.na(df$boundX),]
+  df <- df[!is.na(df$resetX),]
   
   # convert speed to pass duration
   df$speed <- 13.5/round(0.5/df$externalspeed)
   
   # only get illusion strengths within a reasonable range:
   if (is.numeric(illusionMinimum)) {
-    df <- df[which(df$initialdirection > illusionMinimum),]
+    df <- df[which(df$illusionstrength > illusionMinimum),]
   }
   if (is.numeric(illusionMaximum)) {
-    df <- df[which(df$initialdirection < illusionMaximum),]
+    df <- df[which(df$illusionstrength < illusionMaximum),]
   }
+  
   
   # add slopes conveniently:
   df$angle <- ((df$initialdirection)/180)*pi
@@ -801,8 +795,8 @@ getDataTrials <- function(illusionMinimum=5, illusionMaximum=85) {
   df$slope <- df$sin.a / df$cos.a
   
   # get coordinates in centimeters:
-  df$X <- df$boundX * 13.5
-  df$Y <- df$boundY * 13.5
+  df$X <- df$resetX 
+  df$Y <- df$resetY 
   
   # get reset time in seconds:
   df$RT <- sqrt(df$X^2 + df$Y^2) / df$speed
@@ -973,7 +967,7 @@ participantFitTable <- function(bin.it=FALSE) {
       }
       
       
-      expvar <- mdexplvar(actual = actual,
+      expvar <- D2explvar(actual = actual,
                           predicted = predicted,
                           ddof = 0)
       #print(expvar)
@@ -1113,7 +1107,7 @@ plotDataPatterns <- function() {
   
 }
 
-bootStrapFits <- function(bootstraps=1000) {
+bootStrapFits <- function(bootstraps=1000, useParticipants=c(2,3,4,5,6,9,10,11)) {
   
   colors=getColors()
   
@@ -1122,6 +1116,7 @@ bootStrapFits <- function(bootstraps=1000) {
   # get resets per trial
   # remove trials without resets or out of range
   df <- getDataTrials()
+  df <- df[which(df$participant %in% useParticipants),]
   df <- df[which(!is.na(df$X)),]
   df <- df[which(df$X > 0),]
   df <- df[which(df$Y > 0),]
@@ -1158,6 +1153,8 @@ bootStrapFits <- function(bootstraps=1000) {
     idx_list[[ppno]] <- which(df$participant == participants[ppno])
     bs_n <- min(bs_n, length(which(df$participant == participants[ppno])))
   }
+  
+  print(bs_n)
   
   # store results:
   Xlim_X    <- c()
