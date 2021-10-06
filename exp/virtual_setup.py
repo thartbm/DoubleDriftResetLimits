@@ -196,7 +196,7 @@ def getParticipantID(cfg):
   
   validID = False
   while not(validID):
-    print validID
+    print (validID)
     str_id = raw_input('participant ID (integer): ')
     
     int_id = int(str_id)
