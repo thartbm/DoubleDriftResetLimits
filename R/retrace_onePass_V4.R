@@ -1,29 +1,30 @@
 library('svglite')
 library('ez')
+library('segmented')
 
 source('R/common.R')
 #source('R/models.R')
 
 # Data handling -----
 
-preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrite=FALSE) {
+oldPreProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrite=FALSE) {
   
   if (file.exists('data/onepass_V4/onePass_V4_re-trace.csv') & !overwrite) {
     return()
   }
   
-  angle_deg <- seq(5,50,0.5)
-  angle_rad <- (angle_deg / 180) * pi
-  cos.a <- cos(angle_rad)
-  sin.a <- sin(angle_rad)
-  #slope <- sin.a / cos.a
-  slope <- cos.a / sin.a
-  
-  modeldf <- data.frame(angle_deg, angle_rad, cos.a, sin.a, slope)
-  
-  Lx_MSE <- c()
-  Ly_MSE <- c()
-  LxLy_MSE <- c()
+  # angle_deg <- seq(5,50,0.5)
+  # angle_rad <- (angle_deg / 180) * pi
+  # cos.a <- cos(angle_rad)
+  # sin.a <- sin(angle_rad)
+  # #slope <- sin.a / cos.a
+  # slope <- cos.a / sin.a
+  # 
+  # modeldf <- data.frame(angle_deg, angle_rad, cos.a, sin.a, slope)
+  # 
+  # Lx_MSE <- c()
+  # Ly_MSE <- c()
+  # LxLy_MSE <- c()
   
   internalMovements <- c(2,3,4)
   externalMovements <- rev(c(.125, .167))
@@ -49,18 +50,18 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
     # ***************************
     # 
     
-    pdf(file='doc/individual_participants_trials.pdf',width=12,height=8)
+    #pdf(file='doc/individual_participants_trials.pdf',width=12,height=8)
     
     #layout(matrix(c(1,2,3,4,5,6),byrow=TRUE,ncol=3,nrow=2))
     
     for (participant.idx in c(1:length(participants))) {
       
-      plot(-1000,-1000,
-           main=sprintf('participant %d',participants[participant.idx]),xlab='',ylab='',
-           xlim=c(-4.5,10),ylim=c(-.5,14),
-           bty='n',ax=F)
+      # plot(-1000,-1000,
+      #      main=sprintf('participant %d',participants[participant.idx]),xlab='',ylab='',
+      #      xlim=c(-4.5,10),ylim=c(-.5,14),
+      #      bty='n',ax=F)
       
-      lines(x=c(0,0),y=c(0,13.5),col='blue')
+      # lines(x=c(0,0),y=c(0,13.5),col='blue')
       
       ppno <- participants[participant.idx]
       
@@ -93,6 +94,8 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
             
             if (task %in% c('arrow','ruler')) {
               
+              # we should never be here
+              
               percept <- trialdf$percept[1]
               
               if (trialdf$internalMovement[1] < 0) percept <- 90 - (percept - 90)
@@ -108,6 +111,8 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
               boundYraw <- c(boundYraw, NA)
               
             } else {
+              
+              # these are the relevant bits of code:
               
               step <- list('track'=2,'re-trace'=99)[[task]]
               
@@ -165,7 +170,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
                   
                   # store the first local maximum as reset point:
                   
-                  points(x[localmaxima[1]]*13.5,y[localmaxima[1]]*13.5,col='purple')
+                  # points(x[localmaxima[1]]*13.5,y[localmaxima[1]]*13.5,col='purple')
                   
                   boundX <- c(boundX, x[localmaxima[1]])
                   boundY <- c(boundY, y[localmaxima[1]])
@@ -473,9 +478,362 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overwrit
 }
 
 
+preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), 
+                                 overwrite = TRUE,
+                                 RPFUN=get97.5percMaxX1_resetpoint,
+                                 IDFUN=getDirectionHalfway) {
+  
+  
+
+  if (file.exists('data/onepass_V4/onePass_V4_re-trace.csv') & !overwrite) {
+    return()
+  } else {
+    cat('extracting reset points from trajectories...\n')
+  }
+
+  internalMovements <- c(2,3,4)
+  externalMovements <- rev(c(.125, .167))
+  
+  task <- 're-trace'
+  
+  participant <- c()
+  trial <- c()
+  internalspeed <- c()
+  internaldirection <- c()
+  externalspeed <- c()
+  fixationside <- c()
+  initialdirection <- c()
+  resetX <-c()
+  resetY <-c()
+  
+  # loop throug the participants (they have separate data files)
+  for (participant.idx in c(1:length(participants))) {
+    
+    # get the participant number
+    ppno <- participants[participant.idx]
+    
+    # load participants data file:
+    df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',ppno))
+    
+    # get the numbers of trials that are in the re-trace condition
+    trials <- unique(df$trial[df$taskname == task])
+    
+    # leave only the re-trace trials in memory:
+    taskdf <- df[which(df$trial_no %in% trials),]
+    
+    # loop through the trials:
+    for (trialno in trials) {
+      
+      # get a data frame for only the current trial:
+      trialdf <- taskdf[taskdf$trial_no == trialno,]
+      
+      # add some straightforward variables to the output data frame:
+      participant <- c(participant, ppno)
+      trial <- c(trial, trialno)
+      internalspeed <- c(internalspeed, trialdf$internalMovement[1])
+      internaldirection <- c(internaldirection, ifelse(trialdf$internalMovement[1] > 0, 1, -1))
+      externalspeed <- c(externalspeed, trialdf$externalMovement[1])
+      fixationside <- c(fixationside, trialdf$fixationside[1])
+      
+      # only step 99 was retracing (the preceding ones are for stimulus presentation)
+      step <- 99
+      step.idx <- which(trialdf$step == step)
+      
+      # get the relevant samples X and Y coordinates and scale to centimeters:
+      x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 13.5
+      y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 13.5
+      
+      # start at origin:
+      x <- x - x[1]
+      y <- y - y[1]
+      
+      # get time as well (for filters, ended up not using it):
+      t <- trialdf$time_ms[step.idx]
+      
+      # flip to normalize internal motion direction
+      if (trialdf$internalMovement[1] < 0) x <- -x
+      
+      # GET THE RESET POINT
+      # which function is used to get the reset point is a function argument:
+      resetPoint <- RPFUN(x,y,t,verbosity=verbosity) 
+      
+      # store the reset point in the output data vectors:
+      resetX <-c(resetX, resetPoint$X)
+      resetY <-c(resetY, resetPoint$Y)
+      
+      
+      # GET THE INITIAL DIRECTION
+      # the function is also an argument to this function:
+      ID <- IDFUN(x, y, resetPoint)
+      
+      # store in output:
+      initialdirection <- c(initialdirection, ID)
+      
+    }
+    
+  }
+  
+  # illusion strength depends on initial direction:
+  illusionstrength <- 90 - ((initialdirection/pi)*180)
+  
+  # put output vectors in data frame:
+  df <- data.frame(participant, 
+                   trial, 
+                   internalspeed, 
+                   internaldirection, 
+                   externalspeed, 
+                   fixationside, 
+                   resetX, 
+                   resetY,
+                   initialdirection, 
+                   illusionstrength)
+  
+  # write data frame to disk:
+  write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
+  
+}
+
+get97.5percMaxX1_resetpoint <- function(x,y,t,verbosity=0) {
+  
+  # x <- pdf$x
+  # y <- pdf$y
+  
+  # remove samples after maximum Y (no backtracking)
+  max_y_idx <- which.max(y)
+  x <- x[c(1:max_y_idx)]
+  y <- y[c(1:max_y_idx)]
+  
+  # remove samples with Y below 0 (have to go forward-ish)
+  lo_y_idx <- which(y < 0)
+  if (length(lo_y_idx) > 0) {
+    ok_y_idx <- c(lo_y_idx[length(lo_y_idx)]:length(y))
+    x <- x[ok_y_idx]
+    y <- y[ok_y_idx]
+  }
+  
+  
+  # for people with a lot of samples, downsample severely
+  if (length(x) > 75) {
+    trajectory <- resampleDistance(x=x,y=y,distance=0.9)
+    x <- trajectory$x
+    y <- trajectory$y
+  }
+  
+  
+  # smooth the remaining signal
+  sx <- ksmooth(x = c(1:length(x)),
+                y = x,
+                kernel = 'normal',
+                bandwidth = 5,
+                x.points = c(1:length(x)))$y
+  sy <- ksmooth(x = c(1:length(x)),
+                y = y,
+                kernel = 'normal',
+                bandwidth = 5,
+                x.points = c(1:length(y)))$y
+  
+  # remove duplicate samples, if any are left:
+  nondupes <- which(sx[-length(sx)] != sx[-1])
+  sx <- sx[nondupes]
+  sy <- sy[nondupes]
+  
+  # remove all points closer than 0.4 cm to the origin:
+  d_idx <- which((sx^2 + sy^2)> 0.4)
+  
+  sx <- sx[d_idx]
+  sy <- sy[d_idx]
+  
+  # # remove all points beyond the maximum y coordinate:
+  # my_idx <- which.max(sy)
+  # if (length(my_idx) > 0) {
+  #   sx <- sx[c(1:my_idx)]
+  #   sy <- sy[c(1:my_idx)]
+  # }
+  # (this was done earlier)
+  
+  
+  # lines(sx,sy,col='blue')
+  # #rp_idx <- which.max(pdf$sx) # returns the overall maximum
+  
+  local_maxima <- which( diff(sign(diff(sx))) == -2 )+1
+  #print(local_maxima)
+  #print(length(local_maxima))
+  
+  RPx <- NA
+  RPy <- NA
+  if (length(local_maxima) > 0) {
+    #print(local_maxima)
+    RPidx <- which( sx > ( 0.975 * sx[local_maxima[1]] ) )[1] - 1
+    if (RPidx > 0) {
+      RPx <- sx[RPidx]
+      RPy <- sy[RPidx]
+    }
+    #print(c(RPx,RPy))
+    # points(RPx,RPy,col='green',cex=3)
+    
+  }
+  
+  resetPoint = list('X'=RPx,
+                    'Y'=RPy)
+  # if (verbosity) {
+  #   print(resetPoint)
+  #   print(sx)
+  #   print(c(length(sx),RPidx))
+  # }
+  
+  return(resetPoint)
+  
+}
+
+
+
+getSplineReversalResetPoint <- function(x,y,t) {
+  
+  # we smooth & interpolate the x coordinates:
+  smspl <- smooth.spline(t, x, spar=.25)
+  x_p <- predict(smspl$fit, t)$y
+  
+  # these are sign changes from positive to negative
+  localmaxima <- which(diff(sign(diff(x_p)))==-2)+1
+  # distance of local max has to be more tha (0.1) but the trajectory is scaled to 0-0.6 (??? why)
+  lmd <- sqrt(x[localmaxima]^2 + y[localmaxima]^2)
+  localmaxima <- localmaxima[which(lmd >= 0.4)]
+  # the maxima can also not be very close to the end of the trajectory:
+  lmd <- sqrt((x[localmaxima]-x[length(x)])^2 + (y[localmaxima]-y[length(y)])^2)
+  localmaxima <- localmaxima[which(lmd >= 0.4)]
+  # do we have any left?
+  if (length(localmaxima) > 0) {
+    
+    # store the first local maximum as reset point:
+    X <- x[localmaxima[1]]
+    Y <- y[localmaxima[1]]
+    
+    resetPoint = list('X'=X,
+                      'Y'=Y)
+    
+  } else {
+    
+    resetPoint = list('X'=NA,
+                      'Y'=NA)
+    
+  }
+  
+  return(resetPoint)
+  
+}
+
+getMultilinearResetPoint <- function(x,y,t) {
+  
+  # THIS FUNCTION WAS NOT FINISHED AS IT WAS GETTING BAROQUE
+  
+  # make data frame and switch coordinates:
+  df <- data.frame('x'=y,
+                   'y'=x,
+                   't'=t)  # don't really need t, right?
+  
+  # starting point for segmented linear regression:
+  start.lm <- lm(y ~ x, data=df)
+  
+  predict.lm( object = start.lm )
+  
+  breakpoints <- 1
+  
+  seg.lm <- segmented::segmented( start.lm, 
+                                  seg.Z   = ~x, 
+                                  npsi    = breakpoints, # 1 break point
+                                  control = seg.control( display = FALSE ) )
+  
+  predict.segmented()
+  
+  # this test indicates that (when p<.05) there MAY be an additional breakpoint
+  # davies.test(start.lm)
+  
+  # here put a while-loop:
+  # add a segment as long as that explains the data better
+  # probably use AIC -> rel log likelihood, as criterion for "better"
+  
+}
+
+
+get2ndDerInflectResetPoint <- function(x,y,t) {
+  
+  # THIS SEEMS MORE PRINCIPLED BUT REQUIRES A LOT OF SMOOTHING
+  # MIGHT WORK WITH THE PREPROCESSING FROM OTHER FUNCTIONS
+  # RIGHT NOW IT IS UNFINISHED!
+  
+  # smooth with a median filter:
+  xx <- as.numeric( runmed(x=x, k=7) )
+  yy <- as.numeric( runmed(x=y, k=7) )
+  
+  # remove consecutive duplicates:
+  idx <- which(xx[-length(xx)] != xx[-1] & yy[-length(yy)] != yy[-1])
+  xxx <- xx[idx]
+  yyy <- yy[idx]
+  
+  # dx	dy	dx/dy	d(dx/dy)	d(dx/dy)/dy
+  
+  der2 <- diff( diff(xxx) / diff(yyy) ) / diff(yyy)[-1]
+  
+  rp_idx <- which(diff(sign(diff( der2 ))) == -2) + 2
+  rp_idx <- rp_idx[which(yyy[rp_idx] > 0)][1]
+  
+  resetPoint <- c('x'=xxx[rp_idx],
+                  'y'=yyy[rp_idx])
+  
+  return(resetPoint)
+  
+  #plot(x,y,asp=1,type='l')
+  #points(xx,yy,col='blue')
+  #points(xxx,yyy,col='red')
+  
+  
+}
+
+
+# here are two functions that give a measure of initial direction
+# each of which can serve as an estimate of illusion strength
+# (the first actually calls the second)
+
+getDirectionHalfway <- function(x,y, resetPoint, fraction=0.5) {
+  
+  # halfway point:
+  cutoff <- fraction * sqrt(resetPoint$X^2 + resetPoint$Y^2)
+  
+  # use this as a cutoff:
+  return(getDirectionAtCutoff(x=x,
+                              y=y,
+                              cutoff=cutoff))
+  
+}
+
+
+
+getDirectionAtCutoff <- function(x,y, cutoff) {
+  
+  # get the distance of each trajectory sample from the origin
+  d   <- sqrt(x^2 + y^2)
+  # get the first sample beyond (or on) the cutoff
+  idx <- which(d >= cutoff)[1]
+  
+  #create a resetpoint list with X and Y properties:
+  resetPoint <- list('X'=x[idx],
+                     'Y'=y[idx])
+  
+  # what is the direction at this point:
+  direction <- atan2(y[idx], x[idx])
+  
+  # return direction:
+  return(direction)
+  
+}
+
+
+
 summarizeTraceBoundsV4 <- function() {
   
   df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  
+  df$internalspeed <- abs(df$internalspeed)
   
   df2 <- read.csv('data/onePass_V4/onePass_V4_arrow.csv', stringsAsFactors = F)
   
@@ -484,17 +842,17 @@ summarizeTraceBoundsV4 <- function() {
   # internalspeeds <- unique(df$internalspeed)
   # externalspeeds <- unique(df$externalspeed)
   
-  aggdf <- aggregate(boundX ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
-  names(aggdf)[which(names(aggdf) == 'boundX')] <- 'boundX_mean'
+  aggdf <- aggregate(resetX ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
+  names(aggdf)[which(names(aggdf) == 'resetX')] <- 'resetX_mean'
   
-  tempdf <- aggregate(boundX ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
-  aggdf['boundX_sd'] <- tempdf$boundX
+  tempdf <- aggregate(resetX ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
+  aggdf['resetX_sd'] <- tempdf$resetX
   
-  tempdf <- aggregate(boundY ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
-  aggdf['boundY_mean'] <- tempdf$boundY
+  tempdf <- aggregate(resetY ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
+  aggdf['resetY_mean'] <- tempdf$resetY
   
-  tempdf <- aggregate(boundY ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
-  aggdf['boundY_sd'] <- tempdf$boundY
+  tempdf <- aggregate(resetY ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
+  aggdf['resetY_sd'] <- tempdf$resetY
   
   # tempdf <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df, FUN=mean, na.rm=TRUE)
   # aggdf['initialdirection_mean'] <- tempdf$initialdirection
@@ -507,11 +865,11 @@ summarizeTraceBoundsV4 <- function() {
   tempdf <- aggregate(illusionstrength ~ participant + internalspeed + externalspeed, data=df, FUN=sd, na.rm=TRUE)
   aggdf['initialdirection_sd'] <- tempdf$illusionstrength
   
-  tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=mean, na.rm=TRUE)
-  aggdf['arrowdirection_mean'] <- tempdf2$initialdirection
-  
-  tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=sd, na.rm=TRUE)
-  aggdf['arrowdirection_sd'] <- tempdf2$initialdirection
+  # tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=mean, na.rm=TRUE)
+  # aggdf['arrowdirection_mean'] <- tempdf2$initialdirection
+  # 
+  # tempdf2 <- aggregate(initialdirection ~ participant + internalspeed + externalspeed, data=df2, FUN=sd, na.rm=TRUE)
+  # aggdf['arrowdirection_sd'] <- tempdf2$initialdirection
   
   return(aggdf)
   
@@ -1122,15 +1480,15 @@ plotIllusionStrength <- function(target='inline') {
     weights[which(df$participant == participant)] <- 1 / ntrials[sprintf('%d',participant)]
   }
   
-  # get 2d density matrix:
-  dens2d <- density2D(x=df$X,
-                      y=df$Y,
-                      weights=weights,
-                      n=c(8/.1, 13.5/.1),
-                      from=c(-.5,0),
-                      to=c(8,13.5),
-                      bw=0.4
-  )
+  # # get 2d density matrix:
+  # dens2d <- density2D(x=df$X,
+  #                     y=df$Y,
+  #                     weights=weights,
+  #                     n=c(8/.1, 13.5/.1),
+  #                     from=c(-.5,0),
+  #                     to=c(8,13.5),
+  #                     bw=0.4
+  # )
   
   # print(dens2d$x)
   # print(dens2d$y)
@@ -1143,7 +1501,7 @@ plotIllusionStrength <- function(target='inline') {
   #       col=gray.colors(n=13,start=1.0, end=0.5))
   plot(x=df$X, y=df$Y,
        main=sprintf('model reset limits', dim(df)[1]),
-       pch=1, col='#33333311',
+       pch=1, col='#33333322',
        xlim=c(-1,11), ylim=c(-1,13.5),
        xlab='',ylab='',
        asp=1, ax=F, bty='n')
@@ -1191,7 +1549,7 @@ plotIllusionStrength <- function(target='inline') {
           border = NA)
   lines(x=c(X_qs[2],X_qs[2]),y=c(0,13.5),
         col=colors$blue$s)
-  
+
   
   # TIME LIMIT
   
@@ -1213,11 +1571,11 @@ plotIllusionStrength <- function(target='inline') {
           y = arch_Y * T_qs[2] * speed,
           col=c(colors$yorkred$s,colors$yorkred$s)[speed_no],
           lty=speed_no)
-    
+
   }
   
   legend(3.5,14,c(sprintf('\nspatial: %0.1f cm\nor ~%0.1f dva', X_qs[2], X_qs[2]*(14/13.5)),
-                sprintf('\ntemporal: %0.1f s\n(3 s passes)', T_qs[2]), 
+                sprintf('\ntemporal: %0.1f s\n(3 s passes)', T_qs[2]),
                 '\ntemporal\n(4 s passes)'),lty=c(1,1,2),
          col=c(colors$blue$s,colors$yorkred$s,colors$yorkred$s),
          bty='n', cex=0.8, y.intersp=1.0, seg.len=1.5)
@@ -1470,6 +1828,265 @@ rotateCoordinates <- function(df,angle,origin=c(0,0)) {
   
   # return the rotated coordinates
   return(df)
+  
+}
+
+
+plot2nDerivateResetExamples <- function(participant = 4, trial = 37) {
+  
+  # load participant's data:
+  df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',4))
+  
+  # select only re-tracing trials:
+  tasktrials <- unique(df$trial[df$taskname == 're-trace'])
+  taskdf <- df[which(df$trial_no %in% tasktrials),]
+  
+  # select only trials from one particular condition?
+  trials <- unique(taskdf$trial_no[which(taskdf$externalMovement == 0.125 &
+                                           abs(taskdf$internalMovement) == 3)])
+  trialsdf <- df[which(df$trial_no %in% trials),]
+  trialdf <- trialsdf[which(trialsdf$trial_no == 37 & trialsdf$step == 99),]
+  
+  # get trajectory and convert to cm
+  x <- (trialdf$handx_pix / 524) * 13.5
+  y <- (trialdf$handy_pix / 524) * 13.5
+  
+  # start at (0,0)
+  x <- x - x[1]
+  y <- y - y[1]
+  
+  # flip so we always go to the right:
+  if (trialdf$internalMovement[1] < 0) x <- -x
+  
+  # plot raw trajectory:
+  layout(mat=matrix(c(1,2,2,4,1,3,3,4), nrow=2, ncol=4, byrow=TRUE))
+
+  plot(x, y,
+       main='raw trajectory')
+  
+  print(x)
+  print(y)
+  
+  write.csv(data.frame(x,y,'first'=c(0,diff(x)/diff(y)),'second'=c(0,0,diff(diff(x)/diff(y)))),file = 'example-trajectory.csv',row.names = FALSE)
+  
+  print(diff(x)/diff(y))
+  
+  plot( diff(x)/diff(y),
+        main='first derivative',
+        type='l')
+  
+}
+
+
+# reset point tests -----
+
+getTrajectoryExamples <- function(participants = c(2,3,4,5,6,8,9,10,11), nsamples=1) {
+  
+  output <- NA
+  
+  for (participant in participants) {
+    
+    # load participant's data:
+    df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',participant))
+    
+    # select only re-tracing trials:
+    tasktrials <- unique(df$trial[df$taskname == 're-trace'])
+    df <- df[which(df$trial_no %in% tasktrials),]
+    
+    # pick 3 random trials:
+    trials <- sample(tasktrials, size=nsamples)
+    
+    trialsdf <- df[which(df$trial_no %in% trials & df$step == 99),]
+    
+    for (trial in trials) {
+      
+      trialdf <- df[which(df$trial_no == trial & df$step == 99),]
+      
+      # get trajectory and convert to cm
+      x <- (trialdf$handx_pix / 524) * 13.5
+      y <- (trialdf$handy_pix / 524) * 13.5
+      
+      # start at (0,0)
+      x <- x - x[1]
+      y <- y - y[1]
+      
+      # flip so we always go to the right:
+      if (trialdf$internalMovement[1] < 0) x <- -x
+      
+      trajectory <- data.frame(x,y)
+      trajectory$participant <- participant
+      trajectory$trial <- trial
+      
+      if (is.data.frame(output)) {
+        output <- rbind(output, trajectory)
+      } else {
+        output <- trajectory
+      }
+      
+    }
+    
+  }
+
+  #write.csv(output,file = 'example-trajectories.csv',row.names = FALSE)
+  return(output)
+  
+}
+
+
+plotTrajectoryMoments <- function() {
+  
+  nsamples <- 20
+  trajectories <- getTrajectoryExamples(participants = c(2,3,4,5,6,8,9,10,11), nsamples=nsamples)
+  # 9 trajectories
+  
+  pdf(file=sprintf('examples_%d.pdf',nsamples), width=8, height=11)
+  
+  mat <- matrix( data = c(1, 2, 5, 6, 9, 10, 1, 3, 5, 7, 9, 11, 1, 4, 5, 8, 9, 12, 13, 14, 17, 18, 21, 22, 13, 15, 17, 19, 21, 23, 13, 16, 17, 20, 21, 24, 25, 26, 29, 30, 33, 34, 25, 27, 29, 31, 33, 35, 25, 28, 29, 32, 33, 36),
+                 nrow = 9, ncol = 6, byrow = TRUE)
+  layout(mat=mat,widths=c(1,1.5,1,1.5,1,1.5))
+  
+  par(mar=c(3, 3, 3, 0) + 0.05)
+  
+  participants <- unique(trajectories$participant)
+  
+  for (samplen in c(1:nsamples)) {
+    
+    for (participant in participants) {
+      
+      pdf <- trajectories[which(trajectories$participant == participant),]
+      trials <- unique(pdf$trial)
+      trial <- trials[samplen]
+      pdf <- pdf[which(pdf$trial == trial),]
+      
+      x <- pdf$x
+      y <- pdf$y
+      
+      max_y_idx <- which.max(y)
+      x <- x[c(1:max_y_idx)]
+      y <- y[c(1:max_y_idx)]
+      
+      lo_y_idx <- which(y < 0)
+      if (length(lo_y_idx) > 0) {
+        ok_y_idx <- c(lo_y_idx[length(lo_y_idx)]:length(y))
+        x <- x[ok_y_idx]
+        y <- y[ok_y_idx]
+      }
+      
+      plot(x, y,
+           xlab='',ylab='',main='',
+           bty='n',asp=1)
+      
+      # for people with a lot of samples, downsample severely
+      if (length(x) > 75) {
+        # idx <-as.integer(round(seq(1,length(sx),length.out = 20)))
+        # sx <- sx[idx]
+        # sy <- sy[idx]
+        # print(length(sx))
+        trajectory <- resampleDistance(x=x,y=y,distance=0.9)
+        x <- trajectory$x
+        y <- trajectory$y
+      }
+      
+      
+      #pdf$sx <- as.numeric( runmed(x=pdf$x, k=9) )
+      sx <- ksmooth(x = c(1:length(x)),
+                    y = x,
+                    kernel = 'normal',
+                    bandwidth = 5,
+                    x.points = c(1:length(x)))$y
+      sy <- ksmooth(x = c(1:length(x)),
+                    y = y,
+                    kernel = 'normal',
+                    bandwidth = 5,
+                    x.points = c(1:length(y)))$y
+      
+      # remove duplicates, if any:
+      nondupes <- which(sx[-length(sx)] != sx[-1])
+      sx <- sx[nondupes]
+      sy <- sy[nondupes]
+      
+      # remove all points closer than 0.4 cm to the origin:
+      d_idx <- which((sx^2 + sy^2)> 0.4)
+      
+      sx <- sx[d_idx]
+      sy <- sy[d_idx]
+      
+      # remove all points beyond the maximum y coordinate:
+      my_idx <- which.max(sy)
+      
+      if (length(my_idx) > 0) {
+        sx <- sx[c(1:my_idx)]
+        sy <- sy[c(1:my_idx)]
+      }
+      
+
+      lines(sx,sy,col='blue')
+      #rp_idx <- which.max(pdf$sx) # returns the overall maximum
+      
+      local_maxima <- which( diff(sign(diff(sx))) == -2 )+1
+      #print(local_maxima)
+      #print(length(local_maxima))
+      
+      if (length(local_maxima) > 0) {
+        RPidx <- which( sx > ( 0.975 * sx[local_maxima[1]] ) )[1] - 1
+        
+        RPx <- sx[RPidx]
+        RPy <- sy[RPidx]
+        #print(c(RPx,RPy))
+        points(RPx,RPy,col='green',cex=3)
+        
+      } else {
+        text(0,13.5,'X',col='red',cex=3)
+        #print('NO!')
+      }
+      
+      
+      if (length(sx) > 1) {
+      plot(diff(sx),type='l',
+           xlab='',ylab='',main='',
+           bty='n')
+      } else {
+        plot.new()
+      }
+      
+      if (length(sx) > 2) {
+        plot(diff(diff(sx)),type='l',
+             xlab='',ylab='',main='',
+             bty='n')
+      } else {
+        plot.new()
+      }
+      
+      plot.new()
+      
+    }
+    
+  }
+  
+  dev.off()
+  
+}
+
+resampleDistance <- function(x,y,distance) {
+  
+  idx <- 1
+  
+
+  while (idx < length(x)) {
+    # sqrt() takes a lot of time apparently, so we just don't use it:
+    distance <- distance^2
+    d <- (x-x[idx])^2 + (y-y[idx])^2
+    
+    select_idx <- which(d > distance | c(1:length(x)) <= idx)
+    
+    x <- x[select_idx]
+    y <- y[select_idx]
+    idx <- idx + 1
+    
+  }
+  
+  return(list('x'=x,
+              'y'=y))
   
 }
 
