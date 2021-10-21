@@ -1322,3 +1322,194 @@ plotBootstrappedFits <- function(target='inline') {
   }
   
 }
+
+
+# LIKELIHOOD MODELS -----
+
+
+# ******************************************
+# normal probability density functions -----
+# ******************************************
+
+
+ToffsetGaussianLikelihood <- function(par,data) {
+  
+  # time limit
+  
+  mT <- par['mT']
+  sT <- par['sT']
+  
+  L <- (1 / (sT * sqrt(2 * pi)) ) * exp( -0.5 * ( ( data$RT - mT) / sT )^2 )
+  
+  return(data.frame(L))
+  
+}
+
+XoffsetGaussianLikelihood <- function(par,data) {
+  
+  # space limit
+  
+  mX <- par['mX']
+  sX <- par['sX']
+  
+  L <- (1 / (sX * sqrt(2 * pi)) ) * exp( -0.5 * ( (data$X-mX) / sX )^2 )
+  
+  return(data.frame(L))
+  
+}
+
+# ************************************************
+# offset gamma probability density functions -----
+# ************************************************
+
+# gamma distributions have a 'shape' parameter that puts them
+# on a continuum that spans exponential and normal distributions  
+
+XoffsetGammaLikelihood <- function(par, data) {
+  
+  s <- par['s']
+  r <- par['r']
+  mX <- par['mX']
+  
+  L <- dgamma( data$X - mX, shape=s, rate=r )
+  # log(0) will be -Inf, not a good probability to maximize
+  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  
+  return(data.frame(L))
+  
+}
+
+ToffsetGammaLikelihood <- function(par, data) {
+  
+  s <- par['s']
+  r <- par['r']
+  mT <- par['mT']
+  
+  L <- dgamma( sqrt(data$X^2 + data$Y^2) - (mT * data$speed), shape=s, rate=r  )
+  # log(0) will be -Inf, not a good probability to maximize
+  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  
+  return(data.frame(L))
+  
+}
+
+# **********************
+# UNCOUPLED MODELS -----
+# *********************
+
+# the idea here is that the path the illusion follows is limited by an X-offset
+# so it will be restricted in the X coordinate, 
+# for which we can fit a likelihood distribution on the X coordinate
+
+# but then the resets occur along this trajectory at random times
+# for which we can fit a likelihood distribution on the T (or Y?) coordinate
+
+# the distributions could be Gaussian (as a default) or Gamma
+# if Gamma fits better than Gaussian, it allows estimating how
+# much it matters that the underlying process might be Poisson in nature:
+# the distribution of wait-times between Poisson-generated events is exponential
+# (we assume this distribution holds even with random double-drift offsets)
+
+# unlike for the limit functions, two likelihood distributions (on X and T) can be combined
+# (e.g. there is a normal distribution around the path, and gamma distributed reset times)
+
+# while we do fit single coordinate likelihood distributions here,
+# (a priori) the better approach seems to be to use a distribution on both X and on T
+
+
+# we need to specify parameter names, where I will use 
+# x (for x coordinates) or
+# t (for t coordinates), followed by either
+# N (for Gaussian/Normal)
+# + m for mu (mean)
+# + s for sigma (standard deviation), or by
+# G (for Gamma)
+# + s for shape
+# + r for rate
+
+# so we could have a single Gaussian likelihood on X coordinates:
+# > names(par)
+# c('xNm','xNs')
+# or two likelihoods on both X and T:
+# > names(par)
+# c('xNm','xNs','tGs','tGr')
+
+# all of these parameters can be provided, and won't overwrite eachother
+# but each function returning likelihoods only uses the parameters it needs
+
+
+
+# *******************************
+# uncoupled Gaussian models -----
+# *******************************
+
+
+# this model should be equivalent to an X limit
+
+XuncoupledGaussianLikelihood <- function(par, data) {
+  
+}
+
+# this model should be equivalent to a T limit
+
+TuncoupledGaussianLikelihood <- function(par, data) {
+  
+}
+
+# this model combines the above two models (literally)
+
+XTuncoupledGaussianLikelihood <- function(par,data) {
+  
+}
+
+# ****************************
+# uncoupled Gamma models -----
+# ****************************
+
+
+# this model uses a Gamma distribution on the X coordinate only
+
+XuncoupledGammaLikelihood <- function(par,data) {
+  
+}
+
+# this model uses a Gamma distribution on the T coordinate only
+
+TuncoupledGammaLikelihood <- function(par,data) {
+  
+}
+
+# this model combines the two models above (literally)
+
+XTuncoupledGammaLikelihood <- function(par,data) {
+  
+  
+}
+
+# *********************************
+# crossover model likelihoods -----
+# *********************************
+
+XgaussianTgammaLikelihood <- function(par,data) {
+  
+  
+}
+
+XgammaTgaussianLikelihood <- function(par,data) {
+  
+  
+}
+
+
+# **********************
+# model likelihood -----
+# **********************
+
+resetLogLikelihood <- function(par,data,fitFUN) {
+  
+  likelihoods <- fitFUN(par,data)
+  
+  return(sum(log(likelihoods)))
+  
+}
+
