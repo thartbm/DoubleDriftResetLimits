@@ -746,7 +746,8 @@ getData54 <- function(illusionMinimum=5) {
   }
   
   # add slopes conveniently:
-  df$angle <- ((90-df$initialdirection_mean)/180)*pi
+  #df$angle <- ((90-df$initialdirection_mean)/180)*pi
+  df$angle <- df$initialdirection_mean
   df$sin.a <- sin(df$angle)
   df$cos.a <- cos(df$angle)
   df$slope <- df$sin.a / df$cos.a
@@ -790,6 +791,7 @@ getDataTrials <- function(illusionMinimum=5, illusionMaximum=85) {
   
   # add slopes conveniently:
   df$angle <- ((df$initialdirection)/180)*pi
+  df$angle <- df$initialdirection
   df$sin.a <- sin(df$angle)
   df$cos.a <- cos(df$angle)
   df$slope <- df$sin.a / df$cos.a
@@ -1367,13 +1369,13 @@ XoffsetGaussianLikelihood <- function(par,data) {
 
 XoffsetGammaLikelihood <- function(par, data) {
   
-  s <- par['s']
-  r <- par['r']
-  mX <- par['mX']
+  sX <- par['sX']
+  rX <- par['rX']
+  oX <- par['oX']
   
-  L <- dgamma( data$X - mX, shape=s, rate=r )
+  L <- dgamma( data$X - oX, shape=sX, rate=rX )
   # log(0) will be -Inf, not a good probability to maximize
-  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
   
   return(data.frame(L))
   
@@ -1381,13 +1383,13 @@ XoffsetGammaLikelihood <- function(par, data) {
 
 ToffsetGammaLikelihood <- function(par, data) {
   
-  s <- par['s']
-  r <- par['r']
-  mT <- par['mT']
+  sT <- par['sT']
+  rT <- par['rT']
+  oT <- par['oT']
   
-  L <- dgamma( sqrt(data$X^2 + data$Y^2) - (mT * data$speed), shape=s, rate=r  )
+  L <- dgamma( sqrt(data$X^2 + data$Y^2) - (oT * data$speed), shape=sT, rate=rT  )
   # log(0) will be -Inf, not a good probability to maximize
-  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
   
   return(data.frame(L))
   
@@ -1427,6 +1429,19 @@ ToffsetGammaLikelihood <- function(par, data) {
 # + s for shape
 # + r for rate
 
+# additionally there could be limits (offsets from 0) for each coordinate:
+# Lx
+# Lt
+# as in the simpler models
+
+# BUT, for the Normal distributions, this is already given by mu
+# AND, for Gamma distributions, I'm not sure if any limit other than T=0
+# makes any sense (given resets are supposedly uncoupled from perception here)
+# however an offset on a model with a Gamma-shaped likelihood on X coordinates 
+# ... could make sense?
+
+# so I'm not implementing any additional parameters (for now)
+
 # so we could have a single Gaussian likelihood on X coordinates:
 # > names(par)
 # c('xNm','xNs')
@@ -1434,9 +1449,10 @@ ToffsetGammaLikelihood <- function(par, data) {
 # > names(par)
 # c('xNm','xNs','tGs','tGr')
 
-# all of these parameters can be provided, and won't overwrite eachother
+# all of these parameters can be provided
+# (the naming scheme is meant to ensure they won't overwrite eachother)
 # but each function returning likelihoods only uses the parameters it needs
-
+# (note that Gamma distributions take 1 more parameter than Normal distributions)
 
 
 # *******************************
@@ -1448,17 +1464,45 @@ ToffsetGammaLikelihood <- function(par, data) {
 
 XuncoupledGaussianLikelihood <- function(par, data) {
   
+  m <- par['xNm'] # mu (mean), also: ~X limit
+  s <- par['xNs'] # sigma (sd)
+  
+  mu <- pmin(m, data$slope * data$Y)
+  L <- (1 / (sX * sqrt(2 * pi)) ) * exp( -0.5 * ( (data$X-mu) / sX )^2 )
+  
+  return(data.frame(L))
+  
 }
 
 # this model should be equivalent to a T limit
 
 TuncoupledGaussianLikelihood <- function(par, data) {
   
+  # this does not actually do any uncoupling...
+  # but it doesn't seem necessary either
+  
+  m <- par['tNm'] # mu (mean), also: ~T limit
+  s <- par['tNs'] # sigma (sd)
+  
+  rt <- max(0,data$Y-(data$x/data$slope))
+  rt <- rt + min(data$Y*data$slope,data$X/data$slope)
+  
+  L <- (1 / (s * sqrt(2 * pi)) ) * exp( -0.5 * ( ( rt - m) / s )^2 )
+  
+  return(data.frame(L))
+  
 }
 
 # this model combines the above two models (literally)
 
 XTuncoupledGaussianLikelihood <- function(par,data) {
+  
+  LX <- XuncoupledGaussianLikelihood(data, par)
+  LT <- TuncoupledGaussianLikelihood(data, par)
+  
+  L <- LX * LT
+  
+  return(L)
   
 }
 
@@ -1471,11 +1515,17 @@ XTuncoupledGaussianLikelihood <- function(par,data) {
 
 XuncoupledGammaLikelihood <- function(par,data) {
   
+  s <- par['xGs'] # shape
+  r <- par['xGr'] # rate
+  
 }
 
 # this model uses a Gamma distribution on the T coordinate only
 
 TuncoupledGammaLikelihood <- function(par,data) {
+  
+  s <- par['tGs'] # shape
+  r <- par['tGr'] # rate
   
 }
 
@@ -1483,6 +1533,11 @@ TuncoupledGammaLikelihood <- function(par,data) {
 
 XTuncoupledGammaLikelihood <- function(par,data) {
   
+  Xs <- par['xGs'] # shape
+  Xr <- par['xGr'] # rate
+  
+  Ts <- par['tGs'] # shape
+  Tr <- par['tGr'] # rate
   
 }
 
@@ -1507,9 +1562,275 @@ XgammaTgaussianLikelihood <- function(par,data) {
 
 resetLogLikelihood <- function(par,data,fitFUN) {
   
-  likelihoods <- fitFUN(par,data)
+  L <- fitFUN(par,data)$L
   
-  return(sum(log(likelihoods)))
+  #print(length(which(is.na(L) | is.infinite(L) | L==0)))
+  
+  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-16
+  
+  return(sum(log(L)))
   
 }
 
+# for comparison we have orthogonal MSE functions:
+
+XorthogonalMSE <- function(par,data,fitFUN) {
+  
+  resets <- fitFUN(par,data)
+  
+  MSE <- mean( (resets$X - data$X)^2 )
+  
+  return(MSE)
+  
+}
+
+TorthogonalMSE <- function(par,data,fitFUN) {
+  
+  resets <- fitFUN(par,data)
+  
+  d <- sqrt( data$Y^2 + data$X^2 )
+  RT <- d / data$speed
+  
+  MSE <- mean( (RT - par['Lt'])^2 )
+  
+  return(MSE)
+  
+}
+
+# ***************************
+# fit likelihood models -----
+# ***************************
+
+# this first function fits models that fit single limits/offsets/distributions
+# i.e. on one coordinate only, for now this is the X and T coordinates
+# minimizing errors calculated orthogonal to the limit
+# *should* be the same as maximizing a Gaussian likelihood distribution
+# which is what the orthogonal and normal models compare (it is the same)
+# and then there is an offset gamma distribution for comparison
+
+allTheSingleModels <- function(df, doModels=c('orthogonal' = TRUE,
+                                              'normal'     = TRUE,
+                                              'gamma'      = TRUE)) {
+  
+  outputlist <- list()
+  
+  # ********************************
+  # first the orthogonal errors
+  # ********************************
+  
+  if (doModels['orthogonal']) {
+    
+    Lx=seq(0, 8, length.out = 41)
+    Lt=seq(0, 4, length.out = 41)
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('Lx'=Lx)
+    searchgridTlim <- expand.grid('Lt'=Lt)
+    
+    # get MSE for points in search grid:
+    XlimMSE <- apply(searchgridXlim,FUN=XorthogonalMSE,MARGIN=c(1),data=df,fitFUN=XlimResets)
+    TlimMSE <- apply(searchgridTlim,FUN=TorthogonalMSE,MARGIN=c(1),data=df,fitFUN=TlimResets)
+    
+    # get 4 best points in the grid:
+    topgridXlim <- data.frame('Lx'=searchgridXlim[order(XlimMSE)[c(1,3,5)],])
+    topgridTlim <- data.frame('Lt'=searchgridTlim[order(TlimMSE)[c(1,3,5)],])
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=XorthogonalMSE,
+                                  method='L-BFGS-B',
+                                  lower=c(0),
+                                  upper=c(13.5),
+                                  data=df,
+                                  fitFUN=XlimResets) )
+    
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=TorthogonalMSE,
+                                  method='L-BFGS-B',
+                                  lower=c(0),
+                                  upper=c(4),
+                                  data=df,
+                                  fitFUN=TlimResets) )
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value)[1],]
+    winTlimFit <- allTlimFits[order(allTlimFits$value)[1],]
+    # print(win[1:3])
+    
+    winXlimO <- as.numeric(winXlimFit[1])
+    names(winXlimO) <- c('Lx')
+    winTlimO <- as.numeric(winTlimFit[1])
+    names(winTlimO) <- c('Lt')
+    
+    winXvalO <- as.numeric(winXlimFit[2])
+    names(winXvalO) <- c('Lx')
+    winTvalO <- as.numeric(winTlimFit[2])
+    names(winTvalO) <- c('Lt')
+    
+    outputlist[['XlimOrth']]=list('par'=winXlimO,'MSE'=winXvalO)
+    outputlist[['TlimOrth']]=list('par'=winTlimO,'MSE'=winTvalO)
+    
+  }
+  
+  # **********************************
+  # then the Gaussian offsets
+  # **********************************
+  
+  if (doModels['normal']) {
+    
+    # create search "grids":
+    mX = seq(0, 8, length.out = 16)
+    mT = seq(0, 4, length.out = 16)
+    sX = seq(0, 8, length.out = 16)
+    sT = seq(0, 4, length.out = 16)
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('mX'=mX, 'sX'=sX)
+    searchgridTlim <- expand.grid('mT'=mT, 'sT'=sT)
+    
+    # get MSE for points in search grid:
+    expTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=ToffsetGaussianLikelihood)
+    expXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XoffsetGaussianLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXlim <- searchgridXlim[order(expXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    topgridTlim <- searchgridTlim[order(expTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # print(topgridXlim)
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c( 0.0, 0.0 ),
+                                  upper=c(13.5, 13.5),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=XoffsetGaussianLikelihood,) )
+    
+    # print(topgridTlim)
+    # print(sort(expTlimLLs, decreasing = TRUE)[c(1,3,5)])
+    
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(0, 0),
+                                  upper=c(4, 4),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=ToffsetGaussianLikelihood) )
+    
+    # print(topgridYlim)
+    # print(sort(expYlimLLs, decreasing = TRUE)[c(1,3,5)])
+    
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+    winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+    
+    winXparN <- unlist(winXlimFit[c('mX','sX')])
+    winTparN <- unlist(winTlimFit[c('mT','sT')])
+    
+    winXvalN <- as.numeric(winXlimFit$value)
+    names(winXvalN) <- c('logL')
+    winTvalN <- as.numeric(winTlimFit$value)
+    names(winTvalN) <- c('logL')
+    
+    
+    outputlist[['XdistNormal']]=list('par'=winXparN,'logL'=winXvalN)
+    outputlist[['TdistNormal']]=list('par'=winTparN,'logL'=winTvalN)
+    
+  }
+  
+  # **********************************
+  # and finally Gamma distributions
+  # **********************************
+  
+  if (doModels['gamma']) {
+    
+    # create search "grids":
+    sX = seq(0, 20, length.out = 16)
+    rX = 1/seq(0, 4, length.out = 16)[2:16]
+    oX = seq(0,  8, length.out = 16)
+    
+    sT = seq(0, 20, length.out = 16)
+    rT = 1/seq(0, 4, length.out = 16)[2:16]
+    oT = seq(0,  8, length.out = 16)
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('sX'=sX, 'rX'=rX, 'oX'=oX)
+    searchgridTlim <- expand.grid('sT'=sT, 'rT'=rT, 'oT'=oT)
+    
+    # get MSE for points in search grid:
+    gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=ToffsetGammaLikelihood)
+    gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XoffsetGammaLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXlim <- searchgridXlim[order(gamXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10, 0.0),
+                                  upper=c( 20.0,  10.0, 8.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=XoffsetGammaLikelihood,) )
+    
+    # print(topgridTlim)
+    # print(sort(expTlimLLs, decreasing = TRUE)[c(1,3,5)])
+    
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10, 0.0),
+                                  upper=c( 20.0,  10.0, 4.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=ToffsetGammaLikelihood) )
+    
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+    winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+    
+    winXparG <- unlist(winXlimFit[c('sX','rX','oX')])
+    winTparG <- unlist(winTlimFit[c('sT','rT','oT')])
+    
+    winXvalG <- as.numeric(winXlimFit$value)
+    names(winXvalG) <- c('logL')
+    winTvalG <- as.numeric(winTlimFit$value)
+    names(winTvalG) <- c('logL')
+    
+    outputlist[['XdistGamma']]=list('par'=winXparG,'logL'=winXvalG) 
+    outputlist[['TdistGamma']]=list('par'=winTparG,'logL'=winTvalG)
+    
+  }
+  
+  return( outputlist )
+  
+}

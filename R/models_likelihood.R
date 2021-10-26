@@ -204,8 +204,6 @@ resetLogLikelihood <- function(par,data,fitFUN) {
   
   likelihoods <- fitFUN(par,data)
   
-  #print(par)
-  #print(sum(log(likelihoods)))
   return(sum(log(likelihoods)))
   
 }
