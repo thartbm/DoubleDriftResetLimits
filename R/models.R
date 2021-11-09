@@ -790,8 +790,8 @@ getDataTrials <- function(illusionMinimum=5, illusionMaximum=85) {
   
   
   # add slopes conveniently:
-  df$angle <- ((df$initialdirection)/180)*pi
-  df$angle <- df$initialdirection
+  #df$angle <- ((df$initialdirection)/180)*pi
+  df$angle <- (pi/2) - df$initialdirection
   df$sin.a <- sin(df$angle)
   df$cos.a <- cos(df$angle)
   df$slope <- df$sin.a / df$cos.a
@@ -807,8 +807,19 @@ getDataTrials <- function(illusionMinimum=5, illusionMaximum=85) {
   df$Vi <- df$internalspeed
   df$Ve <- round(0.5 / df$externalspeed)
   
+  
+  df$unMu <- df$slope * df$Y
+  
+  # this seems incorrect:
+  #df$unRT <- pmax(0,df$Y-(df$X/df$slope)) + pmin(df$Y*df$slope,df$X/df$slope)
+  
+  # also wrong:
+  #df$unRT <- sqrt(df$X^2 + (df$X*df$slope)^2) + pmax(0,df$Y-(df$X/df$slope))
+  
+  df$unRT <- ( df$Y + pmax(0, (sqrt(df$X^2 +(df$X*df$slope)^2) - (df$X*df$slope) ) ) ) / df$speed
+  
   # select only useful columns:
-  df <- df[,c('participant','X', 'Y', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve')]
+  df <- df[,c('participant','X', 'Y', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve', 'unMu', 'unRT')]
   
   return(df)
   
@@ -1360,9 +1371,9 @@ XoffsetGaussianLikelihood <- function(par,data) {
   
 }
 
-# ************************************************
-# offset gamma probability density functions -----
-# ************************************************
+# *****************************************
+# gamma probability density functions -----
+# *****************************************
 
 # gamma distributions have a 'shape' parameter that puts them
 # on a continuum that spans exponential and normal distributions  
@@ -1387,13 +1398,43 @@ ToffsetGammaLikelihood <- function(par, data) {
   rT <- par['rT']
   oT <- par['oT']
   
-  L <- dgamma( sqrt(data$X^2 + data$Y^2) - (oT * data$speed), shape=sT, rate=rT  )
+  # hmmm... this is actually done in centimeters ?
+  #L <- dgamma( sqrt(data$X^2 + data$Y^2) - (oT * data$speed), shape=sT, rate=rT  )
+  # let's switch it to seconds!
+  L <- dgamma( data$RT - oT, shape=sT, rate=rT  )
   # log(0) will be -Inf, not a good probability to maximize
   #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
   
   return(data.frame(L))
   
 }
+
+XGammaLikelihood <- function(par, data) {
+  
+  sX <- par['sX']
+  rX <- par['rX']
+
+  L <- dgamma( data$X, shape=sX, rate=rX )
+  # log(0) will be -Inf, not a good probability to maximize
+  #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  
+  return(data.frame(L))
+  
+}
+
+TGammaLikelihood <- function(par, data) {
+  
+  sT <- par['sT']
+  rT <- par['rT']
+
+  L <- dgamma( data$RT, shape=sT, rate=rT  )
+  # log(0) will be -Inf, not a good probability to maximize
+  #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  
+  return(data.frame(L))
+  
+}
+
 
 # **********************
 # UNCOUPLED MODELS -----
@@ -1467,8 +1508,9 @@ XuncoupledGaussianLikelihood <- function(par, data) {
   m <- par['xNm'] # mu (mean), also: ~X limit
   s <- par['xNs'] # sigma (sd)
   
-  mu <- pmin(m, data$slope * data$Y)
-  L <- (1 / (sX * sqrt(2 * pi)) ) * exp( -0.5 * ( (data$X-mu) / sX )^2 )
+  #   df$unMu <- df$slope * df$Y
+  mu <- pmin(m, data$unMu)
+  L <- (1 / (s * sqrt(2 * pi)) ) * exp( -0.5 * ( (data$X-mu) / s )^2 )
   
   return(data.frame(L))
   
@@ -1478,16 +1520,13 @@ XuncoupledGaussianLikelihood <- function(par, data) {
 
 TuncoupledGaussianLikelihood <- function(par, data) {
   
-  # this does not actually do any uncoupling...
-  # but it doesn't seem necessary either
-  
   m <- par['tNm'] # mu (mean), also: ~T limit
   s <- par['tNs'] # sigma (sd)
   
-  rt <- max(0,data$Y-(data$x/data$slope))
-  rt <- rt + min(data$Y*data$slope,data$X/data$slope)
+  # rt <- max(0,data$Y-(data$x/data$slope))
+  # rt <- rt + min(data$Y*data$slope,data$X/data$slope)
   
-  L <- (1 / (s * sqrt(2 * pi)) ) * exp( -0.5 * ( ( rt - m) / s )^2 )
+  L <- (1 / (s * sqrt(2 * pi)) ) * exp( -0.5 * ( ( data$unRT - m) / s )^2 )
   
   return(data.frame(L))
   
@@ -1500,9 +1539,9 @@ XTuncoupledGaussianLikelihood <- function(par,data) {
   LX <- XuncoupledGaussianLikelihood(data, par)
   LT <- TuncoupledGaussianLikelihood(data, par)
   
-  L <- LX * LT
+  L <- LX$L * LT$L
   
-  return(L)
+  return(data.frame(L))
   
 }
 
@@ -1518,6 +1557,12 @@ XuncoupledGammaLikelihood <- function(par,data) {
   s <- par['xGs'] # shape
   r <- par['xGr'] # rate
   
+  mu <- pmin(m, data$unMu)
+  
+  L <- dgamma( mu, shape=s, rate=r  )
+  
+  return(data.frame(L))
+  
 }
 
 # this model uses a Gamma distribution on the T coordinate only
@@ -1527,17 +1572,25 @@ TuncoupledGammaLikelihood <- function(par,data) {
   s <- par['tGs'] # shape
   r <- par['tGr'] # rate
   
+  # rt <- pmax(0,data$Y-(data$X/data$slope))
+  # rt <- rt + pmin(data$Y*data$slope,data$X/data$slope)
+  
+  L <- dgamma( data$unRT, shape=s, rate=r )
+  
+  return(data.frame(L))
+  
 }
 
 # this model combines the two models above (literally)
 
 XTuncoupledGammaLikelihood <- function(par,data) {
   
-  Xs <- par['xGs'] # shape
-  Xr <- par['xGr'] # rate
+  LX <- XuncoupledGammaLikelihood(data, par)
+  LT <- TuncoupledGammaLikelihood(data, par)
   
-  Ts <- par['tGs'] # shape
-  Tr <- par['tGr'] # rate
+  L <- LX$L * LT$L
+  
+  return(data.frame(L))
   
 }
 
@@ -1547,11 +1600,23 @@ XTuncoupledGammaLikelihood <- function(par,data) {
 
 XgaussianTgammaLikelihood <- function(par,data) {
   
+  LX <- XuncoupledGaussianLikelihood(par, data)
+  LT <- TuncoupledGammaLikelihood(par, data)
+  
+  L <- LX$L * LT$L
+  
+  return(data.frame(L))
   
 }
 
 XgammaTgaussianLikelihood <- function(par,data) {
   
+  LX <- XuncoupledGammaLikelihood(par, data)
+  LT <- TuncoupledGaussianLikelihood(par, data)
+  
+  L <- LX$L * LT$L
+  
+  return(data.frame(L))
   
 }
 
@@ -1564,9 +1629,9 @@ resetLogLikelihood <- function(par,data,fitFUN) {
   
   L <- fitFUN(par,data)$L
   
-  #print(length(which(is.na(L) | is.infinite(L) | L==0)))
-  
-  L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-16
+  # only positive, numeric values should be used, so
+  # replace other values with a very small value:
+  L[which(is.na(L) | is.infinite(L) | L<=0)] <- 1e-16
   
   return(sum(log(L)))
   
@@ -1597,9 +1662,9 @@ TorthogonalMSE <- function(par,data,fitFUN) {
   
 }
 
-# ***************************
-# fit likelihood models -----
-# ***************************
+# ******************************
+# fit / plot single models -----
+# ******************************
 
 # this first function fits models that fit single limits/offsets/distributions
 # i.e. on one coordinate only, for now this is the X and T coordinates
@@ -1608,9 +1673,10 @@ TorthogonalMSE <- function(par,data,fitFUN) {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-allTheSingleModels <- function(df, doModels=c('orthogonal' = TRUE,
-                                              'normal'     = TRUE,
-                                              'gamma'      = TRUE)) {
+allTheSingleModels <- function(df, doModels=c( 'orthogonal'  = TRUE,
+                                               'normal'      = TRUE,
+                                               'offsetgamma' = TRUE,
+                                               'gamma'       = TRUE )) {
   
   outputlist <- list()
   
@@ -1694,7 +1760,7 @@ allTheSingleModels <- function(df, doModels=c('orthogonal' = TRUE,
     searchgridXlim <- expand.grid('mX'=mX, 'sX'=sX)
     searchgridTlim <- expand.grid('mT'=mT, 'sT'=sT)
     
-    # get MSE for points in search grid:
+    # get Likelihoods for points in search grid:
     expTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=ToffsetGaussianLikelihood)
     expXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XoffsetGaussianLikelihood)
     
@@ -1760,7 +1826,7 @@ allTheSingleModels <- function(df, doModels=c('orthogonal' = TRUE,
   # and finally Gamma distributions
   # **********************************
   
-  if (doModels['gamma']) {
+  if (doModels['offsetgamma']) {
     
     # create search "grids":
     sX = seq(0, 20, length.out = 16)
@@ -1826,11 +1892,468 @@ allTheSingleModels <- function(df, doModels=c('orthogonal' = TRUE,
     winTvalG <- as.numeric(winTlimFit$value)
     names(winTvalG) <- c('logL')
     
+    outputlist[['XdistOffGamma']]=list('par'=winXparG,'logL'=winXvalG) 
+    outputlist[['TdistOffGamma']]=list('par'=winTparG,'logL'=winTvalG)
+    
+  }
+  
+  if (doModels['gamma']) {
+    
+    # create search "grids":
+    sX = seq(0, 20, length.out = 16)
+    rX = 1/seq(0, 4, length.out = 16)[2:16]
+
+    sT = seq(0, 20, length.out = 16)
+    rT = 1/seq(0, 4, length.out = 16)[2:16]
+
+    # make them into data frames:
+    searchgridXlim <- expand.grid('sX'=sX, 'rX'=rX)
+    searchgridTlim <- expand.grid('sT'=sT, 'rT'=rT)
+    
+    # get MSE for points in search grid:
+    gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TGammaLikelihood)
+    gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XGammaLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXlim <- searchgridXlim[order(gamXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10),
+                                  upper=c( 20.0,  10.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=XGammaLikelihood,) )
+    
+    # print(topgridTlim)
+    # print(sort(expTlimLLs, decreasing = TRUE)[c(1,3,5)])
+    
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10),
+                                  upper=c( 20.0,  10.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=TGammaLikelihood) )
+    
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+    winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+    
+    winXparG <- unlist(winXlimFit[c('sX','rX')])
+    winTparG <- unlist(winTlimFit[c('sT','rT')])
+    
+    winXvalG <- as.numeric(winXlimFit$value)
+    names(winXvalG) <- c('logL')
+    winTvalG <- as.numeric(winTlimFit$value)
+    names(winTvalG) <- c('logL')
+    
     outputlist[['XdistGamma']]=list('par'=winXparG,'logL'=winXvalG) 
     outputlist[['TdistGamma']]=list('par'=winTparG,'logL'=winTvalG)
     
   }
   
   return( outputlist )
+  
+}
+
+plotTheSingleModels <- function(df, target='inline') {
+  
+  modelfunctions <- list('XlimOrth'=XlimResets,
+                         'TlimOrth'=TlimResets,
+                         'XdistNormal'=XoffsetGaussianLikelihood,
+                         'TdistNormal'=ToffsetGaussianLikelihood,
+                         'XdistOffGamma'=XoffsetGammaLikelihood,
+                         'TdistOffGamma'=ToffsetGammaLikelihood,
+                         'XdistGamma'=XGammaLikelihood,
+                         'TdistGamma'=TGammaLikelihood)
+  
+  
+  fits <- allTheSingleModels(df)
+  
+  if (target == 'pdf') {
+    pdf(file = 'doc/singleModelFits.pdf', width=12, height=9, bg='white')
+  }
+  
+  layout(mat=matrix(c(1:8),byrow = FALSE,nrow=2,ncol=4))
+  
+  par(mar=c(4.1,3.1,2.6,0.1))
+  
+  coords <- c('X','T')
+  models <- c('limOrth','distNormal','distOffGamma','distGamma')
+
+  # add 1D distributions as insets
+  inset.figs <- list()
+  inset.fig.idx <- 1
+  p <- c(.25, .80, .65, .95)
+  
+  for (model in models) {
+    for (coord in coords) {
+      
+      modelname <- sprintf('%s%s',coord,model)
+      
+      plot(df$X,df$Y,
+           main=modelname,xlab='cm',ylab='cm',
+           xlim=c(0,9),ylim=c(0,13.5),
+           pch=16,col='#00000011',
+           bty='n',ax=F,asp=1)
+      
+      fit <- fits[[modelname]]
+      
+      par <- fit$par
+      
+      modelfunction <- modelfunctions[[modelname]] 
+      
+      if (grepl("lim", modelname, fixed=TRUE)) {
+        # line fit(s)
+        angle = (seq(5,85)/180)*pi
+        speed = rep(4,length(angle)) # really: c(3.375, 4.500)
+        data = data.frame(angle, speed)
+        data$cos.a <- cos(data$angle)
+        data$sin.a <- sin(data$angle)
+        data$slope <- data$sin.a / data$cos.a
+        
+        resets <- modelfunction(par,data)
+        
+        lines(resets$X, resets$Y, col='red')
+        
+        
+      } else {
+        # distribution fits
+        stepsize <- 0.2
+        X <- seq(0.1,7.9,stepsize)
+        Y <- seq(0.15,13.5,stepsize)
+        data = expand.grid('X'=X,'Y'=Y)
+        data$speed <- 4 # really: c(3.375, 4.500)
+        data$RT <- sqrt(data$X^2 + data$Y^2) / data$speed
+        
+        likelihoods <- modelfunction(par,data)
+        
+        Z <- matrix(likelihoods$L,
+                    ncol=length(Y),
+                    nrow=length(X))
+        
+        pal='Purple-Blue'
+        
+        image(add=TRUE,
+              x=seq(0,8,stepsize),
+              y=seq(0,13.5,stepsize),
+              z=Z,
+              useRaster=TRUE,
+              #col = gray.colors(256, rev=TRUE),
+              col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+              #lw=0
+              )
+        
+        # make room for the inset figure:
+        inset.figs[[inset.fig.idx]] <- c(grconvertX(p[1:2], from="npc", to="ndc"),
+                                         grconvertY(p[3:4], from="npc", to="ndc"))
+        inset.fig.idx <- inset.fig.idx + 1
+        
+      }
+      
+      axis(side=1,at=c(0,4,8))
+      axis(side=2,at=c(0,4.5,9,13.5))
+      
+    }
+  }
+  
+  # now do the inset figures for the distribution models:
+  inset.fig.idx <- 1
+  
+  for (model in models[c(2:4)]) {
+    for (coord in coords) {
+      if (coord == 'X') {
+        vals <- df$X
+        xlim <- c(0,8)
+        data <- data.frame('X'=seq(0,8,0.25))
+      }
+      if (coord == 'T') {
+        vals <- df$RT
+        xlim <- c(0,13.5)
+        data <- data.frame('RT'=seq(0,13.5,0.25))
+      }
+      
+      
+
+      # create inset figure
+      op <- par( fig=inset.figs[[inset.fig.idx]], 
+                 new=TRUE, 
+                 mar=rep(1, 4), 
+                 cex=0.5)
+      
+
+      plot(-1000,-1000,
+           xlim=xlim,
+           ylim=c(0,1),
+           bty='n', ax=F)
+      polygon(x=c(xlim,rev(xlim)),y=c(0,0,1,1),col='#FFFFFF55',border=NA)
+      
+      # put a histogram of the data:
+      histogram <- hist(vals, breaks=seq(0,20,xlim[2]/12), plot=FALSE)
+      idx <- which(histogram$breaks < xlim[2])
+      barheights=histogram$density[idx]/max(histogram$density[idx])
+      for (id in idx) {
+        x <- c(histogram$breaks[c(id,id,id+1,id+1)])+c(0.1,0.1,-0.1,-0.1)
+        y <- c(0,barheights[c(id,id)],0)
+        polygon(x=x, y=y,
+                col='#00000022',border=NA)
+      }
+      
+      # draw a line with the density of the model function
+      modelname <- sprintf('%s%s',coord,model)
+      fit <- fits[[modelname]]
+      par <- fit$par
+      dens <- modelfunctions[[modelname]](par,data)$L 
+      dens <- dens / max(dens)
+      if (coord == 'X') {
+        xvals <- data$X
+      } else {
+        xvals <- data$RT
+      }
+      
+      lines(x=xvals,y=dens,col='purple')
+
+      
+      # finalize inset figure
+      inset.fig.idx <- inset.fig.idx + 1
+      par(op)
+    }
+  }
+  
+  if (target %in% c('pdf')) {
+    dev.off()
+  }
+  
+}
+
+# *********************************
+# fit / plot uncoupled models -----
+# *********************************
+
+fitUncoupledModels <- function(df) {
+  
+  outputlist <- list()
+  
+  # uncoupled Gaussian X limit/offset:
+  
+  # build search grid:
+  xNm <- seq(0,8,length.out = 19)
+  xNs <- seq(0,4,length.out = 19)
+  unXgrid <- expand.grid('xNm'=xNm, 'xNs'=xNs)
+  
+  # get Likelihoods for points in search grid:
+  unXlLs <- apply(unXgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XuncoupledGaussianLikelihood)
+  
+  # get some of the best points in the grid:
+  topgridUnX <- unXgrid[order(unXlLs, decreasing = TRUE)[c(1,5,9)],]
+
+  control <- list( 'maximize' = TRUE )
+  
+  # do the actual fitting:
+  allUnXfits <- do.call("rbind",
+                         apply( topgridUnX,
+                                MARGIN=c(1),
+                                FUN=optimx,
+                                fn=resetLogLikelihood,
+                                method=c('nlminb'),
+                                lower=c( 0.0, 0.0 ),
+                                upper=c( 8.0, 4.0),
+                                control=control,
+                                data=df,
+                                fitFUN=XuncoupledGaussianLikelihood,) )
+  
+  # pick the best fit:
+  winUnXfit <- allUnXfits[order(allUnXfits$value)[1],]
+  
+  winUnXpar <- unlist(winUnXfit[c('xNm','xNs')])
+  
+  winUnXval <- as.numeric(winUnXfit$value)
+  names(winUnXval) <- c('logL')
+  
+  outputlist[['UnXnormal']]=list('par'=winUnXpar,'L'=winUnXval)
+  
+  
+  # uncoupled Gamma T distribution:
+  
+  # build search grid:
+  tGs <- seq(0,10,length.out = 31)
+  tGr <- seq(0, 5,length.out = 31)
+  unTgrid <- expand.grid('tGs'=tGs, 'tGr'=tGr)
+  
+  # get Likelihoods for points in search grid:
+  unTlLs <- apply(unTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TuncoupledGammaLikelihood)
+  
+  # get some of the best points in the grid:
+  topgridUnT <- unTgrid[order(unTlLs, decreasing = TRUE)[c(1,5,9)],]
+  
+  control <- list( 'maximize' = TRUE )
+  
+  # do the actual fitting:
+  allUnTfits <- do.call("rbind",
+                        apply( topgridUnT,
+                               MARGIN=c(1),
+                               FUN=optimx,
+                               fn=resetLogLikelihood,
+                               method=c('nlminb'),
+                               lower=c(   0.0,   0.0 ),
+                               upper=c(  10.0,   5.0 ),
+                               control=control,
+                               data=df,
+                               fitFUN=TuncoupledGammaLikelihood,) )
+  
+  # pick the best fit:
+  winUnTfit <- allUnTfits[order(allUnTfits$value)[1],]
+  
+  winUnTpar <- unlist(winUnTfit[c('tGs','tGr')])
+  
+  winUnTval <- as.numeric(winUnTfit$value)
+  names(winUnTval) <- c('logL')
+  
+  outputlist[['UnTgamma']]=list('par'=winUnTpar,'L'=winUnTval)
+  
+  
+  # **************************************
+  # the combined model:
+  # X has an uncoupled normal distribution
+  # T has an uncoupled gamma distribution
+  # **************************************
+  
+  # build a search grid:
+  xNm <- seq(0,8,length.out = 10)
+  xNs <- seq(0,4,length.out = 10)
+  tGs <- seq(0,10,length.out = 10)[2:11]
+  tGr <- seq(0, 5,length.out = 10)[2:11]
+  unXTgrid <- expand.grid('xNm'=xNm, 'xNs'=xNs, 'tGs'=tGs, 'tGr'= tGr)
+  
+  # get Likelihoods for points in search grid:
+  unXTlLs <- apply(unXTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XgaussianTgammaLikelihood)
+  
+  # get some of the best points in the grid:
+  topgridUnXT <- unXTgrid[order(unXTlLs, decreasing = TRUE)[c(1:10)],]
+  
+  control <- list( 'maximize' = TRUE )
+  
+  # do the actual fitting:
+  allUnXTfits <- do.call("rbind",
+                         apply( topgridUnXT,
+                                MARGIN=c(1),
+                                FUN=optimx,
+                                fn=resetLogLikelihood,
+                                method=c('nlminb'),
+                                lower=c( 0.0, 0.0,  0.0, 0.0 ),
+                                upper=c( 8.0, 4.0, 10.0, 5.0 ),
+                                control=control,
+                                data=df,
+                                fitFUN=XgaussianTgammaLikelihood) )
+  
+  # pick the best fit:
+  winUnXTfit <- allUnXTfits[order(allUnXTfits$value)[1],]
+   
+  winUnXTpar <- unlist(winUnXTfit[c('xNm','xNs','tGs','tGr')])
+  
+  winUnXTval <- as.numeric(winUnXTfit$value)
+  names(winUnXTval) <- c('logL')
+   
+  outputlist[['UnXnormalTgamma']]=list('par'=winUnXTpar,'L'=winUnXTval)
+  
+  return(outputlist)
+  
+}
+
+plotUncoupledModels <- function(df, target='inline') {
+  
+  modelfits <- fitUncoupledModels(df)
+  
+  if (target == 'pdf') {
+    pdf(file = 'doc/ucoupledModelFits.pdf', width=8, height=4, bg='white')
+  }
+  
+  layout(mat=matrix(c(1,2,3,4),byrow=TRUE,ncol=4,nrow=1))
+  
+  plot(df$X,df$Y,
+       main='resets',xlab='cm',ylab='cm',
+       xlim=c(0,9),ylim=c(0,13.5),
+       pch=16,col='#00000011',
+       bty='n',ax=F,asp=1)
+  
+  lines(x=c(0,3,3),y=c(0,6,13.5),col='purple',lty=1,lw=3)
+  
+  axis(side=1,at=c(0,4,8))
+  axis(side=2,at=c(0,4.5,9,13.5))
+  
+  
+  # distribution fits
+  stepsize <- 0.2
+  X <- seq(0.1,7.9,stepsize)
+  Y <- seq(0.15,13.5,stepsize)
+  data = expand.grid('X'=X,'Y'=Y)
+  data$speed <- 4 # really: c(3.375, 4.500)
+  data$RT <- sqrt(data$X^2 + data$Y^2) / data$speed
+  #data$slope <- data$X/data$Y # this assumes that initial trajectory goes straight to reset point, which is false under the uncoupled conditions...
+  data$slope <- mean(df$slope) # we use one constant slope, so that the likelihood distribution can actually be shown
+  
+  data$unMu <- data$slope * data$Y
+  #data$unRT <- sqrt(data$X^2 + (data$X*data$slope)^2) + pmax(0,data$Y-(data$X/data$slope))
+  data$unRT <- ( data$Y + pmax(0, (sqrt(data$X^2 +(data$X*data$slope)^2) - (data$X*data$slope) ) ) ) / data$speed
+  
+  for (model in names(modelfits)) {
+    
+    print('*****************************')
+    print(model)
+    print(modelfits[[model]])
+    
+    plot(df$X,df$Y,
+         main=model,xlab='cm',ylab='cm',
+         xlim=c(0,9),ylim=c(0,13.5),
+         pch=16,col='#00000011',
+         bty='n',ax=F,asp=1)
+    
+    fit <- modelfits[[model]]
+    par <- fit$par
+    
+    modelfunction <- list('UnXnormal'=XuncoupledGaussianLikelihood,
+                          'UnTgamma'=TuncoupledGammaLikelihood,
+                          'UnXnormalTgamma'=XgaussianTgammaLikelihood)[[model]]
+    
+    likelihoods <- modelfunction(par,data)
+    
+    Z <- matrix(likelihoods$L,
+                ncol=length(Y),
+                nrow=length(X))
+    
+    pal='Purple-Blue'
+    
+    image(add=TRUE,
+          x=seq(0,8,stepsize),
+          y=seq(0,13.5,stepsize),
+          z=Z,
+          useRaster=TRUE,
+          #col = gray.colors(256, rev=TRUE),
+          col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+          #lw=0
+    )
+    
+    axis(side=1,at=c(0,4,8))
+    axis(side=2,at=c(0,4.5,9,13.5))
+    
+  }
+  
+  if (target %in% c('pdf')) {
+    dev.off()
+  }
   
 }
