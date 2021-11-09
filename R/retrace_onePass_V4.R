@@ -480,7 +480,8 @@ oldPreProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overw
 
 preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), 
                                  overwrite = TRUE,
-                                 RPFUN=get97.5percMaxX1_resetpoint,
+#                                 RPFUN=get97.5percMaxX1_resetpoint,
+                                 RPFUN=getResampledFilteredInflectResetPoint,
                                  IDFUN=getDirectionHalfway) {
   
   
@@ -535,27 +536,16 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11),
       externalspeed <- c(externalspeed, trialdf$externalMovement[1])
       fixationside <- c(fixationside, trialdf$fixationside[1])
       
-      # only step 99 was retracing (the preceding ones are for stimulus presentation)
-      step <- 99
-      step.idx <- which(trialdf$step == step)
+      trace <- cmTrace(trialdf)
       
-      # get the relevant samples X and Y coordinates and scale to centimeters:
-      x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 13.5
-      y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 13.5
+      x <- trace$x
+      y <- trace$y
+      t <- trace$t
       
-      # start at origin:
-      x <- x - x[1]
-      y <- y - y[1]
-      
-      # get time as well (for filters, ended up not using it):
-      t <- trialdf$time_ms[step.idx]
-      
-      # flip to normalize internal motion direction
-      if (trialdf$internalMovement[1] < 0) x <- -x
       
       # GET THE RESET POINT
       # which function is used to get the reset point is a function argument:
-      resetPoint <- RPFUN(x,y,t,verbosity=verbosity) 
+      resetPoint <- RPFUN(x,y,t,verbosity=verbosity, internalspeed=trialdf$internalMovement[1], externalspeed=trialdf$externalMovement[1])
       
       # store the reset point in the output data vectors:
       resetX <-c(resetX, resetPoint$X)
@@ -593,7 +583,35 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11),
   
 }
 
-get97.5percMaxX1_resetpoint <- function(x,y,t,verbosity=0) {
+cmTrace <- function(trialdf) {
+  
+  # only step 99 was retracing (the preceding ones are for stimulus presentation)
+  step <- 99
+  step.idx <- which(trialdf$step == step)
+  
+  # get the relevant samples X and Y coordinates and scale to centimeters:
+  x <- ((trialdf$handx_pix[step.idx] / (524)) + 0.0) * 13.5
+  y <- ((trialdf$handy_pix[step.idx] / (524)) + 0.5) * 13.5
+  t <- trialdf$handy_pix[step.idx]
+  
+  # start at origin:
+  x <- x - x[1]
+  y <- y - y[1]
+  
+  # get time as well (for filters, ended up not using it):
+  t <- trialdf$time_ms[step.idx]
+  
+  # flip to normalize internal motion direction
+  if (trialdf$internalMovement[1] < 0) x <- -x
+  
+  return(list('x'=x,
+              'y'=y,
+              't'=t))
+  
+}
+
+
+get97.5percMaxX1_resetpoint <- function(x,y,t,verbosity=0,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
   
   # x <- pdf$x
   # y <- pdf$y
@@ -687,7 +705,7 @@ get97.5percMaxX1_resetpoint <- function(x,y,t,verbosity=0) {
 
 
 
-getSplineReversalResetPoint <- function(x,y,t) {
+getSplineReversalResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
   
   # we smooth & interpolate the x coordinates:
   smspl <- smooth.spline(t, x, spar=.25)
@@ -722,7 +740,7 @@ getSplineReversalResetPoint <- function(x,y,t) {
   
 }
 
-getMultilinearResetPoint <- function(x,y,t) {
+getMultilinearResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
   
   # THIS FUNCTION WAS NOT FINISHED AS IT WAS GETTING BAROQUE
   
@@ -755,7 +773,7 @@ getMultilinearResetPoint <- function(x,y,t) {
 }
 
 
-get2ndDerInflectResetPoint <- function(x,y,t) {
+get2ndDerInflectResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
   
   # THIS SEEMS MORE PRINCIPLED BUT REQUIRES A LOT OF SMOOTHING
   # MIGHT WORK WITH THE PREPROCESSING FROM OTHER FUNCTIONS
@@ -786,6 +804,139 @@ get2ndDerInflectResetPoint <- function(x,y,t) {
   #points(xx,yy,col='blue')
   #points(xxx,yyy,col='red')
   
+  
+}
+
+getResampledFilteredInflectResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,verbosity=0,returnTrajectory=FALSE) {
+  
+  # x / y: raw samples (relatively, could be pruned)
+  # xx / yy: interpolated samples
+  # xxx / yyy: filtered signal
+  
+  if (verbosity > 0) {
+    cat('getting: resampled, filtered, inflection, backtrack reset point\n')
+  }
+  
+  # remove duplicate points:
+  idx <- which(x[-length(x)] != x[-1] & y[-length(y)] != y[-1])
+  x <- x[idx]
+  y <- y[idx]
+  t <- t[idx]
+  
+  if (verbosity > 0) {
+    cat(sprintf('length of signal after removing duplicate points: %d samples\n',length(x)))
+  }
+  
+  if (length(x) < 2) {
+    if (returnTrajectory) {
+      return(list('X'=NA, 'Y'=NA,'trajectory'=data.frame('x'=c(NA),'y'=c(NA))))
+    } else {
+      return(list('X'=NA, 'Y'=NA))
+    }
+  }
+  
+
+  # remove samples after maximum Y (no backtracking)
+  max_y_idx <- which.max(y)
+  x <- x[c(1:max_y_idx)]
+  y <- y[c(1:max_y_idx)]
+  t <- t[c(1:max_y_idx)]
+  
+  # remove samples with Y below 0 (have to go forward-ish)
+  lo_y_idx <- which(y < 0)
+  if (length(lo_y_idx) > 0) {
+    ok_y_idx <- c(lo_y_idx[length(lo_y_idx)]:length(y))
+    x <- x[ok_y_idx]
+    y <- y[ok_y_idx]
+    t <- t[ok_y_idx]
+  }
+
+  # remove all points closer than 0.4 cm to the origin:
+  d_idx <- which((x^2 + y^2)> 0.4)
+  x <- x[d_idx]
+  y <- y[d_idx]
+  t <- t[d_idx]
+  
+  if (verbosity > 0) {
+    cat(sprintf('length of signal after pruning the ends of the trajectory: %d samples\n',length(x)))
+  }
+  
+  if (length(x) < 2) {
+    if (returnTrajectory) {
+      return(list('X'=NA, 'Y'=NA,'trajectory'=data.frame('x'=c(NA),'y'=c(NA))))
+    } else {
+      return(list('X'=NA, 'Y'=NA))
+    }
+  }
+  
+  # interpolate so that we have a 30 Hz signal:
+  xx <- approx(x = t,
+               y = x,
+               n = round(0.5/externalspeed)*30)$y
+  yy <- approx(x = t,
+               y = y,
+               n = round(0.5/externalspeed)*30)$y
+  
+  tt <- seq(min(t),max(t),length.out=(round(0.5/externalspeed)*30))
+  
+  # signal::filtfilt does zero-padding of the signal
+  # we lavishly signal-pad the signal to get rid of this
+  p = 15
+  
+  # filter to remove higher frequency wiggles (the gabor's bars/phases)
+  bwf <- signal::butter(n=2, W=1.5/15, type='low')
+  xxx <- signal::filtfilt(filt=bwf$b,
+                          a=bwf$a,
+                          x=c(rep(xx[1],p),xx,rep(xx[length(xx)],p)))[(p+1):(length(xx)+p)]
+  yyy <- signal::filtfilt(filt=bwf$b,
+                          a=bwf$a,
+                          x=c(rep(yy[1],p),yy,rep(yy[length(yy)],p)))[(p+1):(length(yy)+p)]
+  
+
+  # # the second derivative:
+  # # dx	dy	dx/dy	d(dx/dy)	d(dx/dy)/dy
+  # der2 <- diff( diff(xxx) / diff(yyy) ) / diff(yyy)[-1]
+  # 
+  # rp_idx <- which(diff(sign(diff( der2 ))) == -2) + 2
+  # rp_idx <- rp_idx[which(yyy[rp_idx] > 0)][1]
+  # 
+  # resetPoint <- c('x'=xxx[rp_idx],
+  #                 'y'=yyy[rp_idx])
+  # 
+  # return(resetPoint)
+  
+  # get the first inflection point
+  local_maxima <- which( diff(sign(diff(xxx))) == -2 )+1
+  RPx <- NA
+  RPy <- NA
+  if (length(local_maxima) > 0) {
+    RPidx <- which( xxx > ( 0.95 * xxx[local_maxima[1]] ) )[1] - 1
+    if (RPidx > 0) {
+      RPx <- xxx[RPidx]
+      RPy <- yyy[RPidx]
+      if (verbosity > 0) {
+        cat(sprintf('back-tracked to 95%% of X from first local maximum: (%0.2f, %0.2f)\n',RPx,RPy))
+      }
+      # now find the closest point in the original signal:
+      idx <- which.min(((x-RPx)^2+(y-RPy)^2))
+      RPx <- x[idx]
+      RPy <- y[idx]
+      if (verbosity > 0) {
+        cat(sprintf('closest raw sample: (%0.2f, %0.2f)\n',RPx,RPy))
+      }
+    }
+  } # else: there is no reset point detected, and values stay NA
+  
+  resetPoint = list('X'=RPx,
+                    'Y'=RPy)
+  
+  if (returnTrajectory) {
+    resetPoint$trajectory <- data.frame('x'=xxx,
+                                        'y'=yyy,
+                                        't'=tt)
+  }
+  
+  return(resetPoint)
   
 }
 
@@ -1902,20 +2053,18 @@ getTrajectoryExamples <- function(participants = c(2,3,4,5,6,8,9,10,11), nsample
       
       trialdf <- df[which(df$trial_no == trial & df$step == 99),]
       
-      # get trajectory and convert to cm
-      x <- (trialdf$handx_pix / 524) * 13.5
-      y <- (trialdf$handy_pix / 524) * 13.5
+      trace <- cmTrace(trialdf)
       
-      # start at (0,0)
-      x <- x - x[1]
-      y <- y - y[1]
+      x <- trace$x
+      y <- trace$y
+      t <- trace$t
       
-      # flip so we always go to the right:
-      if (trialdf$internalMovement[1] < 0) x <- -x
-      
-      trajectory <- data.frame(x,y)
+      # add other relevant information back into the data:
+      trajectory <- data.frame(x,y,t)
       trajectory$participant <- participant
       trajectory$trial <- trial
+      trajectory$internalSpeed <- trialdf$internalMovement[1]
+      trajectory$externalSpeed <- trialdf$externalMovement[1]
       
       if (is.data.frame(output)) {
         output <- rbind(output, trajectory)
@@ -1933,17 +2082,16 @@ getTrajectoryExamples <- function(participants = c(2,3,4,5,6,8,9,10,11), nsample
 }
 
 
-plotTrajectoryMoments <- function() {
+plotTrajectoryExamples <- function(nsamples=20) {
   
-  nsamples <- 20
   trajectories <- getTrajectoryExamples(participants = c(2,3,4,5,6,8,9,10,11), nsamples=nsamples)
   # 9 trajectories
   
   pdf(file=sprintf('examples_%d.pdf',nsamples), width=8, height=11)
   
-  mat <- matrix( data = c(1, 2, 5, 6, 9, 10, 1, 3, 5, 7, 9, 11, 1, 4, 5, 8, 9, 12, 13, 14, 17, 18, 21, 22, 13, 15, 17, 19, 21, 23, 13, 16, 17, 20, 21, 24, 25, 26, 29, 30, 33, 34, 25, 27, 29, 31, 33, 35, 25, 28, 29, 32, 33, 36),
-                 nrow = 9, ncol = 6, byrow = TRUE)
-  layout(mat=mat,widths=c(1,1.5,1,1.5,1,1.5))
+  mat <- matrix( data = c(1:9),
+                 nrow = 3, ncol = 3, byrow = TRUE)
+  layout(mat=mat)
   
   par(mar=c(3, 3, 3, 0) + 0.05)
   
@@ -1956,108 +2104,47 @@ plotTrajectoryMoments <- function() {
       pdf <- trajectories[which(trajectories$participant == participant),]
       trials <- unique(pdf$trial)
       trial <- trials[samplen]
-      pdf <- pdf[which(pdf$trial == trial),]
+      trialdf <- pdf[which(pdf$trial == trial),]
       
-      x <- pdf$x
-      y <- pdf$y
+      #print(str(trialdf))
       
-      max_y_idx <- which.max(y)
-      x <- x[c(1:max_y_idx)]
-      y <- y[c(1:max_y_idx)]
+      x <- trialdf$x
+      y <- trialdf$y
+      t <- trialdf$t
       
-      lo_y_idx <- which(y < 0)
-      if (length(lo_y_idx) > 0) {
-        ok_y_idx <- c(lo_y_idx[length(lo_y_idx)]:length(y))
-        x <- x[ok_y_idx]
-        y <- y[ok_y_idx]
-      }
+      resetPoint <- getResampledFilteredInflectResetPoint(x,
+                                                          y,
+                                                          t,
+                                                          internalspeed=trialdf$internalSpeed[1],
+                                                          externalspeed=trialdf$externalSpeed[1],
+                                                          verbosity=0,
+                                                          returnTrajectory=TRUE)
       
-      plot(x, y,
-           xlab='',ylab='',main='',
-           bty='n',asp=1)
+      # cat('trajectory:\n')
+      # str(resetPoint$trajectory)
       
-      # for people with a lot of samples, downsample severely
-      if (length(x) > 75) {
-        # idx <-as.integer(round(seq(1,length(sx),length.out = 20)))
-        # sx <- sx[idx]
-        # sy <- sy[idx]
-        # print(length(sx))
-        trajectory <- resampleDistance(x=x,y=y,distance=0.9)
-        x <- trajectory$x
-        y <- trajectory$y
-      }
+      plot(-1000,-1000,
+           main='',xlab='',ylab='',
+           xlim=c(-2,9),ylim=c(0,17.5),
+           bty='n',ax=F,asp=1)
       
+      # put the raw data is transparent points:
+      points(x,y,pch=16,col='#9999FF77')
       
-      #pdf$sx <- as.numeric( runmed(x=pdf$x, k=9) )
-      sx <- ksmooth(x = c(1:length(x)),
-                    y = x,
-                    kernel = 'normal',
-                    bandwidth = 5,
-                    x.points = c(1:length(x)))$y
-      sy <- ksmooth(x = c(1:length(x)),
-                    y = y,
-                    kernel = 'normal',
-                    bandwidth = 5,
-                    x.points = c(1:length(y)))$y
+      # put the processed trajectory as a line:
+      trace <- resetPoint$trajectory
+      lines(trace$x,trace$y,col='#990000')
+      #points(trace$x,trace$y,pch=16,cex=0.4,col='#FF0000')
       
-      # remove duplicates, if any:
-      nondupes <- which(sx[-length(sx)] != sx[-1])
-      sx <- sx[nondupes]
-      sy <- sy[nondupes]
-      
-      # remove all points closer than 0.4 cm to the origin:
-      d_idx <- which((sx^2 + sy^2)> 0.4)
-      
-      sx <- sx[d_idx]
-      sy <- sy[d_idx]
-      
-      # remove all points beyond the maximum y coordinate:
-      my_idx <- which.max(sy)
-      
-      if (length(my_idx) > 0) {
-        sx <- sx[c(1:my_idx)]
-        sy <- sy[c(1:my_idx)]
-      }
-      
-
-      lines(sx,sy,col='blue')
-      #rp_idx <- which.max(pdf$sx) # returns the overall maximum
-      
-      local_maxima <- which( diff(sign(diff(sx))) == -2 )+1
-      #print(local_maxima)
-      #print(length(local_maxima))
-      
-      if (length(local_maxima) > 0) {
-        RPidx <- which( sx > ( 0.975 * sx[local_maxima[1]] ) )[1] - 1
-        
-        RPx <- sx[RPidx]
-        RPy <- sy[RPidx]
-        #print(c(RPx,RPy))
-        points(RPx,RPy,col='green',cex=3)
-        
-      } else {
+      if (is.na(resetPoint$X)) {
         text(0,13.5,'X',col='red',cex=3)
-        #print('NO!')
-      }
-      
-      
-      if (length(sx) > 1) {
-      plot(diff(sx),type='l',
-           xlab='',ylab='',main='',
-           bty='n')
       } else {
-        plot.new()
+        points(resetPoint$X,resetPoint$Y,col='green',cex=3)
       }
       
-      if (length(sx) > 2) {
-        plot(diff(diff(sx)),type='l',
-             xlab='',ylab='',main='',
-             bty='n')
-      } else {
-        plot.new()
-      }
-      
-      plot.new()
+      axis(side=1,at=c(0,4,8))
+      axis(side=2,at=c(0,4.5,9,13.5))
+      title(main=sprintf('participant: %d trial: %d',participant,trial),font.main=1, cex.main=1.5, adj=0, line=0.5)
       
     }
     
