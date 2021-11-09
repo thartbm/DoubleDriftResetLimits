@@ -143,127 +143,127 @@ rotateCoordinates <- function(df,angle,origin=c(0,0)) {
   
 }
 
-segmentMultiPassTrial <- function(df, velocityCutoff = NA, type='gaborzerocrossing') {
-  
-  # type: gaborreversal OR gaborzerocrossing 
-  
-  # first get the part where the gabor is actually moving (or present on the screen):
-  gabormoves <- which(df$gabory_pix != 0 & !is.na(df$gabory_pix)) # second condition not technically necessary
-  gaboronset <- min(gabormoves) - 1
-  gabormoves <- c(min(gabormoves):max(gabormoves)) # in case a sample accidentally puts the gabor at exactly 0
-  
-  X <- df$handx_pix[gabormoves]
-  Y <- df$handy_pix[gabormoves]
-  
-  if (type == 'gaborzerocrossing') {
-    
-    # now get the zero-crossings of the gabors (the middle of each segment will lag only briefly behind that):
-    crossings <- zerocrossings(df$gabory_pix[gabormoves], bounces = FALSE)
-    #print(crossings)
-    segments <- list()
-    
-    for (cross.idx in c(1:length(crossings))) {
-      
-      #cat(sprintf('\ncrossing: %d\n\n', cross.idx))
-      
-      crossing <- crossings[cross.idx]
-      
-      # beginning of segment:
-      seg.in <- crossing - which(abs(diff(sign(diff(rev(Y[1:crossing]))))) > 0)[1] + 1
-      
-      # end of segment:
-      seg.out <- crossing + which(abs(diff(sign(diff(Y[crossing:length(Y)])))) > 0)[1] - 1
-      
-      #print(c(seg.in,seg.out))
-      
-      # velocity threshold?
-      if (is.numeric(velocityCutoff)) {
-        
-        t <- df$time_ms[gabormoves]
-        V <- getSplinedVelocity(X[c(seg.in:seg.out)], Y[c(seg.in:seg.out)], t[c(seg.in:seg.out)])$velocity
-        
-        #print(V)
-        
-        velCrit <- max(V) * velocityCutoff
-        #print(velCrit)
-        #print(which(V > velCrit))
-        
-        seg.in  <- seg.in  + (which(V      > velCrit)[1] - 1)
-        seg.out <- seg.out - (which(rev(V) > velCrit)[1] - 1) 
-        
-      }
-      
-      seg.in  <- seg.in  + gaboronset
-      seg.out <- seg.out + gaboronset
-      
-      # store segment indices:
-      segments[[cross.idx]] <- c(seg.in, seg.out)
-      
-    }
-    
-    # return some list of segments: first and last sample/row indices of each segment?
-    return(segments)
-    
-  }
-  
-  if (type == 'gaborreversal') {
-    
-    reversals <- directionchanges(df$gabory_pix[gabormoves])
-    #print(reversals)
-    segments <- list()
-    
-    for (rev.idx in c(1:(length(reversals)-1))) {
-      
-      # this ignores the lag of people's drawing after the gabor changes direction...
-      seg.in  <- reversals[rev.idx] + 15
-      seg.out <- reversals[rev.idx+1] - 14
-      
-      # velocity threshold?
-      if (is.numeric(velocityCutoff)) {
-        
-        t <- df$time_ms[gabormoves]
-        V <- getSplinedVelocity(X[c(seg.in:seg.out)], Y[c(seg.in:seg.out)], t[c(seg.in:seg.out)])$velocity
-        
-        velCrit <- max(V) * velocityCutoff
-        
-        seg.in  <- seg.in  + (which(V      > velCrit)[1] - 1)
-        seg.out <- seg.out - (which(rev(V) > velCrit)[1] - 1) 
-        
-      }
-      
-      seg.in  <- seg.in  + gaboronset
-      seg.out <- seg.out + gaboronset
-      
-      # store segment indices:
-      segments[[rev.idx]] <- c(seg.in, seg.out)
-      
-    }
-    
-    # return some list of segments: first and last sample/row indices of each segment?
-    return(segments)
-    
-  }
-  
-}
-
-directionchanges <- function(v) {
-  
-  # d <- ((diff(v) > 0) - 0.5) * 2 # too simple?
-  
-  # this preserves zeroes and otherwise results in integers:
-  # d <- diff(v)
-  # d[which(d > 0)] <-  1
-  # d[which(d < 0)] <- -1
-  
-  # same, but simpler:
-  # d <- sign(diff(v))
-  
-  # everything converted to a one-liner:
-  idx <- which(diff(sign(diff(v))) != 0) + 1 # not 0 OR larger than 1?
-  
-  return(idx)
-  
-}
+# segmentMultiPassTrial <- function(df, velocityCutoff = NA, type='gaborzerocrossing') {
+#   
+#   # type: gaborreversal OR gaborzerocrossing 
+#   
+#   # first get the part where the gabor is actually moving (or present on the screen):
+#   gabormoves <- which(df$gabory_pix != 0 & !is.na(df$gabory_pix)) # second condition not technically necessary
+#   gaboronset <- min(gabormoves) - 1
+#   gabormoves <- c(min(gabormoves):max(gabormoves)) # in case a sample accidentally puts the gabor at exactly 0
+#   
+#   X <- df$handx_pix[gabormoves]
+#   Y <- df$handy_pix[gabormoves]
+#   
+#   if (type == 'gaborzerocrossing') {
+#     
+#     # now get the zero-crossings of the gabors (the middle of each segment will lag only briefly behind that):
+#     crossings <- zerocrossings(df$gabory_pix[gabormoves], bounces = FALSE)
+#     #print(crossings)
+#     segments <- list()
+#     
+#     for (cross.idx in c(1:length(crossings))) {
+#       
+#       #cat(sprintf('\ncrossing: %d\n\n', cross.idx))
+#       
+#       crossing <- crossings[cross.idx]
+#       
+#       # beginning of segment:
+#       seg.in <- crossing - which(abs(diff(sign(diff(rev(Y[1:crossing]))))) > 0)[1] + 1
+#       
+#       # end of segment:
+#       seg.out <- crossing + which(abs(diff(sign(diff(Y[crossing:length(Y)])))) > 0)[1] - 1
+#       
+#       #print(c(seg.in,seg.out))
+#       
+#       # velocity threshold?
+#       if (is.numeric(velocityCutoff)) {
+#         
+#         t <- df$time_ms[gabormoves]
+#         V <- getSplinedVelocity(X[c(seg.in:seg.out)], Y[c(seg.in:seg.out)], t[c(seg.in:seg.out)])$velocity
+#         
+#         #print(V)
+#         
+#         velCrit <- max(V) * velocityCutoff
+#         #print(velCrit)
+#         #print(which(V > velCrit))
+#         
+#         seg.in  <- seg.in  + (which(V      > velCrit)[1] - 1)
+#         seg.out <- seg.out - (which(rev(V) > velCrit)[1] - 1) 
+#         
+#       }
+#       
+#       seg.in  <- seg.in  + gaboronset
+#       seg.out <- seg.out + gaboronset
+#       
+#       # store segment indices:
+#       segments[[cross.idx]] <- c(seg.in, seg.out)
+#       
+#     }
+#     
+#     # return some list of segments: first and last sample/row indices of each segment?
+#     return(segments)
+#     
+#   }
+#   
+#   if (type == 'gaborreversal') {
+#     
+#     reversals <- directionchanges(df$gabory_pix[gabormoves])
+#     #print(reversals)
+#     segments <- list()
+#     
+#     for (rev.idx in c(1:(length(reversals)-1))) {
+#       
+#       # this ignores the lag of people's drawing after the gabor changes direction...
+#       seg.in  <- reversals[rev.idx] + 15
+#       seg.out <- reversals[rev.idx+1] - 14
+#       
+#       # velocity threshold?
+#       if (is.numeric(velocityCutoff)) {
+#         
+#         t <- df$time_ms[gabormoves]
+#         V <- getSplinedVelocity(X[c(seg.in:seg.out)], Y[c(seg.in:seg.out)], t[c(seg.in:seg.out)])$velocity
+#         
+#         velCrit <- max(V) * velocityCutoff
+#         
+#         seg.in  <- seg.in  + (which(V      > velCrit)[1] - 1)
+#         seg.out <- seg.out - (which(rev(V) > velCrit)[1] - 1) 
+#         
+#       }
+#       
+#       seg.in  <- seg.in  + gaboronset
+#       seg.out <- seg.out + gaboronset
+#       
+#       # store segment indices:
+#       segments[[rev.idx]] <- c(seg.in, seg.out)
+#       
+#     }
+#     
+#     # return some list of segments: first and last sample/row indices of each segment?
+#     return(segments)
+#     
+#   }
+#   
+# }
+# 
+# directionchanges <- function(v) {
+#   
+#   # d <- ((diff(v) > 0) - 0.5) * 2 # too simple?
+#   
+#   # this preserves zeroes and otherwise results in integers:
+#   # d <- diff(v)
+#   # d[which(d > 0)] <-  1
+#   # d[which(d < 0)] <- -1
+#   
+#   # same, but simpler:
+#   # d <- sign(diff(v))
+#   
+#   # everything converted to a one-liner:
+#   idx <- which(diff(sign(diff(v))) != 0) + 1 # not 0 OR larger than 1?
+#   
+#   return(idx)
+#   
+# }
 
 zerocrossings <- function(v, bounces=FALSE) {
   
@@ -603,6 +603,77 @@ t_col <- function(color, percent = 50, name = NULL) {
                names = name)
   
   ## Save the color
-  invisible(t.col)
+  #invisible(t.col)
+  return(t.col)
 }
 ## END
+
+
+
+# function by: January Weiner
+# https://logfc.wordpress.com/2017/03/15/adding-figure-labels-a-b-c-in-the-top-left-corner-of-the-plotting-region/
+# (downloaded: 2021-11-04)
+
+fig_label <- function(text, region="figure", pos="topleft", cex=NULL, ...) {
+  
+  region <- match.arg(region, c("figure", "plot", "device"))
+  pos <- match.arg(pos, c("topleft", "top", "topright", 
+                          "left", "center", "right", 
+                          "bottomleft", "bottom", "bottomright"))
+  
+  if(region %in% c("figure", "device")) {
+    ds <- dev.size("in")
+    # xy coordinates of device corners in user coordinates
+    x <- grconvertX(c(0, ds[1]), from="in", to="user")
+    y <- grconvertY(c(0, ds[2]), from="in", to="user")
+    
+    # fragment of the device we use to plot
+    if(region == "figure") {
+      # account for the fragment of the device that 
+      # the figure is using
+      fig <- par("fig")
+      dx <- (x[2] - x[1])
+      dy <- (y[2] - y[1])
+      x <- x[1] + dx * fig[1:2]
+      y <- y[1] + dy * fig[3:4]
+    } 
+  }
+  
+  # much simpler if in plotting region
+  if(region == "plot") {
+    u <- par("usr")
+    x <- u[1:2]
+    y <- u[3:4]
+  }
+  
+  sw <- strwidth(text, cex=cex) * 60/100
+  sh <- strheight(text, cex=cex) * 60/100
+  
+  x1 <- switch(pos,
+               topleft     =x[1] + sw, 
+               left        =x[1] + sw,
+               bottomleft  =x[1] + sw,
+               top         =(x[1] + x[2])/2,
+               center      =(x[1] + x[2])/2,
+               bottom      =(x[1] + x[2])/2,
+               topright    =x[2] - sw,
+               right       =x[2] - sw,
+               bottomright =x[2] - sw)
+  
+  y1 <- switch(pos,
+               topleft     =y[2] - sh,
+               top         =y[2] - sh,
+               topright    =y[2] - sh,
+               left        =(y[1] + y[2])/2,
+               center      =(y[1] + y[2])/2,
+               right       =(y[1] + y[2])/2,
+               bottomleft  =y[1] + sh,
+               bottom      =y[1] + sh,
+               bottomright =y[1] + sh)
+  
+  old.par <- par(xpd=NA)
+  on.exit(par(old.par))
+  
+  text(x1, y1, text, cex=cex, ...)
+  return(invisible(c(x,y)))
+}
