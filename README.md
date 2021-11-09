@@ -4,5 +4,5 @@ R analyses and PsychoPy experiments to test limits to spontaneous resets in the 
 
 Accompanies the data in this Open Science Framework repository:
 
-https://osf.io/2jw56/
+https://osf.io/72ndu/
 
