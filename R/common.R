@@ -609,6 +609,26 @@ t_col <- function(color, percent = 50, name = NULL) {
 ## END
 
 
+getWhiteLuminanceCurve <- function() {
+  
+  # read luminance measures for monitor + mirror:
+  lumdata <- read.csv('data/luminance.csv', stringsAsFactors = FALSE)
+  # use only the white/grayscale values:
+  lumdata <- lumdata[which(lumdata$measure=='white'),]
+  
+  # we fit a 3rd order polynomial, and predict luminance for all 256 grayscale RGB values
+  predicted_luminance <- predict(lm(L ~ poly(R, 3), data=lumdata), 
+                                 newdata=data.frame('R'=seq(0,255)))
+  
+  # we return this as a look-up table
+  # to use for calculating luminance of stimuli
+  return(predicted_luminance)
+  
+  # 1) convert colors of stimuli to matrix or vector of INT grayscale RGB values
+  # 2) throw in this look-up table as indices to get Luminance values
+  
+}
+
 
 # function by: January Weiner
 # https://logfc.wordpress.com/2017/03/15/adding-figure-labels-a-b-c-in-the-top-left-corner-of-the-plotting-region/
