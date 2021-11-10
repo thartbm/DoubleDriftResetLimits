@@ -14,7 +14,7 @@ OSFdata <- function(overwrite=FALSE, removezip=FALSE, extradata=FALSE) {
   
   datadir <- osfr::osf_ls_files(dirs[idx,])
   
-  zipfiles <- c('bounded_tracking.zip','onepass_V4.zip','luminance.csv')
+  zipfiles <- c('bounded_tracking.zip','onepass_V4.zip','luminance.zip')
   if (extradata) {
     zipfiles <- c(zipfiles, 'infinite_tracking.zip', 'pilots2.zip', 'CVRdemo.zip')
   }
@@ -37,12 +37,10 @@ OSFdata <- function(overwrite=FALSE, removezip=FALSE, extradata=FALSE) {
   
   for (zipfile in zipfiles) {
     
-    if (tools::file_ext('data/luminance.csv') == 'zip') {
-      fullzipfile <- sprintf('data/%s',zipfile)
-      unzip(fullzipfile, exdir='data')
-      if (removezip) {
-        file.remove(fullzipfile)
-      }
+    fullzipfile <- sprintf('data/%s',zipfile)
+    unzip(fullzipfile, exdir='data')
+    if (removezip) {
+      file.remove(fullzipfile)
     }
   }
   
