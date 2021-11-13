@@ -23,29 +23,32 @@ link-citations: yes
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-# The functions here allow downloading the collected data from the OSF project:
+# First we load all custom scripts:
+
+# The function in this file downloads the data from the OSF project:
 source('R/data.R')
 # This file has some common helper functions:
 source('R/common.R')
 # The functions in here are used on the data of the bounded tracking experiment:
-source('R/tracking_bounded.R')
-# Here we compare the tracking data with an earlier paper:
-source('R/compare.R')
+source('R/exp1_tracking.R')
 # And then some code for the re-tracing experiment:
-source('R/retrace_onePass_V4.R')
+source('R/exp2_retracing.R')
 # As well as models fit to that data:
-source('R/models.R')
-# And finally, code to compare this data with Sirui's PSEs
-# source('R/time.R') # no longer used
+source('R/exp2_models.R')
 
 # we download the data:
 OSFdata()
 
 # we pre-process the data:
-#getBoundedTrackingStandardizedSegments()
+
+# for exp 1, this segments the tracking trajectories
+# to get the middle 1 second for each full pass
 segmentDirections()
+
+# for exp 2, this extracts the reset points:
 preProcessOnePass_V4()
-# the rest of the paper should now compile without complaint
+
+# the rest of the paper should now run without complaint
 ```
 
 _1: Centre for Vision Research, York University, Toronto, ON M3J1P3, Canada_\
@@ -98,13 +101,13 @@ For this experiment, 4 participants were recruited from the lab (3 female; ages 
 
 ### Setup
 
-Participants used a stylus on a horizontal drawing tablet (Wacom Intuos Pro) to indicate where they perceived the location of a gabor (see Fig. 1, right), as well as a keypad for additional responses. Stimuli were displayed on a downward facing LED monitor (30 Hz, 20”, 1680x1050), parallel with the drawing tablet. The stimuli were observed via an upward facing mirror placed exactly between the tablet and monitor, so that the stimuli appear to be in the same horizontal plane as the hand, and the tip of the stylus. Experiments were run in Python 2.7 with PsychoPy [@Peirce2019].
+Participants used a stylus on a horizontal drawing tablet (Wacom Intuos Pro) to indicate where they perceived the location of a gabor (see Fig. 1, right), as well as a keypad for additional responses. Stimuli were displayed on a downward facing LCD monitor (30 Hz, 20”, 1680x1050), parallel with the drawing tablet. The stimuli were observed via an upward facing mirror placed exactly between the tablet and monitor, so that the stimuli appear to be in the same horizontal plane as the hand, and the tip of the stylus. Experiments were run in Python 2.7 with PsychoPy [@Peirce2019].
 
 For reporting degrees of visual angle that stimuli spanned ( _dva_ ), we assumed the participants to be close to the setup, with their eyes at the height of the monitor. While there was no requirement to use the forehead rest, this is a reasonable assumption, since stimuli are only visible when relatively close to the setup. Nevertheless, reported _dva's_ are estimates of the size of stimuli.
 
 ### Stimuli
 
-The stimuli were phase-changing gabor patches with a gaussian mask with a sigma (sd) of 0.43 _cm_ or ~0.59 _dva_, spatial frequency of 0.58 _c/cm_ or ~0.42 _c/dva_, vertical orientation, and contrast of 100%. By simultaneously moving the gabor envelope and drifting its internal sine wave, it becomes a ‘double-drift stimulus’ where the perceived path deviates from the real path. The gabor changed phase at different rates, called 'internal motion' here, specified in cycles per second ( _cps_ ). The real displacements of the stimulus are along the Y axis of the monitor, keeping the X coordinate constant at the middle of the screen, so that a stimulus without internal motion would appear to move toward and away from the participant on the horizontal display.
+The stimuli were phase-changing gabor patches with a sigma (sd) of 0.43 _cm_ or ~0.59 _dva_, spatial frequency of 0.58 _c/cm_ or ~0.42 _c/dva_, vertical orientation, and Michelson contrast of 98.7%. The background luminance was 18.46 $cd/m^2$ and the mean luminance of the gabor deviated from the background by less than 1%. By simultaneously moving the gabor envelope and drifting its internal sine wave, it becomes a ‘double-drift stimulus’ where the perceived path deviates from the real path. The gabor changed phase at different rates, called 'internal motion' here, specified in cycles per second ( _cps_ ). The real displacements of the stimulus are along the Y axis of the monitor, keeping the X coordinate constant at the middle of the screen, so that a stimulus without internal motion would appear to move toward and away from the participant on the horizontal display.
 
 The motion of the envelope was restricted to the central 13.5 _cm_ ( ~14.0 _dva_ ) and was set so that the stimulus would move from one end to the other of its path ( a motion we call a 'pass' ) in 2 _s_, corresponding to a speed of ~6.75 _cm/s_ ( or roughly 7.0 _dva/s_ ).
 
@@ -134,22 +137,22 @@ plotBoundedTracking()
 
 ## Illusion strength
 
-The data clearly show the illusion, but does tracking decrease the strength of the illusion compared to simply observing it? In Figure 2D, we compare mean illusion strength to that reported previously [@Heller2021]. As can be seen the averages from our data here (red circles, purple line) coincide fairly well with the illusion strength predicted by the model fitted to all their data (Eq. 1, black line). That is; tracking the illusion while observing it does not change the strength of the illusion.
+The data clearly show the illusion, but does tracking decrease the strength of the illusion compared to simply observing it? In Figure 2D, we compare mean illusion strength to that reported previously [@Heller2021]. As can be seen the averages from our data here (red circles) coincide fairly well with the illusion strength predicted by the model fitted to all their data (Eq. 1, black line). If we fit the vector combination model, we get $K=0.738$ which is very close to $K=0.74$ reported by Heller et al. [-@Heller2021]. That is; tracking the illusion while observing it does not change the strength of the illusion.
 
 # Experiment 2: Delayed retracing
 
-The illusion cannot drift continuously away from the physical path forever. It can be disrupted by a temporal break [@Lisi2015] or by distracting attention [@Nakayama2020]. These disruptions may cause the perceived path to stay at a fixed offset, travelling parallel to the physical path, or it may return toward the veridical position before resuming the illusory direction (Fig. 3). These resets may also occur spontaneously once the accumulation has gone on too long or too far. The purpose of this experiment is to capture this spontaneous resetting and determine its source.
+The illusion cannot drift continuously away from the physical path forever. It can be disrupted by a temporal break [@Lisi2015] or by distracting attention [@Nakayama2020]. These disruptions may cause the perceived path to stay at a fixed offset, travelling parallel to the physical path, or it may return toward the veridical position before resuming the illusory direction (Fig. 3). Other percepts of resets have been reported as well, but as far as we know these fall in between these two extremes. Resets may also occur spontaneously once the accumulation has gone on too long or too far, depending on what mechanism causes resets. Where resets occur would then both depend on the mechanism that causes resets, as well as on the strength of the illusion (purple arrows in Fig. 3) which in turn depends on the stimulus properties as well as variation in perception within and between participants. The purpose of this experiment is to capture this spontaneous resetting and determine its source. 
 
 In the previous experiment with online tracking, the duration of each pass in the online tracking experiment was 2 seconds and the manual traces (Fig. 2A,B) mostly showed a linear trajectory without saturation or reset of the types shown in Figure 3 (left). The continuation of the accumulation may be a result of the active tracking – either the extra attention required to track increased the extent of the accumulation or possibly the temporal demands of the tracking caused the participants to average their traces over any breaks. Alternatively, post-dictive inference may prevent resets from being perceived. To address this, we switched to a delayed, offline recording of the perceived path. 
 
-```{r fig3, echo=F, fig.height=3.4125, fig.width=6, message=FALSE, error=FALSE, warning=FALSE, fig.cap="\\label{fig:fig3}**Figure 3:** Double-Drift Resets. **Left:** At some point, the perceived position may stop moving further away from its actual path. For some people this takes the form of a ‘return’ reset, back toward the true position, for others it means the illusory position remains at a fixed offset moving parallel to the real path, or some combination of the two. **Top right:** if these resets are due to a spatial limit on the size of the illusory position shift away from the true vertical path, the locations of the resets should have a constant X coordinate, the spatial offset from the vertical path. **Bottom right:** if they occur instead after some period of time, resets should have a constant radius (R); the time since the gabor’s motion began."}
+```{r fig3, echo=F, fig.height=3.4125, fig.width=6, message=FALSE, error=FALSE, warning=FALSE, fig.cap="\\label{fig:fig3}**Figure 3:** Double-Drift Resets. **Left:** At some point, the perceived position may stop moving further away from its actual path. For some people this takes the form of a ‘return’ reset, back toward the true position, for others it means the illusory position remains at a fixed offset moving parallel to the real path, or some combination of the two. **Right:** Given varying strength of the illusion (denoted by the angle of the purple arrows), either due to stimulus properties or within or between subject differences, resets may occur at different points in space. **Top right:** if these resets can be explained by a spatial limit on the size of the illusory position shift away from the true vertical path, the locations of the resets should have a constant X coordinate; the spatial offset from the vertical path. **Bottom right:** if they occur instead after some period of time, resets should have a constant radius (R); the time since the gabor’s motion began."}
 library(magick)
 Fig3 <- image_read_svg('doc/methods_fig_2.svg')
 par(mai=c(0,0,0,0))
 plot(Fig3)
 ```
 
-We were interested, in particular, in whether the limitation of the accumulation would be set by space or time. Since both the true and the illusory position appear to be available in the visual system (the true position drives saccades whereas the illusory position drives perception, [@Lisi2015], it is possible that resets occur once the distance between the real and perceived positions exceeds some limit. We can speculate that this spatial limit would be related to the positional uncertainty of the gabor. When the position information is reliable, the resets would occur with very little illusory deviation, keeping the perceived path close to the true path. When the positional uncertainty is high, in the periphery, with the gabor’s mean luminance matched to the background [@Gurnsey2012; @Cavanagh2019], the spatial offset could be quite large before exceeding the range of positional uncertainty around the gabor’s true position. Under this hypothesis, the timing of spontaneous resets will depend on the spatial offset from the true path which will be directly proportional to the internal speed (for a constant external motion). On the other hand, if spontaneous resets are the result of the temporal limitations of the integration process, resets would occur after a certain amount of time, independently of the internal speed and the spatial offset it creates. Investigating the time and location of resets in the recorded trajectories, allows us to distinguish between a spatial limit to the illusion and a temporal limit. This in turn will inform us of the processes underlying the perception of the position of moving objects.
+We were interested, in particular, in whether the limitation of the accumulation would be set by space or time. Since both the true and the illusory position appear to be available in the visual system (the true position drives saccades whereas the illusory position drives perception, @Lisi2015), it is possible that resets occur once the distance between the real and perceived positions exceeds some limit. We can speculate that this spatial limit would be related to the positional uncertainty of the gabor. When the position information is reliable, the resets would occur with very little illusory deviation, keeping the perceived path close to the true path. When the positional uncertainty is high, in the periphery, with the gabor’s mean luminance matched to the background [@Gurnsey2012; @Cavanagh2019], the spatial offset could be quite large before exceeding the range of positional uncertainty around the gabor’s true position. Under this hypothesis, the occurrence of spontaneous resets will depend on the spatial offset from the true path which will be directly proportional to the internal speed (for a constant external motion). On the other hand, if spontaneous resets are the result of the temporal limitations of the integration process, resets would occur after a certain amount of time, independently of the internal speed and the spatial offset it creates. Investigating the time and location of resets in the recorded trajectories, allows us to distinguish between a spatial limit to the illusion and a temporal limit. This in turn will inform us of the processes underlying the perception of the position of moving objects.
 
 To do so, we ask participants to re-trace the perceived path of a double-drift stimulus, immediately after viewing the stimulus, a method used by Nakayama & Holcombe [-@Nakayama2020]. This allows participants more time to carefully reproduce the path. We use the recorded trajectories to assess points where resets occurred, whether they were a discontinuity in orientation reflecting a saturation (hit the wall reset, Fig. 3) or a discontinuity in position reflecting a jump back to the real location. These reset points can then be used to determine if resets are time-limited or space-limited.
 
@@ -161,45 +164,38 @@ For this experiment, 9 participants were recruited from the lab (6 female; ages 
 
 ### Setup and Stimuli
 
-The setup was the same as used in the online tracking experiment, except that we now also used a small keypad for responses (Fig. 1, right). Stimuli were identical to those used in the online tracking experiment, but now always started at the near end of the workspace and moved away from the participants. The double drift stimuli would use either 3 or 4 seconds to move 13.5 _cm_, corresponding to speeds of ~4.5 and ~3.75 _cm/s_ or ~4.7 and ~3.5 _dva/s_, and had an internal drift of 2, 3 or 4 _cps_ .
+The setup was the same as used in the online tracking experiment, except that we now also used a small keypad for responses (Fig. 1, right). Stimuli were identical to those used in the online tracking experiment, but now always started at the near end of the workspace and moved away from the participants. The double drift stimuli would use either 3 or 4 seconds to move 13.5 _cm_, corresponding to speeds of ~4.5 and ~3.75 _cm/s_ or ~4.7 and ~3.5 _dva/s_,
+
+THOSE NUMBERS DON'T MAKE SENSE...
+
+and had an internal drift of 2, 3 or 4 _cps_ .
 
 ## Procedure
 
-In experiment 2, participants first watched a double-drift stimulus and then either reproduced the perceived path of the stimulus by retracing it on the tablet, or indicated the initial movement direction by changing the orientation of a line originating in the same position as the doube-drift stimulus (data not used, but corresponds to illusion strength determined from trajectories). More details are given below. This provided more time for the participants to reproduce any resets, i.e. without the need for real-time tracking. The re-tracing task was done in half of 8 blocks (the other half of the blocks are not used). Block types were alternated, and the order was counterbalanced across participants. Each block used the 6 combinations of two external speeds ( corresponding to 3 or 4 _s_ presentation time ), and three internal speeds ( 2, 3 or 4 _cps_ ), 6 times, for a total of 36 trials per block. Each of the combinations of internal and external speed was presented 24 times in total.
+In experiment 2, participants first watched a double-drift stimulus and then either reproduced the perceived path of the stimulus by retracing it on the tablet, or indicated the initial movement direction by changing the orientation of a line originating in the same position as the doube-drift stimulus (data not used, but corresponds to illusion strength determined from trajectories). More details are given below. This provided more time for the participants to reproduce any resets, i.e. without the need for real-time tracking. The re-tracing task was done in half of 8 blocks (the other half of the blocks are not used). Block types were alternated, and the order was counterbalanced across participants. Each block used the 6 combinations of two external speeds ( corresponding to 3 or 4 _s_ presentation time ), and three internal speeds ( 2, 3 or 4 _cps_ ), 6 times, for a total of 36 trials per block. Each of the combinations of internal and external speed was presented 24 times in total, so that we have 144 trials in total.
 
 In both kinds of trials, participants first had to move the stylus to the start position of the gabor, and then fixate a point to the left or right of the centre of the workspace. The double-drift gabor started at the near end of the display, and moved along the horizontal display away from the participant, always making a single, forward pass. After the gabor had disappeared, participants could respond in one of two ways. When re-tracing the perceived path with the stylus on the tablet, the drawn path would show up as a red line. Participants could "key in" their response by pressing ENTER, or start over by pressing ESCAPE. There was no time-limit for the response. Re-tracing the perceived paths should allow capturing spontaneous resets of the illusion, if there are any. 
 
 ### Analyses
 
-The individual trajectories reveal some points that are potential spontaneous resets that we try to extract. Using a smooth spline interpolated version of the trajectory we detect right-left direction changes, based on sign changes. First, we remove any short segments on the trajectory at the start and end that go toward the participant. Then, we downsample the trajectories such that each successive sample is at least 9 _mm_ from the previous, and then applied a median filter with a half-width of 5 samples. In these summary trajectories we detect the first inflection point using the X coordinates. We then use the raw trajectory again, first locating the corresponding sample for the inflection point, and then find the first previous sample at 97.5% of the X coordinate at the inflection point sample in the raw trajectory. Downsampling removes the small periodic signal in the trajectories recorded from participant XYZXYZXYZ that seem to capture the phase shifts of the gabor.
+The individual trajectories reveal some points that are potential spontaneous resets that we try to extract. Using a smooth spline interpolated version of the trajectory we detect right-left direction changes, based on sign changes. First, we remove the first and last 4 mm of the trajectory, as well as any short segments on the trajectory at the start and end that go toward the participant, to remove any unintended jitters caused by starting and ending the movement. Then, we apply a bi-directional low-pass Butterworth filter with a cut-off frequency of 1.5 Hz. However, since participants draw at very different speeds, we first linearly interpolate the trajectories such that the sampling rate is normalized to 30 Hz for all trajectories, based on the stimulus duration. In these summary trajectories we detect the first inflection point using the X coordinates. This could put the reset point too late for hit-the-wall resets, so that we move back to get the previous sample at 95% of the X coordinate, and finally locate the sample in the raw trajectory that is closest to this point. Not all trajectories result in a reset point, so we may miss some genuine hit-the-wall resets where the trajectory does not have an inflection point. However, there is no simple way to segregate these from trials without a reset.
 
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-################################
-################################
+To facilitate modeling, the horizontal and vertical (straight ahead) coordinates of the reset points are kept isometric by giving them in centimeters. The distance from origin can then be converted to time as 1 _cm_ = 4/13.5 _s_ in the 4 _s_ condition and 1 _cm_ = 3/13.5 _s_ in the 3 _s_ condition.
 
-The first (if any) of the remaining direction changes, are then taken as reset points. To keep the horizontal and vertical (straight ahead) coordinates of the reset points isometric they are given in centimeters. The distance from origin can then be converted to time as 1 _cm_ = 3.375 _s_ in the 4 _s_ condition and 1 _cm_ = 4.5 _s_ in the 3 _s_ condition. Participants' ability to retrace perceived trajectories might vary, but normalizing trajectories so that the final Y coordinate is at 13.5 _cm_ does not noticably change the results.
-
-Apart from reset points, we need a measure of illusion strength. We take a trajectory sample halfway between the starting point and the detected reset point. We then use the angular difference between the gabor's real trajectory and a straight line drawn through that point and the start of the trajectory as a measure of illusion strength.
+Apart from reset points, we need a measure of illusion strength. We take a trajectory sample halfway between the starting point and the detected reset point. We then use the angular difference between the gabor's real trajectory and a straight line drawn through that point and the start of the trajectory as a measure of illusion strength (see Fig. 4).
 
 ## Results
 
 In Figure 4 (middle), we show the trajectories for participant 4 in the condition with 3 _cps_ internal motion and 4 _s_ passes. This particular participant's re-traced paths show clear 'return' resets, all of which are detected by our simple algorithm. Other participants' data are less clear.
 
-```{r fig4, echo=FALSE, message=FALSE, fig.width=7.5, fig.height=4, fig.cap="\\label{fig:fig4}**Figure 4:** Re-tracing Data. **Left:** Reset points are taken at the first sample in a splined-smoothed re-traced trajectory that goes in the direction opposite that of the expected illusion. Orange and gray lines: example trajectory. Orange dot: reset point. Red dot: point at half the distance to the reset point. Angle a: measure of illusion strength. **Middle:** One participant's trajectories with very clear 'return' resets at the purple dots. (Purple lines: trajectories up to resets, gray lines: trajectories after resets, blue lines: trajectories that had no resets in the re-tracing.) Other participants' data were not this clear. **Right:** Distribution of all 859 detected reset points."}
+```{r fig4, echo=FALSE, message=FALSE, fig.width=7.5, fig.height=4, fig.cap="\\label{fig:fig4}**Figure 4:** Re-tracing Data. **Left:** Reset points are taken at the first sample in a splined-smoothed re-traced trajectory that goes in the direction opposite that of the expected illusion. Orange and gray lines: example trajectory. Orange dot: reset point. Red dot: point at half the distance to the reset point. Angle a: measure of illusion strength. **Middle:** One participant's trajectories with very clear 'return' resets at the purple dots. (Purple lines: trajectories up to resets, gray lines: trajectories after resets, blue lines: trajectories that had no resets in the re-tracing.) Other participants' data were not this clear. **Right:** Distribution of all 858 used reset points from 8/9 participants."}
 #plotExampleData()
 plotResetPoints()
 ```
 
-On average, this method detects resets in ~75% of trials. For three participants, only about half the trials showed resets (42%, 44% and 58%). For the remaining six participants the algorithm detected resets in 72%-99% of trials, with an average of 88%. The minimum number of resets in each of the six conditions for any participant is 7 (out of 24 trials), with an average of ~17. Since participants experiencing a "hit-the-wall reset" (Fig. 3) as opposed to a "jump" reset, might not always display a detectable direction change in their paths, 50% of trials with resets seems reasonable. Either type of perceived resets appears valid, and the average reset positions still indicates some limit to the illusion. Therefore, we kept all participants and resets in our analysis (reset points in Fig. 4, right).
+On average, this method detects resets in ~68% of trials. For two participants, less than half the trials showed resets (9% and 22%). For the remaining seven participants the algorithm detected resets in 65%-99% of trials, with an average of 82%. Since participants experiencing a "hit-the-wall reset" (Fig. 3) as opposed to a "jump" reset, might not always display a detectable direction change in their paths, most of these percentages of trials with resets seems reasonable. However, the participant with 9% resets will not be used for figures and statistics, but we have verified that excluding their data does not change the results. This means we analyse a total of 858 reset points (Fig. 4, right).
 
-As before, we compare the strength of the illusion (see Fig 5, left), with an earlier study [@Heller2021]. A line through the origin with slope 0.51 ($K$ from Eq. 1) predicts illusion strength fairly well in these data, which is weaker than the $K=0.74$ found by Heller et al. [-@Heller2021] and in Experiment 1 with online tracking. While the illusion is less strong, it is nevertheless there and depends on the relationship between internal and external speed as in previous studies.
+As before, we compare the strength of the illusion (see Fig 5, left), with an earlier study [@Heller2021]. A line through the origin with $K=0.54$ predicts illusion strength fairly well in these data, which is weaker than the $K=0.74$ found by Heller et al. [-@Heller2021]. Illusion strength is also lower than in Experiment 1 with online tracking and it has a fair amount of between-subject variation in this task (blue shaded area is 95% confidence interval across participants). While the illusion is less strong, it is nevertheless there and depends on the relationship between internal and external speed as in previous studies.
 
 ## Limits on the Double-Drift Illusion
 
