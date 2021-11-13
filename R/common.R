@@ -1,125 +1,12 @@
 
 
+# useful extra operator:
 `%notin%` <- Negate(`%in%`)
 
 
-
-# 
-# # pixels per cm
-# 
-# # resolution is 1680 x 1050 pixels
-# # which spans ~43.5 x ~27 cm
-# # for width that is roughly 38.799 pixels per cm
-# # for depth that is roughly 38.888 pixels per cm
-# # on average that would be: 38.755 pixels per cm
-# 
-# PPC <- 38.754789272
-# 
-
-
-getPPCdva <- function(lo=3) {
-  
-  props <- list()
-  props['PPC'] <- 38.754789272 # pixels per cm
-  
-  # tan(A) = a/b
-  
-  dva <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo), 
-                     'gabor.pos' = seq(-6.75, 6.75, length.out = lo))
-  
-  b <- 27 # distance between mirror and monitor
-  a <- dva$eye.dist + dva$gabor.pos # horizontal distance (along monitor) 
-  
-  # https://en.wikipedia.org/wiki/Trigonometry
-  A <- atan(a/b) # angle at centre of gabor
-  
-  a1 <- tan(A+((0.5/180)*pi))*b
-  a2 <- tan(A-((0.5/180)*pi))*b
-  
-  dva$cmpd <- a1 - a2
-  
-  ghw <- (100/3) / props[['PPC']]
-  
-  props[['gaborcm']] <- ghw
-  
-  dva$gabor.dva <- ghw / dva$cmpd
-  
-  props[['dva']] <- dva
-  
-  # visual size of the "workspace" (13.5 cm track)
-  dva.track <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo))
-  
-  b <- 27
-  a <- dva.track$eye.dist
-  
-  A1 <- atan(a/(b-6.75)) # the angle of the close end at each head position
-  A2 <- atan(a/(b+6.75)) # the angle of the far end at each head position
-  
-  dva.track$dva <- ((A1-A2)/pi)*180
-  
-  props[['track']] <- dva.track
-  
-  return(props)
-  
-}
-
-
-getColors <- function() {
-  
-  colors <- list()
-  
-  colors[['blue']]      <- list('s'='#005de4ff', 't'='#005de42f')
-  
-  colors[['lightblue']] <- list('s'='#0fd2e2ff', 't'='#0fd2e22f')
-  
-  colors[['yorkred']]   <- list('s'='#e51636ff', 't'='#e516362f')
-  
-  colors[['orange']]    <- list('s'='#ff8200ff', 't'='#ff82002f')
-  
-  colors[['purple']]    <- list('s'='#b400e4ff', 't'='#b400e42f')
-  
-  # colorset[['onlPasS']] <- '#8266f4ff' # violet
-  # colorset[['onlPasT']] <- '#8266ff2f'
-  
-  # colorset[['onlPasS']] <- '#ff6ec7ff' # pink
-  # colorset[['onlPasT']] <- '#ff6ec72f'
-  
-  return(colors)
-  
-}
-
-
-getConfidenceInterval <- function(data, variance = var(data), conf.level = 0.95, method='t-distr', resamples=1000, FUN=mean) {
-  
-  if (method %in% c('t-distr','t')) {
-    
-    z = qt((1 - conf.level)/2, df = length(data) - 1, lower.tail = FALSE)
-    
-    xbar = mean(data)
-    sdx = sqrt(variance/length(data))
-    
-    return(c(xbar - (z * sdx), xbar + (z * sdx)))
-    
-  }
-  
-  # add sample z-distribution?
-  
-  if (method %in% c('bootstrap','b')) {
-    
-    data <- data[which(is.finite(data))] #need is.finite due to NA values
-    
-    samplematrix <- matrix(sample(data, size = resamples*length(data), replace = TRUE), nrow = resamples)
-    BS <- apply(samplematrix, c(1), FUN=FUN) 
-    
-    lo <- (1-conf.level)/2.
-    hi <- 1 - lo
-    
-    return(quantile(BS, probs = c(lo,hi)))
-    
-  }
-  
-}
-
+# # # # # # # # # # # # # # #
+# trajectory processing -----
+# # # # # # # # # # # # # # #
 
 rotateCoordinates <- function(df,angle,origin=c(0,0)) {
   
@@ -319,6 +206,160 @@ getSplinedVelocity <- function(x, y, t, spar=0.01) {
   
 }
 
+
+# # # # # # # # # # # # #
+# monitor / setup / stimulus properties -----
+# # # # # # # # # # # # #
+
+# 
+# # pixels per cm
+# 
+# # resolution is 1680 x 1050 pixels
+# # which spans ~43.5 x ~27 cm
+# # for width that is roughly 38.799 pixels per cm
+# # for depth that is roughly 38.888 pixels per cm
+# # on average that would be: 38.755 pixels per cm
+# 
+# PPC <- 38.754789272
+# 
+
+
+getPPCdva <- function(lo=3) {
+  
+  props <- list()
+  props['PPC'] <- 38.754789272 # pixels per cm
+  
+  # tan(A) = a/b
+  
+  dva <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo), 
+                     'gabor.pos' = seq(-6.75, 6.75, length.out = lo))
+  
+  b <- 27 # distance between mirror and monitor
+  a <- dva$eye.dist + dva$gabor.pos # horizontal distance (along monitor) 
+  
+  # https://en.wikipedia.org/wiki/Trigonometry
+  A <- atan(a/b) # angle at centre of gabor
+  
+  a1 <- tan(A+((0.5/180)*pi))*b
+  a2 <- tan(A-((0.5/180)*pi))*b
+  
+  dva$cmpd <- a1 - a2
+  
+  ghw <- (100/3) / props[['PPC']]
+  
+  props[['gaborcm']] <- ghw
+  
+  dva$gabor.dva <- ghw / dva$cmpd
+  
+  props[['dva']] <- dva
+  
+  # visual size of the "workspace" (13.5 cm track)
+  dva.track <- expand.grid('eye.dist'  = seq(15, 25, length.out = lo))
+  
+  b <- 27
+  a <- dva.track$eye.dist
+  
+  A1 <- atan(a/(b-6.75)) # the angle of the close end at each head position
+  A2 <- atan(a/(b+6.75)) # the angle of the far end at each head position
+  
+  dva.track$dva <- ((A1-A2)/pi)*180
+  
+  props[['track']] <- dva.track
+  
+  return(props)
+  
+}
+
+getWhiteLuminanceCurve <- function() {
+  
+  # read luminance measures for monitor + mirror:
+  lumdata <- read.csv('data/luminance.csv', stringsAsFactors = FALSE)
+  # use only the white/grayscale values:
+  lumdata <- lumdata[which(lumdata$measure=='white'),]
+  
+  #print(summary(lm(L ~ poly(R, 3), data=lumdata)))
+  
+  # we fit a 3rd order polynomial, and predict luminance for all 256 grayscale RGB values
+  predicted_luminance <- predict(lm(L ~ poly(R, 3), data=lumdata), 
+                                 newdata=data.frame('R'=seq(0,255)))
+  
+  # we return this as a look-up table
+  # to use for calculating luminance of stimuli
+  return(predicted_luminance)
+  
+  # 1) convert colors of stimuli to matrix or vector of INT grayscale RGB values
+  # 2) throw in this look-up table as indices to get Luminance values
+  
+}
+
+getGaborLuminanceValues <- function(mask=NULL) {
+  
+  #phases <- seq(0,359.9,45)
+  stepsize <- 15
+  phases <- seq(0,360-stepsize,stepsize)
+
+  wc <- getWhiteLuminanceCurve()
+  
+  phase <- c()
+  luminance <- c()
+  
+  if (is.null(mask)) {
+    mask <- c(1:(120*120))
+  } else {
+    pixels <- expand.grid('x'=seq(-59.5,59.5),'y'=seq(-59.5,59.5))
+    d <- sqrt( rowSums( pixels^2 ) )
+    mask <- which(d <= mask)
+  }
+  
+  for (ph in phases) {
+    
+    img <- magick::image_read(sprintf('data/gabors/background_gabor_%d.png',ph))
+    dat <- strtoi(sprintf('0x%s', img[[1]][1,,] ))[mask]
+    
+    phase <- c(phase, ph)
+    luminance <- c(luminance, mean(wc[dat]))
+    
+  }
+  
+  return(data.frame(phase,luminance))
+  
+}
+
+# # # # # # # # # # # # # #
+# statistics function -----
+# # # # # # # # # # # # # #
+
+getConfidenceInterval <- function(data, variance = var(data), conf.level = 0.95, method='t-distr', resamples=1000, FUN=mean) {
+  
+  if (method %in% c('t-distr','t')) {
+    
+    z = qt((1 - conf.level)/2, df = length(data) - 1, lower.tail = FALSE)
+    
+    xbar = mean(data)
+    sdx = sqrt(variance/length(data))
+    
+    return(c(xbar - (z * sdx), xbar + (z * sdx)))
+    
+  }
+  
+  # add sample z-distribution?
+  
+  if (method %in% c('bootstrap','b')) {
+    
+    data <- data[which(is.finite(data))] #need is.finite due to NA values
+    
+    samplematrix <- matrix(sample(data, size = resamples*length(data), replace = TRUE), nrow = resamples)
+    BS <- apply(samplematrix, c(1), FUN=FUN) 
+    
+    lo <- (1-conf.level)/2.
+    hi <- 1 - lo
+    
+    return(quantile(BS, probs = c(lo,hi)))
+    
+  }
+  
+}
+
 confidenceEllipse <- function(x, y=NA, interval=.95, vectors=100) {
   
   # get the square root of the chi-squared value for the specified confidence interval:
@@ -384,6 +425,132 @@ confidenceEllipse <- function(x, y=NA, interval=.95, vectors=100) {
   return(ellipse)
   
 }
+
+# # # # # # # # # # # # # # # # # # # # # 
+# extended plotting functionality -----
+# # # # # # # # # # # # # # # # # # # # # 
+
+
+# colors used for the figures:
+getColors <- function(transparency=81.5) {
+  
+  colors <- list()
+  
+  colors[['blue']]      <- list('s'='#005de4ff')
+  colors$blue[['t']] <- t_col(colors$blue$s,percent=transparency)
+  
+  colors[['lightblue']] <- list('s'='#0fd2e2ff')
+  colors$lightblue[['t']] <- t_col(colors$blue$s,percent=transparency)
+  
+  colors[['yorkred']]   <- list('s'='#e51636ff')
+  colors$yorkred[['t']] <- t_col(colors$yorkred$s,percent=transparency)
+  
+  colors[['orange']]    <- list('s'='#ff8200ff')
+  colors$orange[['t']] <- t_col(colors$orange$s,percent=transparency)
+  
+  colors[['purple']]    <- list('s'='#b400e4ff')
+  colors$purple[['t']] <- t_col(colors$purple$s,percent=transparency)
+  
+  return(colors)
+  
+}
+
+
+# function by: January Weiner
+# https://logfc.wordpress.com/2017/03/15/adding-figure-labels-a-b-c-in-the-top-left-corner-of-the-plotting-region/
+# (downloaded: 2021-11-04)
+
+fig_label <- function(text, region="figure", pos="topleft", cex=NULL, ...) {
+  
+  region <- match.arg(region, c("figure", "plot", "device"))
+  pos <- match.arg(pos, c("topleft", "top", "topright", 
+                          "left", "center", "right", 
+                          "bottomleft", "bottom", "bottomright"))
+  
+  if(region %in% c("figure", "device")) {
+    ds <- dev.size("in")
+    # xy coordinates of device corners in user coordinates
+    x <- grconvertX(c(0, ds[1]), from="in", to="user")
+    y <- grconvertY(c(0, ds[2]), from="in", to="user")
+    
+    # fragment of the device we use to plot
+    if(region == "figure") {
+      # account for the fragment of the device that 
+      # the figure is using
+      fig <- par("fig")
+      dx <- (x[2] - x[1])
+      dy <- (y[2] - y[1])
+      x <- x[1] + dx * fig[1:2]
+      y <- y[1] + dy * fig[3:4]
+    } 
+  }
+  
+  # much simpler if in plotting region
+  if(region == "plot") {
+    u <- par("usr")
+    x <- u[1:2]
+    y <- u[3:4]
+  }
+  
+  sw <- strwidth(text, cex=cex) * 60/100
+  sh <- strheight(text, cex=cex) * 60/100
+  
+  x1 <- switch(pos,
+               topleft     =x[1] + sw, 
+               left        =x[1] + sw,
+               bottomleft  =x[1] + sw,
+               top         =(x[1] + x[2])/2,
+               center      =(x[1] + x[2])/2,
+               bottom      =(x[1] + x[2])/2,
+               topright    =x[2] - sw,
+               right       =x[2] - sw,
+               bottomright =x[2] - sw)
+  
+  y1 <- switch(pos,
+               topleft     =y[2] - sh,
+               top         =y[2] - sh,
+               topright    =y[2] - sh,
+               left        =(y[1] + y[2])/2,
+               center      =(y[1] + y[2])/2,
+               right       =(y[1] + y[2])/2,
+               bottomleft  =y[1] + sh,
+               bottom      =y[1] + sh,
+               bottomright =y[1] + sh)
+  
+  old.par <- par(xpd=NA)
+  on.exit(par(old.par))
+  
+  text(x1, y1, text, cex=cex, ...)
+  return(invisible(c(x,y)))
+}
+
+
+## Transparent colors
+## Mark Gardener 2015
+## www.dataanalytics.org.uk
+
+t_col <- function(color, percent = 50, name = NULL) {
+  #      color = color name
+  #    percent = % transparency
+  #       name = an optional name for the color
+  
+  ## Get RGB values for named color
+  rgb.val <- col2rgb(color)
+  
+  ## Make new color using input color as base and alpha set by transparency
+  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
+               max = 255,
+               alpha = (100 - percent) * 255 / 100,
+               names = name)
+  
+  ## Save the color
+  #invisible(t.col)
+  return(t.col)
+}
+## END
+
+
+
 
 
 
@@ -542,7 +709,7 @@ density2D <- function(x, y, bw=1, weights=NULL, n=100, from=NULL, to=NULL, cut=3
   } else {
     weights <- rep(1/length(x), length(x))
   }
-
+  
   # remove NA values, if specified:
   if (na.rm) {
     idx <- intersect( which(!is.na(x)), which(!is.na(y)) )
@@ -583,117 +750,3 @@ density2D <- function(x, y, bw=1, weights=NULL, n=100, from=NULL, to=NULL, cut=3
 }
 
 
-
-## Transparent colors
-## Mark Gardener 2015
-## www.dataanalytics.org.uk
-
-t_col <- function(color, percent = 50, name = NULL) {
-  #      color = color name
-  #    percent = % transparency
-  #       name = an optional name for the color
-  
-  ## Get RGB values for named color
-  rgb.val <- col2rgb(color)
-  
-  ## Make new color using input color as base and alpha set by transparency
-  t.col <- rgb(rgb.val[1], rgb.val[2], rgb.val[3],
-               max = 255,
-               alpha = (100 - percent) * 255 / 100,
-               names = name)
-  
-  ## Save the color
-  #invisible(t.col)
-  return(t.col)
-}
-## END
-
-
-getWhiteLuminanceCurve <- function() {
-  
-  # read luminance measures for monitor + mirror:
-  lumdata <- read.csv('data/luminance.csv', stringsAsFactors = FALSE)
-  # use only the white/grayscale values:
-  lumdata <- lumdata[which(lumdata$measure=='white'),]
-  
-  # we fit a 3rd order polynomial, and predict luminance for all 256 grayscale RGB values
-  predicted_luminance <- predict(lm(L ~ poly(R, 3), data=lumdata), 
-                                 newdata=data.frame('R'=seq(0,255)))
-  
-  # we return this as a look-up table
-  # to use for calculating luminance of stimuli
-  return(predicted_luminance)
-  
-  # 1) convert colors of stimuli to matrix or vector of INT grayscale RGB values
-  # 2) throw in this look-up table as indices to get Luminance values
-  
-}
-
-
-# function by: January Weiner
-# https://logfc.wordpress.com/2017/03/15/adding-figure-labels-a-b-c-in-the-top-left-corner-of-the-plotting-region/
-# (downloaded: 2021-11-04)
-
-fig_label <- function(text, region="figure", pos="topleft", cex=NULL, ...) {
-  
-  region <- match.arg(region, c("figure", "plot", "device"))
-  pos <- match.arg(pos, c("topleft", "top", "topright", 
-                          "left", "center", "right", 
-                          "bottomleft", "bottom", "bottomright"))
-  
-  if(region %in% c("figure", "device")) {
-    ds <- dev.size("in")
-    # xy coordinates of device corners in user coordinates
-    x <- grconvertX(c(0, ds[1]), from="in", to="user")
-    y <- grconvertY(c(0, ds[2]), from="in", to="user")
-    
-    # fragment of the device we use to plot
-    if(region == "figure") {
-      # account for the fragment of the device that 
-      # the figure is using
-      fig <- par("fig")
-      dx <- (x[2] - x[1])
-      dy <- (y[2] - y[1])
-      x <- x[1] + dx * fig[1:2]
-      y <- y[1] + dy * fig[3:4]
-    } 
-  }
-  
-  # much simpler if in plotting region
-  if(region == "plot") {
-    u <- par("usr")
-    x <- u[1:2]
-    y <- u[3:4]
-  }
-  
-  sw <- strwidth(text, cex=cex) * 60/100
-  sh <- strheight(text, cex=cex) * 60/100
-  
-  x1 <- switch(pos,
-               topleft     =x[1] + sw, 
-               left        =x[1] + sw,
-               bottomleft  =x[1] + sw,
-               top         =(x[1] + x[2])/2,
-               center      =(x[1] + x[2])/2,
-               bottom      =(x[1] + x[2])/2,
-               topright    =x[2] - sw,
-               right       =x[2] - sw,
-               bottomright =x[2] - sw)
-  
-  y1 <- switch(pos,
-               topleft     =y[2] - sh,
-               top         =y[2] - sh,
-               topright    =y[2] - sh,
-               left        =(y[1] + y[2])/2,
-               center      =(y[1] + y[2])/2,
-               right       =(y[1] + y[2])/2,
-               bottomleft  =y[1] + sh,
-               bottom      =y[1] + sh,
-               bottomright =y[1] + sh)
-  
-  old.par <- par(xpd=NA)
-  on.exit(par(old.par))
-  
-  text(x1, y1, text, cex=cex, ...)
-  return(invisible(c(x,y)))
-}
