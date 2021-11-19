@@ -44,13 +44,11 @@ source('R/data.R')
 # This file has some common helper functions:
 source('R/common.R')
 # The functions in here are used on the data of the bounded tracking experiments:
-source('R/tracking_bounded.R')
+source('R/exp1_tracking.R')
 # And finally some code for the re-tracing experiment...
-source('R/retrace_onePass_V4.R')
+source('R/exp2_retracing.R')
 # As well as models fit to that data:
-source('R/models.R')
-# Comparison with Sirui Liu's data:
-source('R/time.R')
+source('R/exp2_models.R')
 ```
 
 ## Download data
@@ -59,7 +57,7 @@ A last step before starting actual analyses is to download the data from the Ope
 
 ```{r}
 # from R/data.R
-downloadRawData(overwrite=FALSE, experiments=c('bounded_tracking', 'bounded_tracking_V2', 'onePass_V4'))
+OSFdata()
 ```
 
 If there were no errors, we're now ready to start.
@@ -121,16 +119,17 @@ In order to determine the point of reset automatically, we took the first sign c
 ```{r}
 retrace <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
 retrace$value <- 1
-retrace$value[which(is.na(retrace$boundX))] <- 0
+retrace$value[which(is.na(retrace$resetX))] <- 0
 resetcounts <- aggregate(value ~ participant, data=retrace, FUN=sum)
 resetcounts$value <- resetcounts$value / (6*6*4)
 print(resetcounts)
+#print(mean(retrace$value))
 ```
 
 We can also look at this, further split by condition:
 
 ```{r}
-resetcountsCOND <- aggregate(value ~ participant + internalspeed + externalspeed, data=retrace, FUN=sum)
+resetcountsCOND <- aggregate(value ~ participant + abs(internalspeed) + externalspeed, data=retrace, FUN=sum)
 print(resetcountsCOND)
 hist(resetcountsCOND$value)
 ```
