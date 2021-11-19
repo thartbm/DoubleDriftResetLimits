@@ -589,11 +589,13 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   title(xlab='internal speed [cps]', line=2.4)
   title(main='C: heading', font.main=1, cex.main=1.5, adj=0, line=0.5)
   
+  headingCIs <- aggregate(heading ~ internalSpeed, data=heading[['statistics']], FUN=getConfidenceInterval, conf.level=0.95)
+  
   for (internalSpeed.idx in c(1:length(internalSpeeds))) {
     
     internalSpeed <- internalSpeeds[internalSpeed.idx]
 
-    # 2/3 of heading samples falls in this interval:
+    # 90% of ALL heading samples falls in this interval:
     interval <- unlist(heading[['interval']][which(heading[['interval']]$internalSpeed == internalSpeed),])
     lo <- interval[2]
     hi <- interval[3]
@@ -601,6 +603,13 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
     pX <- c( cos(arc) * 0.5, cos(rev(arc)) * 1.75 ) + internalSpeed.idx
     pY <- c( sin(arc) * 0.5, sin(rev(arc)) * 1.75 ) + 0.75
     polygon(pX,pY,border=NA,col=colors$blue$t)
+    # 95% CI across participants:
+    ci95 <- as.vector(unlist(headingCIs[which(headingCIs$internalSpeed == internalSpeed),c(2)]))
+    arc <- seq(ci95[1],ci95[2],length.out=25)
+    pX <- c( cos(arc) * 0.5, cos(rev(arc)) * 1.75 ) + internalSpeed.idx
+    pY <- c( sin(arc) * 0.5, sin(rev(arc)) * 1.75 ) + 0.75
+    polygon(pX,pY,border=NA,col=colors$blue$t)
+    
     
     # now the average trajectory:
     avgDir <- heading[['average']]$heading[which(heading[['average']]$internalSpeed == internalSpeed)] 
@@ -648,6 +657,7 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   angles <- c(0,pi/4)
   # Heller et al. (2021):
   lines(angles,0.74*((angles/pi)*180),col='black',lty=1)
+  lines(angles,0.60*((angles/pi)*180),col='black',lty=2)
   
   # individual participants
   points(xcoords, (df$heading/pi)*180, col=colors$lightblue$s, pch=1, cex=1.0)
@@ -672,9 +682,9 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   
   
   legend(x=0, y=45, 
-         legend=c('Heller et al. (2021)', 'participants (N=4)', 'average'), 
-         col=c('black', colors$lightblue$s, colors$yorkred$s), 
-         pch=c(NA,1,1), lty=c(1,0,0), 
+         legend=c('Heller et al. (2021), K=0.74', 'K=0.60', 'participants (N=4)', 'average'), 
+         col=c('black','black', colors$lightblue$s, colors$yorkred$s), 
+         pch=c(NA,NA,1,1), lty=c(1,2,0,0), 
          bty='n', cex=1)
   
   #axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
