@@ -325,9 +325,9 @@ getGaborLuminanceValues <- function(mask=NULL) {
   
 }
 
-# # # # # # # # # # # # # #
-# statistics function -----
-# # # # # # # # # # # # # #
+# # # # # # # # # # # # # # #
+# statistics functions  -----
+# # # # # # # # # # # # # # #
 
 getConfidenceInterval <- function(data, variance = var(data), conf.level = 0.95, method='t-distr', resamples=1000, FUN=mean) {
   
@@ -426,6 +426,28 @@ confidenceEllipse <- function(x, y=NA, interval=.95, vectors=100) {
   
 }
 
+#' add partial eta squared to ezANOVA output
+#'
+#'
+#' @param ezANOVAResult ezANOVA result
+#' @return ezANOVA with partial eta-squared
+#' @details ezANOVA must be run with parameter 'detailed=T'.
+#' @author Frank Papenmeier
+#' @export
+#'
+ezANOVA.pes <- function (ezANOVAResult)
+{
+  if (is.null(ezANOVAResult$ANOVA$SSn) | is.null(ezANOVAResult$ANOVA$SSd))
+  {
+    stop("ezANOVA must be run with parameter 'detailed=T'.")
+  }
+  
+  ezANOVAResult$ANOVA$pes <- ezANOVAResult$ANOVA$SSn/(ezANOVAResult$ANOVA$SSn+ezANOVAResult$ANOVA$SSd)
+  
+  return(ezANOVAResult)
+}
+
+
 # # # # # # # # # # # # # # # # # # # # # 
 # extended plotting functionality -----
 # # # # # # # # # # # # # # # # # # # # # 
@@ -440,7 +462,7 @@ getColors <- function(transparency=81.5) {
   colors$blue[['t']] <- t_col(colors$blue$s,percent=transparency)
   
   colors[['lightblue']] <- list('s'='#0fd2e2ff')
-  colors$lightblue[['t']] <- t_col(colors$blue$s,percent=transparency)
+  colors$lightblue[['t']] <- t_col(colors$lightblue$s,percent=transparency)
   
   colors[['yorkred']]   <- list('s'='#e51636ff')
   colors$yorkred[['t']] <- t_col(colors$yorkred$s,percent=transparency)
