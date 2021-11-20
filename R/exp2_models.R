@@ -2369,7 +2369,7 @@ plotUncoupledModels <- function(df, target='inline') {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-fitJointModel <- function(df) {
+fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE) {
   
   outputlist <- list()
   
@@ -2438,98 +2438,149 @@ fitJointModel <- function(df) {
   
   
   # **********************************
-  # the X-Normal distributions
+  # the X-Normal distribution
   # **********************************
   
-  # create search "grids":
-  mX = seq(0, 8, length.out = 16)
-  sX = seq(0, 8, length.out = 16)
-  
-  # make them into data frames:
-  searchgridXlim <- expand.grid('mXn'=mX, 'sXn'=sX)
-  
-  # get Likelihoods for points in search grid:
-  expXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XoffsetGaussianLikelihood)
-  
-  # get 5 best points in the grid:
-  topgridXlim <- searchgridXlim[order(expXlimLLs, decreasing = TRUE)[c(1,5,9)],]
-  
-  control <- list( 'maximize' = TRUE )
-  
-  # print(topgridXlim)
-  
-  # do the actual fitting:
-  allXlimFits <- do.call("rbind",
-                         apply( topgridXlim,
-                                MARGIN=c(1),
-                                FUN=optimx,
-                                fn=resetLogLikelihood,
-                                method=c('nlminb'),
-                                lower=c( 0.0, 0.0 ),
-                                upper=c(13.5, 13.5),
-                                control=control,
-                                data=df,
-                                fitFUN=XoffsetGaussianLikelihood,) )
-  
-  
-  
-  # pick the best fit:
-  winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
-  
-  winXparN <- unlist(winXlimFit[c('mXn','sXn')])
-  
-  winXvalN <- as.numeric(winXlimFit$value)
-  names(winXvalN) <- c('logL')
-  
-  
-  outputlist[['XdistNormal']]=list('par'=winXparN,'logL'=winXvalN)
-  
+  if (Xnormal) {
+    
+    # create search "grids":
+    mX = seq(0, 8, length.out = 16)
+    sX = seq(0, 8, length.out = 16)
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('mXn'=mX, 'sXn'=sX)
+    
+    # get Likelihoods for points in search grid:
+    expXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XoffsetGaussianLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXlim <- searchgridXlim[order(expXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # print(topgridXlim)
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c( 0.0, 0.0 ),
+                                  upper=c(13.5, 13.5),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=XoffsetGaussianLikelihood,) )
+    
+    
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+    
+    winXparN <- unlist(winXlimFit[c('mXn','sXn')])
+    
+    winXvalN <- as.numeric(winXlimFit$value)
+    names(winXvalN) <- c('logL')
+    
+    
+    outputlist[['XdistNormal']]=list('par'=winXparN,'logL'=winXvalN)
+    
+  }
   
   # **********************************
   # the T-Gamma distributions
   # **********************************
   
+  if (Tgamma) {
+    
+    # create search "grids":
+    sT = seq(0, 20, length.out = 16)
+    rT = 1/seq(0, 4, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridTlim <- expand.grid('sTg'=sT, 'rTg'=rT)
+    
+    # get MSE for points in search grid:
+    gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TGammaLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10),
+                                  upper=c( 20.0,  10.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=TGammaLikelihood) )
+    
+    
+    # pick the best fit:
+    winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+    
+    winTparG <- unlist(winTlimFit[c('sTg','rTg')])
+    
+    winTvalG <- as.numeric(winTlimFit$value)
+    names(winTvalG) <- c('logL')
+    
+    outputlist[['TdistGamma']]=list('par'=winTparG,'logL'=winTvalG)
+    
+  }
   
+  # **********************************
+  # the X-Gamma distributions
+  # **********************************
   
-  # create search "grids":
-  sT = seq(0, 20, length.out = 16)
-  rT = 1/seq(0, 4, length.out = 16)[2:16]
-  
-  # make them into data frames:
-  searchgridTlim <- expand.grid('sTg'=sT, 'rTg'=rT)
-  
-  # get MSE for points in search grid:
-  gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TGammaLikelihood)
-  
-  # get 5 best points in the grid:
-  topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
-  
-  control <- list( 'maximize' = TRUE )
-  
-  # do the actual fitting:
-  allTlimFits <- do.call("rbind",
-                         apply( topgridTlim,
-                                MARGIN=c(1),
-                                FUN=optimx,
-                                fn=resetLogLikelihood,
-                                method=c('nlminb'),
-                                lower=c(1e-10, 1e-10),
-                                upper=c( 20.0,  10.0),
-                                control=control,
-                                data=df,
-                                fitFUN=TGammaLikelihood) )
-  
-  
-  # pick the best fit:
-  winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
-  
-  winTparG <- unlist(winTlimFit[c('sTg','rTg')])
-  
-  winTvalG <- as.numeric(winTlimFit$value)
-  names(winTvalG) <- c('logL')
-  
-  outputlist[['TdistGamma']]=list('par'=winTparG,'logL'=winTvalG)
-  
+  if (Xgamma) {
+    
+    # create search "grids":
+    sXg = seq(0, 20, length.out = 16)
+    rXg = 1/seq(0, 4, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('sXg'=sXg, 'rXg'=rXg)
+    
+    # get MSE for points in search grid:
+    gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XGammaLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXlim <- searchgridXlim[order(gamXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10),
+                                  upper=c( 20.0,  10.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=XGammaLikelihood) )
+    
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+    
+    winXparG <- unlist(winXlimFit[c('sXg','rXg')])
+    
+    winXvalG <- as.numeric(winXlimFit$value)
+    names(winXvalG) <- c('logL')
+    
+    outputlist[['XdistGamma']]=list('par'=winXparG,'logL'=winXvalG)
+    
+  }
   
   # **************************************
   # the joint model:
@@ -2537,88 +2588,113 @@ fitJointModel <- function(df) {
   # T has a gamma distribution
   # **************************************
   
-  # build a search grid:
-  xNm <- seq(0,8,length.out = 10)
-  xNs <- seq(0,4,length.out = 10)
-  tGs <- seq(0,10,length.out = 10)[2:11]
-  tGr <- seq(0, 5,length.out = 10)[2:11]
-  jointXTgrid <- expand.grid('mXn'=xNm, 'sXn'=xNs, 'sTg'=tGs, 'rTg'= tGr)
+  if (jointModel) {
+    
+    # build a search grid:
+    xNm <- seq(0,8,length.out = 10)
+    xNs <- seq(0,4,length.out = 10)
+    tGs <- seq(0,10,length.out = 10)[2:11]
+    tGr <- seq(0, 5,length.out = 10)[2:11]
+    jointXTgrid <- expand.grid('mXn'=xNm, 'sXn'=xNs, 'sTg'=tGs, 'rTg'= tGr)
+    
+    # get Likelihoods for points in search grid:
+    jointXTlLs <- apply(jointXTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XgaussianTgammaLikelihood)
+    
+    # get some of the best points in the grid:
+    topgridJointXT <- jointXTgrid[order(jointXTlLs, decreasing = TRUE)[c(1:10)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allJointXTfits <- do.call("rbind",
+                              apply( topgridJointXT,
+                                     MARGIN=c(1),
+                                     FUN=optimx,
+                                     fn=resetLogLikelihood,
+                                     method=c('nlminb'),
+                                     lower=c( 0.0, 0.0,  0.0, 0.0 ),
+                                     upper=c( 8.0, 4.0, 10.0, 5.0 ),
+                                     control=control,
+                                     data=df,
+                                     fitFUN=XgaussianTgammaLikelihood) )
+    
+    # pick the best fit:
+    winJointXTfit <- allJointXTfits[order(allJointXTfits$value)[1],]
+    
+    winJointXTpar <- unlist(winJointXTfit[c('mXn','sXn','sTg','rTg')])
+    
+    winJointXTval <- as.numeric(winJointXTfit$value)
+    names(winJointXTval) <- c('logL')
+    
+    outputlist[['JointXnormalTgamma']]=list('par'=winJointXTpar,'L'=winJointXTval)
+    
+  }
   
-  # get Likelihoods for points in search grid:
-  jointXTlLs <- apply(jointXTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XgaussianTgammaLikelihood)
-  
-  # get some of the best points in the grid:
-  topgridJointXT <- jointXTgrid[order(jointXTlLs, decreasing = TRUE)[c(1:10)],]
-  
-  control <- list( 'maximize' = TRUE )
-  
-  # do the actual fitting:
-  allJointXTfits <- do.call("rbind",
-                         apply( topgridJointXT,
-                                MARGIN=c(1),
-                                FUN=optimx,
-                                fn=resetLogLikelihood,
-                                method=c('nlminb'),
-                                lower=c( 0.0, 0.0,  0.0, 0.0 ),
-                                upper=c( 8.0, 4.0, 10.0, 5.0 ),
-                                control=control,
-                                data=df,
-                                fitFUN=XgaussianTgammaLikelihood) )
-  
-  # pick the best fit:
-  winJointXTfit <- allJointXTfits[order(allJointXTfits$value)[1],]
-  
-  winJointXTpar <- unlist(winJointXTfit[c('mXn','sXn','sTg','rTg')])
-  
-  winJointXTval <- as.numeric(winJointXTfit$value)
-  names(winJointXTval) <- c('logL')
-  
-  outputlist[['JointXnormalTgamma']]=list('par'=winJointXTpar,'L'=winJointXTval)
   
   return( outputlist )
   
 }
 
-plotJointModel <- function(df, target='inline') {
+plotModels <- function(target='inline') {
   
-  modelfits <- fitJointModel(df)
+  df <- getDataTrials()
+  
+  modelfits <- fitSomeModels(df, Xnormal=FALSE)
   
   colors <- getColors()
   
   if (target == 'pdf') {
-    pdf(file = 'doc/jointModel.pdf', width=6, height=4.5, bg='white')
+    pdf(file = 'doc/Fig5_marginals_distributions.pdf', width=6, height=4/0.75, bg='white')
   }
   
   # layout(mat=matrix(c(2,1,4,2,1,5,7,3,6),byrow=TRUE,ncol=3,nrow=3),
   #        widths = c(0.75,2,1.5), heights = c(1,1,1))
-  layout(mat=matrix(c(2,1,4,5,2,1,6,8,7,3,6,8),byrow=TRUE,ncol=4,nrow=3),
-         widths = c(0.75,2,1.25,1.25), heights = c(1,0.35,0.65))
+  # layout(mat=matrix(c(2,1,4,5,2,1,6,8,7,3,6,8),byrow=TRUE,ncol=4,nrow=3),
+  #        widths = c(0.75,2,1.25,1.25), heights = c(1,0.35,0.65))
+  layout(mat=matrix(c(2,1,4, 2,1,5, 6,3,5),byrow=TRUE,ncol=3,nrow=3),
+         widths = c(1,2,1.5), heights = c(2,1,1))
   
-  par(mar=c(3.75,3.5,2,0.5))
+  par(mar=c(3.5,3.5,2,2))
   
-  plot(df$X,df$RT,
+  plot(df$X,df$Y,
        main='',xlab='',ylab='',
-       xlim=c(0,8),ylim=c(0,4),
+       xlim=c(0,8),ylim=c(0,13.5),
        pch=16,col=t_col(colors$purple$s, percent = 95),cex=2.5,
-       bty='n',ax=F,asp=3)
+       bty='n',ax=F,asp=1)
   
   title(main='A: reset time and offset',
         font.main=1, cex.main=1.5, adj=0, line=0.25)
-  title(xlab='reset offset [cm]', line=2.4)
-  title(ylab='reset time [s]', line=2.4)
+  title(xlab='reset X [cm]', line=2.4)
+  title(ylab='reset Y [cm]', line=2.4)
   
   Lx <- modelfits$XlimOrth$par['Lx']
   lines(x   = rep(Lx,2),
-        y   = c(0,4), 
-        col = colors$blue$s)
+        y   = c(0,13.5), 
+        col = colors$blue$s,
+        lw=2)
+  polygon(x  = c(Lx,Lx-.2,Lx+.2),
+          y  = c(-.2, 0, 0),
+          col = colors$blue$s,
+          border=NA)
   
-  Lt <- modelfits$TlimOrth$par['Lt']
-  lines(x   = c(0,8),
-        y   = rep(Lt,2),
-        col = colors$yorkred$s)
+  Lt <- as.numeric(modelfits$TlimOrth$par['Lt'])
+  for (speed in c(3,4)) {
+    lines(x   = sin(seq(0,pi/2,length.out = 50)) * Lt * speed,
+          y   = cos(seq(0,pi/2,length.out = 50)) * Lt * speed,
+          col = colors$yorkred$s,
+          lw  = 2,
+          lty = speed-2)
+    polygon(x   = c(-.2,0,0),
+            y   = (Lt * speed) + c(0, .2, -.2),
+            col = colors$yorkred$s,
+            border=NA)
+  }
+  # lines(x   = c(0,8),
+  #       y   = rep(Lt,2),
+  #       col = colors$yorkred$s)
   
   axis(side=1,at=c(0,4,8))
-  axis(side=2,at=c(0,2,4))
+  axis(side=2,at=c(0,4.5,9,13.5))
   
   
   
@@ -2632,8 +2708,10 @@ plotJointModel <- function(df, target='inline') {
   
   plot(-1000,-1000,
        main='',xlab='',ylab='',
-       xlim=c(1-0.66,1),ylim=c(0,4),
+       xlim=c(1-0.75,1),ylim=c(0,4),
        bty='n', ax=F)
+  
+  title(ylab='reset time [s]', line=2.4)
   
   # put a histogram of the data:
   histogram <- hist(df$RT[which(df$RT <=4)], breaks=seq(0, 4, length.out = 40), plot=FALSE)
@@ -2647,6 +2725,19 @@ plotJointModel <- function(df, target='inline') {
             col='#CCCCCC',border=NA)
   }
   
+  
+  x <- c(0)
+  y <- c(0)
+  for (id in idx) {
+    y <- c(y, histogram$breaks[c(id,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+    x <- c(x, barheights[c(id,id)])
+  }
+  x <- 1-c(x,0)
+  y <- c(y,histogram$breaks[id])
+  polygon(x=x, y=y,
+          col='#CCCCCC',border=NA)
+  
+  
   # draw a line with the density of the model function
   par  <- modelfits$TdistGamma$par
   #print(par)
@@ -2656,6 +2747,8 @@ plotJointModel <- function(df, target='inline') {
   #print(max(dens))
   xvals <- data$RT
   lines(x=1-dens,y=xvals,col=colors$yorkred$s)
+  
+  axis(side=2,at=c(0,1,2,3,4))
   
   
   # # # # # # # # # # # # # # #
@@ -2667,35 +2760,39 @@ plotJointModel <- function(df, target='inline') {
   
   plot(-1000,-1000,
        main='',xlab='',ylab='',
-       xlim=c(0,8),ylim=c(0,0.29), # max density = 0.284705
+       xlim=c(0,8),ylim=c(0,0.36), # max density = 0.351679104
        bty='n', ax=F)
   
   # put a histogram of the data:
   histogram <- hist(df$X[which(df$X <=8)], breaks=seq(0, 8, length.out = 40), plot=FALSE)
   idx <- which(histogram$breaks < 8)
-  #barheights=histogram$density[idx]/max(histogram$density[idx])
   barheights = histogram$density[idx]
-  #print(barheights)
+
+  x <- c(0)
+  y <- c(0)
   for (id in idx) {
-    x <- c(histogram$breaks[c(id,id,id+1,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
-    y <- c(0.29,0.29-barheights[c(id,id)],0.29)
-    polygon(x=x, y=y,
-            col='#CCCCCC',border=NA)
+    x <- c(x, histogram$breaks[c(id,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+    y <- c(y, barheights[c(id,id)])
   }
+  x <- c(x,histogram$breaks[id])
+  y <- 0.36 - c(y,0)
+  polygon(x=x, y=y,
+          col='#CCCCCC',border=NA)
+  
   
   # draw a line with the density of the model function
-  par  <- modelfits$XdistNormal$par
+  par  <- modelfits$XdistGamma$par
   #print(par)
   data <- data.frame('X'=seq(0,8,0.02))
-  dens <- XoffsetGaussianLikelihood(par,data)$L 
+  dens <- XGammaLikelihood(par,data)$L 
   #dens <- dens / max(dens)
   #print(max(dens))
   #print(dens)
   xvals <- data$X
-  lines(x=xvals,y=0.29-dens,col=colors$blue$s)
+  lines(x=xvals,y=0.36-dens,col=colors$blue$s)
   
   
-
+  
   # # # # # # # # # # # # # # # # # # # # #
   #
   # no plot: distribution data for all fits
@@ -2720,13 +2817,15 @@ plotJointModel <- function(df, target='inline') {
   #
   # # # # # # # # # # # # # # # # #
   
-  plot(df$X,df$Y,
+  canvas_idx <- which(df$X <= 8 & df$Y <= 13.5)
+  
+  plot(df$X[canvas_idx],df$Y[canvas_idx],
        main='',xlab='',ylab='',
        xlim=c(0,8),ylim=c(0,13.5),
        pch=16,col=t_col('#000000', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
-  title(main='B: gamma T',
+  title(main='B: time model',
         font.main=1, cex.main=1.5, adj=0, line=0.25)
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
@@ -2739,7 +2838,7 @@ plotJointModel <- function(df, target='inline') {
               ncol=length(data_y),
               nrow=length(data_x))
   
-  pal='Purple-Blue'
+  #pal='Purple-Blue'
   
   image(add=TRUE,
         x=img_x,
@@ -2747,7 +2846,8 @@ plotJointModel <- function(df, target='inline') {
         z=Z,
         useRaster=TRUE,
         #col = gray.colors(256, rev=TRUE),
-        col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+        #col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+        col = linPal(from='#FFFFFF',to=colors$yorkred$s,alpha=0.5),
         #lw=0
   )
   
@@ -2760,20 +2860,20 @@ plotJointModel <- function(df, target='inline') {
   #
   # # # # # # # # # # # # # # # # #
   
-  plot(df$X,df$Y,
+  plot(df$X[canvas_idx],df$Y[canvas_idx],
        main='',xlab='',ylab='',
        xlim=c(0,8),ylim=c(0,13.5),
        pch=16,col=t_col('#000000', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
-  title(main='C: normal X',
+  title(main='C: offset model',
         font.main=1, cex.main=1.5, adj=0, line=0.25)
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
   
-  par <- modelfits$XdistNormal$par
-  likelihoods <- XoffsetGaussianLikelihood(par,data)
+  par <- modelfits$XdistGamma$par
+  likelihoods <- XGammaLikelihood(par,data)
   
   Z <- matrix(likelihoods$L,
               ncol=length(data_y),
@@ -2787,57 +2887,280 @@ plotJointModel <- function(df, target='inline') {
         z=Z,
         useRaster=TRUE,
         #col = gray.colors(256, rev=TRUE),
-        col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+        #col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+        col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5),
         #lw=0
   )
+  
+  axis(side=1,at=c(0,8))
+  axis(side=2,at=c(0,13.5))
+  
 
-  axis(side=1,at=c(0,8))
-  axis(side=2,at=c(0,13.5))
-  
-  # # # # # # # # # # # # # # # # # # # #
-  #
-  # seventh plot: joint distribution fit
-  #
-  # # # # # # # # # # # # # # # # # # # #
-  
-  plot(df$X,df$Y,
-       main='',xlab='',ylab='',
-       xlim=c(0,8),ylim=c(0,13.5),
-       pch=16,col=t_col('#000000', percent = 0),cex=0.2,
-       bty='n',ax=F,asp=1)
-  
-  title(main=expression('D: joint X,T'), 
-        font.main=1, cex.main=1.5, adj=0, line=0.25)
-  # title(main='D: joint X$\times$T',
-  #       font.main=1, cex.main=1.5, adj=0, line=0.25)
-  title(xlab='reset X [cm]', line=2.4)
-  title(ylab='reset Y [cm]', line=2.4)
-  
-  
-  par <- modelfits$JointXnormalTgamma$par
-  likelihoods <- XgaussianTgammaLikelihood(par,data)
-  
-  Z <- matrix(likelihoods$L,
-              ncol=length(data_y),
-              nrow=length(data_x))
-  
-  pal='Purple-Blue'
-  
-  image(add=TRUE,
-        x=img_x,
-        y=img_y,
-        z=Z,
-        useRaster=TRUE,
-        #col = gray.colors(256, rev=TRUE),
-        col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
-        #lw=0
-  )
-  
-  axis(side=1,at=c(0,8))
-  axis(side=2,at=c(0,13.5))
-  
   if (target %in% c('pdf','svg')) {
     dev.off()
   }
   
 }
+
+# plotJointModel <- function(df, target='inline') {
+#   
+#   modelfits <- fitSomeModels(df, jointModel=TRUE, Xgamma=FALSE)
+#   
+#   colors <- getColors()
+#   
+#   if (target == 'pdf') {
+#     pdf(file = 'doc/jointModel.pdf', width=6, height=4.5, bg='white')
+#   }
+#   
+#   # layout(mat=matrix(c(2,1,4,2,1,5,7,3,6),byrow=TRUE,ncol=3,nrow=3),
+#   #        widths = c(0.75,2,1.5), heights = c(1,1,1))
+#   layout(mat=matrix(c(2,1,4,5,2,1,6,8,7,3,6,8),byrow=TRUE,ncol=4,nrow=3),
+#          widths = c(0.75,2,1.25,1.25), heights = c(1,0.35,0.65))
+#   
+#   par(mar=c(3.75,3.5,2,0.5))
+#   
+#   plot(df$X,df$RT,
+#        main='',xlab='',ylab='',
+#        xlim=c(0,8),ylim=c(0,4),
+#        pch=16,col=t_col(colors$purple$s, percent = 95),cex=2.5,
+#        bty='n',ax=F,asp=3)
+#   
+#   title(main='A: reset time and offset',
+#         font.main=1, cex.main=1.5, adj=0, line=0.25)
+#   title(xlab='reset offset [cm]', line=2.4)
+#   title(ylab='reset time [s]', line=2.4)
+#   
+#   Lx <- modelfits$XlimOrth$par['Lx']
+#   lines(x   = rep(Lx,2),
+#         y   = c(0,4), 
+#         col = colors$blue$s)
+#   
+#   Lt <- modelfits$TlimOrth$par['Lt']
+#   lines(x   = c(0,8),
+#         y   = rep(Lt,2),
+#         col = colors$yorkred$s)
+#   
+#   axis(side=1,at=c(0,4,8))
+#   axis(side=2,at=c(0,2,4))
+#   
+#   
+#   
+#   # # # # # # # # # # # # # # #
+#   #
+#   # second plot: T distribution
+#   #
+#   # # # # # # # # # # # # # # #
+#   
+#   
+#   
+#   plot(-1000,-1000,
+#        main='',xlab='',ylab='',
+#        xlim=c(1-0.66,1),ylim=c(0,4),
+#        bty='n', ax=F)
+#   
+#   # put a histogram of the data:
+#   histogram <- hist(df$RT[which(df$RT <=4)], breaks=seq(0, 4, length.out = 40), plot=FALSE)
+#   idx <- which(histogram$breaks < 4)
+#   barheights=histogram$density[idx] #/max(histogram$density[idx])
+#   #print(barheights)
+#   for (id in idx) {
+#     y <- c(histogram$breaks[c(id,id,id+1,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+#     x <- c(1,1-barheights[c(id,id)],1)
+#     polygon(x=x, y=y,
+#             col='#CCCCCC',border=NA)
+#   }
+#   
+#   # draw a line with the density of the model function
+#   par  <- modelfits$TdistGamma$par
+#   #print(par)
+#   data <- data.frame('RT'=seq(0,4,0.02))
+#   dens <- TGammaLikelihood(par,data)$L 
+#   #dens <- dens / max(dens)
+#   #print(max(dens))
+#   xvals <- data$RT
+#   lines(x=1-dens,y=xvals,col=colors$yorkred$s)
+#   
+#   
+#   # # # # # # # # # # # # # # #
+#   #
+#   # third plot: X distribution
+#   #
+#   # # # # # # # # # # # # # # #
+#   
+#   
+#   plot(-1000,-1000,
+#        main='',xlab='',ylab='',
+#        xlim=c(0,8),ylim=c(0,0.29), # max density = 0.284705
+#        bty='n', ax=F)
+#   
+#   # put a histogram of the data:
+#   histogram <- hist(df$X[which(df$X <=8)], breaks=seq(0, 8, length.out = 40), plot=FALSE)
+#   idx <- which(histogram$breaks < 8)
+#   #barheights=histogram$density[idx]/max(histogram$density[idx])
+#   barheights = histogram$density[idx]
+#   #print(barheights)
+#   for (id in idx) {
+#     x <- c(histogram$breaks[c(id,id,id+1,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+#     y <- c(0.29,0.29-barheights[c(id,id)],0.29)
+#     polygon(x=x, y=y,
+#             col='#CCCCCC',border=NA)
+#   }
+#   
+#   # draw a line with the density of the model function
+#   par  <- modelfits$XdistNormal$par
+#   #print(par)
+#   data <- data.frame('X'=seq(0,8,0.02))
+#   dens <- XoffsetGaussianLikelihood(par,data)$L 
+#   #dens <- dens / max(dens)
+#   #print(max(dens))
+#   #print(dens)
+#   xvals <- data$X
+#   lines(x=xvals,y=0.29-dens,col=colors$blue$s)
+#   
+#   
+# 
+#   # # # # # # # # # # # # # # # # # # # # #
+#   #
+#   # no plot: distribution data for all fits
+#   #
+#   # # # # # # # # # # # # # # # # # # # # #
+#   
+#   
+#   # data for all distribution fits
+#   stepsize <- 0.1
+#   img_x <- seq(0,8,stepsize)
+#   img_y <- seq(0,13.5,stepsize)
+#   data_x <- img_x[1:(length(img_x)-1)] + diff(img_x)
+#   data_y <- img_y[1:(length(img_y)-1)] + diff(img_y)
+#   data = expand.grid('X'=data_x,'Y'=data_y)
+#   data$speed <- 4 # really: c(3.375, 4.500)
+#   data$RT <- sqrt(data$X^2 + data$Y^2) / data$speed
+#   
+#   
+#   # # # # # # # # # # # # # # # # #
+#   #
+#   # fifth plot: T distribution fit
+#   #
+#   # # # # # # # # # # # # # # # # #
+#   
+#   plot(df$X,df$Y,
+#        main='',xlab='',ylab='',
+#        xlim=c(0,8),ylim=c(0,13.5),
+#        pch=16,col=t_col('#000000', percent = 0),cex=0.2,
+#        bty='n',ax=F,asp=1)
+#   
+#   title(main='B: gamma T',
+#         font.main=1, cex.main=1.5, adj=0, line=0.25)
+#   title(xlab='reset X [cm]', line=2.4)
+#   title(ylab='reset Y [cm]', line=2.4)
+#   
+#   
+#   par <- modelfits$TdistGamma$par
+#   likelihoods <- TGammaLikelihood(par,data)
+#   
+#   Z <- matrix(likelihoods$L,
+#               ncol=length(data_y),
+#               nrow=length(data_x))
+#   
+#   pal='Purple-Blue'
+#   
+#   image(add=TRUE,
+#         x=img_x,
+#         y=img_y,
+#         z=Z,
+#         useRaster=TRUE,
+#         #col = gray.colors(256, rev=TRUE),
+#         col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+#         #lw=0
+#   )
+#   
+#   axis(side=1,at=c(0,8))
+#   axis(side=2,at=c(0,13.5))
+#   
+#   # # # # # # # # # # # # # # # # #
+#   #
+#   # sixth plot: X distribution fit
+#   #
+#   # # # # # # # # # # # # # # # # #
+#   
+#   plot(df$X,df$Y,
+#        main='',xlab='',ylab='',
+#        xlim=c(0,8),ylim=c(0,13.5),
+#        pch=16,col=t_col('#000000', percent = 0),cex=0.2,
+#        bty='n',ax=F,asp=1)
+#   
+#   title(main='C: normal X',
+#         font.main=1, cex.main=1.5, adj=0, line=0.25)
+#   title(xlab='reset X [cm]', line=2.4)
+#   title(ylab='reset Y [cm]', line=2.4)
+#   
+#   
+#   par <- modelfits$XdistNormal$par
+#   likelihoods <- XoffsetGaussianLikelihood(par,data)
+#   
+#   Z <- matrix(likelihoods$L,
+#               ncol=length(data_y),
+#               nrow=length(data_x))
+#   
+#   pal='Purple-Blue'
+#   
+#   image(add=TRUE,
+#         x=img_x,
+#         y=img_y,
+#         z=Z,
+#         useRaster=TRUE,
+#         #col = gray.colors(256, rev=TRUE),
+#         col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+#         #lw=0
+#   )
+# 
+#   axis(side=1,at=c(0,8))
+#   axis(side=2,at=c(0,13.5))
+#   
+#   # # # # # # # # # # # # # # # # # # # #
+#   #
+#   # seventh plot: joint distribution fit
+#   #
+#   # # # # # # # # # # # # # # # # # # # #
+#   
+#   plot(df$X,df$Y,
+#        main='',xlab='',ylab='',
+#        xlim=c(0,8),ylim=c(0,13.5),
+#        pch=16,col=t_col('#000000', percent = 0),cex=0.2,
+#        bty='n',ax=F,asp=1)
+#   
+#   title(main=expression('D: joint X,T'), 
+#         font.main=1, cex.main=1.5, adj=0, line=0.25)
+#   # title(main='D: joint X$\times$T',
+#   #       font.main=1, cex.main=1.5, adj=0, line=0.25)
+#   title(xlab='reset X [cm]', line=2.4)
+#   title(ylab='reset Y [cm]', line=2.4)
+#   
+#   
+#   par <- modelfits$JointXnormalTgamma$par
+#   likelihoods <- XgaussianTgammaLikelihood(par,data)
+#   
+#   Z <- matrix(likelihoods$L,
+#               ncol=length(data_y),
+#               nrow=length(data_x))
+#   
+#   pal='Purple-Blue'
+#   
+#   image(add=TRUE,
+#         x=img_x,
+#         y=img_y,
+#         z=Z,
+#         useRaster=TRUE,
+#         #col = gray.colors(256, rev=TRUE),
+#         col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
+#         #lw=0
+#   )
+#   
+#   axis(side=1,at=c(0,8))
+#   axis(side=2,at=c(0,13.5))
+#   
+#   if (target %in% c('pdf','svg')) {
+#     dev.off()
+#   }
+#   
+# }
