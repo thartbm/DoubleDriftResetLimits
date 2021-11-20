@@ -571,7 +571,28 @@ t_col <- function(color, percent = 50, name = NULL) {
 }
 ## END
 
-
+linPal <- function(from='#FFFFFF', to='#E51636', n=256, alpha=NULL) {
+  
+  from <- col2rgb(from,alpha=TRUE)/255
+  to   <- col2rgb(to,alpha=TRUE)/255
+  
+  R <- seq(from[1],to[1],length.out = n)
+  G <- seq(from[2],to[2],length.out = n)
+  B <- seq(from[3],to[3],length.out = n)
+  A <- seq(from[4],to[4],length.out = n)
+  
+  if (!is.null(alpha)) {
+    if (length(alpha) == 1) {
+      A <- rep(alpha,n)
+    }
+    if (length(alpha) == 2) {
+      A <- seq(alpha[1],alpha[2],length.out = n)
+    }
+  }
+  
+  return(rgb(red=R, green=G, blue=B, alpha=A))
+  
+}
 
 
 
