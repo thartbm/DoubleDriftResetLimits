@@ -14,7 +14,7 @@ OSFdata <- function(overwrite=FALSE, removezip=FALSE, extradata=FALSE) {
   
   datadir <- osfr::osf_ls_files(dirs[idx,])
   
-  zipfiles <- c('bounded_tracking.zip','onepass_V4.zip','luminance.zip')
+  zipfiles <- c('bounded_tracking.zip','onepass_V4.zip','luminance.zip','gaborjump.zip')
   if (extradata) {
     zipfiles <- c(zipfiles, 'infinite_tracking.zip', 'pilots2.zip', 'CVRdemo.zip')
   }
