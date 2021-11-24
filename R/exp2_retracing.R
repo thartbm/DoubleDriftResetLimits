@@ -1194,10 +1194,10 @@ plotResetPoints <- function(target='inline') {
   #source('R/models.R')
   
   if (target == 'pdf') {
-    cairo_pdf(filename='doc/Fig4_trajectories_reset_points.pdf',onefile=TRUE,width=6,height=5)
+    cairo_pdf(filename='doc/Fig4_trajectories_reset_points.pdf',onefile=TRUE,width=6,height=6)
   }
   if (target == 'svg') {
-    svglite(file='doc/Fig4_trajectories_reset_points.svg',width=6,height=5)
+    svglite(file='doc/Fig4_trajectories_reset_points.svg',width=6,height=6)
   }
   
 
