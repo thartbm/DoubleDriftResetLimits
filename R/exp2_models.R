@@ -2902,6 +2902,82 @@ plotModels <- function(target='inline') {
   
 }
 
+AIClL <- function(lL, k) {
+  return((2*k) - (2*lL))
+}
+
+fitParticipantModels <- function() {
+  
+  df <- getDataTrials()
+  
+  participant <- c()
+  
+  XlimMSE <- c()
+  XlimAIC <- c()
+  XlimP   <- c()
+  TlimMSE <- c()
+  TlimAIC <- c()
+  TlimP   <- c()
+  XgamLik <- c()
+  XgamAIC <- c()
+  XgamP   <- c()
+  TgamLik <- c()
+  TgamAIC <- c()
+  TgamP   <- c()
+  
+  for (ppno in c(unique(df$participant),-1)) {
+    
+    if (ppno > 0) {
+      participant <- c(participant, sprintf('%d',ppno))
+      pdf <- df[which(df$participant==ppno),]
+    } else {
+      participant <- c(participant, 'all')
+      pdf <- df
+    }
+    
+    p_fits <- fitSomeModels(df=pdf, Xnormal = FALSE )
+    
+    X_MSE <- p_fits$XlimOrth$MSE
+    T_MSE <- p_fits$TlimOrth$MSE
+    
+    AICs <- AICc(MSE=c(X_MSE, T_MSE), k=c(2,2), N=6)
+    limLL <- relativeLikelihood(AICs)
+    
+    # print(AICs)
+    # print(limLL)
+    
+    XlimMSE <- c(XlimMSE, X_MSE)
+    XlimAIC <- c(XlimAIC, AICs['Lx'])
+    TlimMSE <- c(TlimMSE, T_MSE)
+    TlimAIC <- c(TlimAIC, AICs['Lt'])
+    XlimP <- c(XlimP, limLL['Lx'])
+    TlimP <- c(TlimP, limLL['Lt'])
+    
+    X_lL <- as.numeric(p_fits$XdistGamma$logL)
+    T_lL <- as.numeric(p_fits$TdistGamma$logL)
+    
+    logL <- c('Xll'=X_lL, 'Tll'=T_lL)
+    AICs <- AIClL(logL, k=c(2,2))
+    gamLL <- relativeLikelihood(AICs)
+    
+    #print(AICs)
+    #print(limLL)
+    
+    XgamLik <- c(XgamLik, X_lL)
+    XgamAIC <- c(XgamAIC, AICs['Xll'])
+    TgamLik <- c(TgamLik, T_lL)
+    TgamAIC <- c(TgamAIC, AICs['Tll'])
+    XgamP <- c(XgamP, gamLL['Xll'])
+    TgamP <- c(TgamP, gamLL['Tll'])
+  
+  }
+  
+  return(data.frame(participant,XlimMSE,XlimAIC,TlimMSE,TlimAIC,XlimP,TlimP,XgamLik,XgamAIC,TgamLik,TgamAIC,XgamP,TgamP))
+  
+}
+
+# Code Graveyard: -----
+
 # plotJointModel <- function(df, target='inline') {
 #   
 #   modelfits <- fitSomeModels(df, jointModel=TRUE, Xgamma=FALSE)
