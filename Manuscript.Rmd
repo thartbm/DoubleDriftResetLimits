@@ -1,17 +1,15 @@
 ---
 title: "Measuring the double-drift illusion with hand tracking"
 author: 
-- Bernard Marius 't Hart 1,*
-- Sirui Liu 2
-- Peter Ulrich Tse 2
-- Denise Y.P. Henriques 1
-- Patrick Cavanagh 1,2,3
+- Bernard Marius 't Hart $^{1,*}$
+- Denise Y.P. Henriques $^1$
+- Patrick Cavanagh $^{1,2,3}$
 output:
-  word_document:
-    reference_docx: template.docx
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
+  word_document:
+    reference_docx: template.docx
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -53,15 +51,16 @@ segmentDirections()
 # for exp 2, this extracts the reset points:
 preProcessOnePass_V4()
 
-# for exp 3, we fit psychometric functions to get PSEs:
-getPSEs()
+# for exp 3, we make sure the psychometric PSEs are there:
+getPSEs(overwrite = FALSE)
+# set overwrite to TRUE to recalculate the PSEs
 
 # the rest of the paper should now run without complaint
 ```
 
 _1: Centre for Vision Research, York University, Toronto, ON M3J1P3, Canada_\
-_2: Department of Psychological and Brain Sciences, Dartmouth College, Hanover, NJ 03755, USA_\
-_3: Department of Psychology, Glendon College, Toronto, ON M4N3M6, Canada_\
+_2: Department of Psychology, Glendon College, Toronto, ON M4N3M6, Canada_\
+_3: Department of Psychological and Brain Sciences, Dartmouth College, Hanover, NJ 03755, USA_\
 
 *: Corresponding author: \
 Marius ’t Hart\
@@ -75,7 +74,7 @@ The research was support by funding from NSERC Canada (PC and DYPH), as well as 
 
 # Abstract
 
-If a gabor pattern drifts in one direction while its internal texture drifts in the orthogonal direction, its perceived position deviates further and further away from  its true path. We first evaluated the illusion using manual tracking. Participants followed the gabor with a stylus on a drawing tablet that coincided optically with the horizontal monitor surface. Their hand and the stylus were not visible during the tracking. The magnitude of the tracking illusion corresponded closely to previous perceptual and pointing measures indicating that manual tracking is a valid measure for the illusion. This allowed us to use it in a second experiment to capture the behavior of the illusion as it eventually degrades and breaks down in single trials. Specifically, the deviation of the gabor stops accumulating at some point and either stays at a fixed offset or resets toward the veridical position. To report the perceived trajectory of the gabor, participants drew it after the gabor was removed from the monitor. Resets were detected and analyzed but their distribution neither matches a temporal nor a spatial limit on perception that could trigger resets.
+If a gabor pattern drifts in one direction while its internal texture drifts in the orthogonal direction, its perceived position deviates further and further away from  its true path. We first evaluated the illusion using manual tracking. Participants followed the gabor with a stylus on a drawing tablet that coincided optically with the horizontal monitor surface. Their hand and the stylus were not visible during the tracking. The magnitude of the tracking illusion corresponded closely to previous perceptual and pointing measures indicating that manual tracking is a valid measure for the illusion. This allowed us to use it in a second experiment to capture the behavior of the illusion as it eventually degrades and breaks down in single trials. Specifically, the deviation of the gabor stops accumulating at some point and either stays at a fixed offset or resets toward the veridical position. To report the perceived trajectory of the gabor, participants drew it after the gabor was removed from the monitor. Resets were detected and analyzed and their distribution neither matches a temporal nor a spatial limit, but rather a gamma distribution over time.
 
 # Introduction
 
@@ -95,7 +94,7 @@ The strength of the illusion; the deviation of perceived path of the gabor from 
 
 We assess this in our first experiment, using hand movement trajectores recorded during stimulus presentation (Fig. 1). We compare trajectories across 5 different internal motions of the gabor and compare the illusion strength with previous work based on a straightforward vector combination model [@Heller2021]. As we expected, online tracking provides a similar measure of illusion strength as pointing.
 
-In our second experiment, we look at the spatial and temporal limits of the illusion. At some point, the illusion stops accumulating. The accumulation can be reset by introducing a temporal break [@Lisi2015] or by distracting attention [@Nakayama2020], but it may also reset spontaneously once the accumulation has gone on too long or too far. Informally, some observers have reported that the gabor’s path may saturate so that it remains parallel to, but offset from the true path. Others report that the position moves back toward its physical location, either slowly or suddenly, whereupon accumulation begins again. The ability to record trajectories of the perceived position will then allow us to study spontaneous reset outcomes.
+In our second experiment, we look at the spatial and temporal limits of the illusion. At some point, the illusion stops accumulating. The accumulation can be reset by introducing a temporal break [@Lisi2015] or by distracting attention [@Nakayama2020], but it may also reset spontaneously once the accumulation has gone on too long or too far. Informally, some observers have reported that the gabor’s path may saturate so that it remains parallel to, but offset from the true path. Others report that the position moves back toward its physical location, either slowly or suddenly, whereupon accumulation begins again. The ability to record trajectories of the perceived position will then allow us to study spontaneous reset outcomes. We find that there is no hard temporal or spatial limit leading to resets, but it seems that resets occur randomly over time, based on a gamma distribution.
 
 # Experiment 1: Online tracking
 
@@ -209,6 +208,8 @@ As before, we compare the strength of the illusion (see Fig 5, left), with an ea
 
 Now we look at the distribution of reset points, and whether they can be explained by a temporal or spatial limit. In Figure 4E, we can see that the reset points vary more along the y-axis, than along the x-axis. This would be consistent with a spatial limit to the illusion resulting in resets. However, there is also considerable variance, so that fitting any line through the data, will necessarily leave errors.
 
+We test this with a series of simple models. If there is a spatial offset limit that triggers resets, the resets points should fall on, or be close to a line with a constant X coordinate. If there is a temporal limit, all resets should have the same or a similar reset time (distance from origin / speed). If we assume errors are normally distributed, we can then fit a normal distribution (with 2 parameters: mean and standard deviation) on both the X coordinates and the time points of resets. The distributions of neither the X coordinates nor the time points of resets appear normally distributed though, but seem better approximated by a gamma distribution (see Fig 5A). So we additionally fit gamma distributions (with 2 parameters: rate and shape) on the X coordinates and time points of resets as well. We then calculate the likelihoods of these four simple distribution models both using all resets and within individual participants and use this to calculate an AIC to determine a relative probability that compares models.
+
 ```{r fig5, echo=FALSE, message=FALSE, fig.width=6, fig.height=5.333333, fig.cap="\\label{fig:fig5}**Figure 5:** Reset models. **A:** Model limits relative to reset point locations. Reset points neither fall along a spatial limit (blue line) or a temporal limit (red lines). Marginal distributions show that reset points' X coordinates and time since stimulus approximately fall in a gamma distribution. **B:** Gamma distribution on time (log likelihood: -766.6). **C:** Gamma distribution on spatial offset (log likelihood: -1319.3)."}
 #plotResetPoints()
 invisible(capture.output(plotModels()))
@@ -216,27 +217,19 @@ invisible(capture.output(plotModels()))
 #plotIllusionStrength()
 ```
 
-We test this with a series of simple models. First, for every reset point (with coordinates $X$ and $Y$) we use the illusion strength based on a point earlier in the trajectory, expressed as either an angle (Fig. 4, left: $a = \arctan{(X/Y)}$) or a slope ($s = \sin{(a)}/\cos{(a)}$) to predict reset points.
-
-If the perceived path of the gabor is approximated by a straight line (up to a reset), and reset points occur at a set limit, then a spatial limit ($L_x$) would equal the x-coordinate and predict the y-coordinate, $y$, of the first reset:
-
-[2]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_x \cdot s$
-
-And a temporal limit ($L_t$) would predict both coordinates of the reset, $x$ and $y$:
-
-[3a]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $x = L_t \cdot v \cdot \cos{(a)}$
-
-[3b]  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $y = L_t \cdot v \cdot \sin{(a)}$
-
-Where $L_t$ and $L_x$ are a temporal and spatial limit (in seconds and cm respectively) that are free parameters, $a$ and $s$ correspond to the calculated angle and slope expressing the strength of the illusion, and speed ($v$ in _cm/s_) is given by the stimulus. If we fit the two simple models for each participant separately, by minimizing the mean square error (in isometric space, with absolute distance in centimeters between predicted and actual reset points), most participants are best fit with a spatial limit (MSE: 6/9, AIC: 7/9). This indicates that in this data, a spatial limit explains the reset points best, but neither limit explains the data very well.
-
-To obtain population level values for the spatial and temporal limits, we resample reset points from each participant, using the smallest number of detected reset points that fall in the first quadrant, in the group (44), to ensure that each participant contributes the same number of reset points. Both models based on a spatial limit (eq. 2) and on a temporal limit (eq. 3)  were fit 1000 times (Fig. 5, right). The median fits use a spatial limit of 3.5 _cm_ or ~3.6 _dva_ and a temporal limit of 1.1 _s_. We explored other modeling approaches (e.g. based on various distributions of likelihoods or combining limits) but these show the same pattern of results: spatial limits are somewhat favoured, but temporal limits can not be excluded (see OSF repository: [https://osf.io/72ndu/](https://osf.io/72ndu/)).
+Within the normal distribution models of reset points (means in Fig 5A, blue: spatial, red: time), the time-based distribution fits better for the group data ( _p_<.001 ) and all participants, and the same holds within gamma distribution models of reset models (Fig 5B,C). Furthermore, the gamma-based distribution on time of resets performed better than the normal distribution in the pooled data ( _p_<.001 ), and this holds for most participants (6/9) as well. This means that time-based distributions explain our reset points better than offset- or space based models.
 
 # Discussion
 
-We first tested whether manual tracking of a double-drift stimulus is susceptible to the illusion as reported by perceptual judgments, pointing [@Lisi2017], and memory saccades [@Massendari2018; @Ueda2018]. The results of this online tracking experiment show a close agreement between the angle of the manual tracking and the illusion strength expected based on the model from earlier perceptual measures [@Cavanagh2019]. However, since no unambiguous resets were captured in the traces of this experiment, we followed up with a second experiment that did record evidence of resets.
+We first tested whether manual tracking of a double-drift stimulus is susceptible to the illusion as reported by perceptual judgments, pointing [@Lisi2017], and memory saccades [@Massendari2018; @Ueda2018]. The results of this online tracking experiment show a close agreement between the angle of the manual tracking and the illusion strength expected based on the model from earlier perceptual measures [@Heller2021]. However, since no unambiguous resets were captured in the traces of this experiment, we followed up with a second experiment that did record evidence of resets.
 
-To measure resets, we asked participants to draw the perceived path of the stimulus after a single pass. The orientation of the drawn traces reflect the strength of the illusion, and in most trials there was a clear reset point, for either a "return" reset or a "hit-the-wall" reset. We then set out to test if these spontaneous resets are triggered by a limiting distance of drift away from the physical location, or by a specific limit of time. The results showed that the resets are slightly better explained by the distance from the true position, but a temporal limit is not ruled out.
+To measure resets, we asked participants to draw the perceived path of the stimulus after a single pass. The orientation of the drawn traces reflect the strength of the illusion, and in most trials there was a clear reset point, for either a "return" reset or a "hit-the-wall" reset. We then set out to test if these spontaneous resets are triggered by a limiting distance of drift away from the physical location, or by a specific limit of time. A gamma distribution of reset time seems to explain this data best.
+
+However, it does not seem like there is a specific temporal limit on time, i.e. resets do not occur at a given time after stimulus onset, but are more or less randomly pulled from a wide distribution. This relies on the hand trajectories we recorded here to provide an accurate measure of reset points. Unpublished work [poster: @Liu2019] used a psychophysics-based approach to probe how spontaneous resets might affect the accumulated illusion after several amounts of time (1, 2 or 3 _s_) while keeping the actual path (2 or 4 _dva_) and maximum illusion (1.4 or 2.8 _dva_) constant (see Fig 6A). After the main stimulus presentation, there is a 350 _ms_ gap, where there is no stimulus, and this is know to evoke a reset, after which the illusion resumes accumulating from the position where the gabor appears after the gap [@Lisi2015]. The data from 10 participants shows that as a stimulus is presented for longer, the illusory offset at the end is smaller than would be expected based on the individually calibrated illusion strengths.
+
+```{r fig6, echo=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.cap="\\label{fig:fig6}**Figure 6:** Spontaneous resets without hand trajectories. Experiment and Results based on data from Liu et al. [-@Liu2019] **A:** By ensuring the perceived path of a double-drift stimulus is straight down, any gap-induced reset, should be equal to the accumulated illusion if there are no spontaneous resets, but smaller if there are. Gaps were presented after 1, 2 or 3 seconds, and 2 or 4 dva real paths, which allows psychophysics to quantify the amount of illusion left after several periods of abserving a double-dirft stimulus. **B:** Points of subject equivalence show that the size of the illusion decreases with time even as the real path, and maximum illusion is kept constant. These data are in line with resets occurring randomly over time."}
+plotJumpPSEs(target='inline', individualDots = FALSE)
+```
 
 Recently, Kwon, Tadin, and Knill [-@Kwon2015] proposed a Bayesian object tracking model to explain the double-drift illusion. In their model, when the position signals are weak, the motion signals bias perceived position away from the true location. In their case, this deviation saturated after about 200 _ms_ and the perceived path then continued parallel to the physical path, as in the “hit the wall” resets we described above [@Kwon2015, Fig. 3]. In contrast to their model, our participants in Experiment 2 showed quite variable timing for the reset point where the accumulation of offset ended. The resets were more stable in terms of spatial offset (Fig. 4, middle) but much more variable in terms of time from the start of the gabor's motion. In any case, the temporal limit of these reset points was not 200 _ms_ but 1.1 _s_ and fell into a wide range from 0.5 _s_ to almost 4 _s_ across trials (see Fig. 4). Moreover, 4/9 of our participants regularly reported “return” resets that the Kwon et al. [-@Kwon2015] model does not predict. The “return” resets suggest that both the physical and perceived locations are available to the visual system and that when the deviation exceeds some limit, the perceived location returns toward the physical location. At that point, the build-up of the illusion may start again.
 
