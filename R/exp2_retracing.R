@@ -1295,7 +1295,7 @@ plotResetPoints <- function(target='inline') {
   #print(dim(df))
   
   plot(df$resetX,df$resetY,
-       pch=16,col=t_col(colors$blue$s, percent=97.5),cex=3,
+       pch=16,col=t_col(colors$purple$s, percent=97.5),cex=3,
        main='',xlab='',ylab='',
        xlim=c(-1,9),ylim=c(0,16),
        bty='n',ax=F,asp=1)
@@ -1384,15 +1384,16 @@ plotResetPoints <- function(target='inline') {
   for (speed in c(3,4)) {
     
     idx <- which(avg_df_g$Ve == 13.5/speed)
-    speedcol <- c(colors$blue$s,colors$yorkred$s)[speed-2]
-    points(avg_df_g$vector_prediction[idx],avg_df_g$angle[idx],col=speedcol,pch=1,cex=2)
+    speedcol <- c(colors$orange$s,colors$orange$s)[speed-2]
+    speedpch <- c(1,2)[speed-2]
+    points(avg_df_g$vector_prediction[idx],avg_df_g$angle[idx],col=speedcol,pch=speedpch,cex=2)
     
   }
   
   legend(x=0, y=45, 
          legend = c('group means (3 s)', 'group means (4 s)', 'Heller et al. (2021)', sprintf('K=%0.2f',group_k)),
-         col=c(colors$blue$s, colors$yorkred$s, 'black', colors$lightblue$s), 
-         pch=c(1,1,NA,NA), lty=c(0,0,1,1), 
+         col=c(colors$orange$s, colors$orange$s, 'black', colors$lightblue$s), 
+         pch=c(1,2,NA,NA), lty=c(0,0,1,1), 
          bty='n', cex=1)
   
   axis(side=1,at=seq(0,75,15))
