@@ -357,7 +357,7 @@ fitResetProbability <- function() {
   fit <- optim(par          = par,
                fn           = timeLimitMSE, 
                conditions   = conditions,
-               runs         = 10000,
+               runs         = 5000,
                PSEs         = PSEs,
                method       = 'Brent',
                lower        = c(0),
