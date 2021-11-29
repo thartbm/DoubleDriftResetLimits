@@ -2369,7 +2369,7 @@ plotUncoupledModels <- function(df, target='inline') {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE) {
+fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE, Orthogonal=FALSE) {
   
   outputlist <- list()
   
@@ -2377,64 +2377,65 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Xgamma=TRUE, Tgamm
   # ortogonal models, just because
   # ********************************
   
-  
-  Lx=seq(0, 8, length.out = 41)
-  Lt=seq(0, 4, length.out = 41)
-  
-  # make them into data frames:
-  searchgridXlim <- expand.grid('Lx'=Lx)
-  searchgridTlim <- expand.grid('Lt'=Lt)
-  
-  # get MSE for points in search grid:
-  XlimMSE <- apply(searchgridXlim,FUN=XorthogonalMSE,MARGIN=c(1),data=df,fitFUN=XlimResets)
-  TlimMSE <- apply(searchgridTlim,FUN=TorthogonalMSE,MARGIN=c(1),data=df,fitFUN=TlimResets)
-  
-  # get 4 best points in the grid:
-  topgridXlim <- data.frame('Lx'=searchgridXlim[order(XlimMSE)[c(1,3,5)],])
-  topgridTlim <- data.frame('Lt'=searchgridTlim[order(TlimMSE)[c(1,3,5)],])
-  
-  # do the actual fitting:
-  allXlimFits <- do.call("rbind",
-                         apply( topgridXlim,
-                                MARGIN=c(1),
-                                FUN=optimx,
-                                fn=XorthogonalMSE,
-                                method='L-BFGS-B',
-                                lower=c(0),
-                                upper=c(13.5),
-                                data=df,
-                                fitFUN=XlimResets) )
-  
-  allTlimFits <- do.call("rbind",
-                         apply( topgridTlim,
-                                MARGIN=c(1),
-                                FUN=optimx,
-                                fn=TorthogonalMSE,
-                                method='L-BFGS-B',
-                                lower=c(0),
-                                upper=c(4),
-                                data=df,
-                                fitFUN=TlimResets) )
-  
-  # pick the best fit:
-  winXlimFit <- allXlimFits[order(allXlimFits$value)[1],]
-  winTlimFit <- allTlimFits[order(allTlimFits$value)[1],]
-  # print(win[1:3])
-  
-  winXlimO <- as.numeric(winXlimFit[1])
-  names(winXlimO) <- c('Lx')
-  winTlimO <- as.numeric(winTlimFit[1])
-  names(winTlimO) <- c('Lt')
-  
-  winXvalO <- as.numeric(winXlimFit[2])
-  names(winXvalO) <- c('Lx')
-  winTvalO <- as.numeric(winTlimFit[2])
-  names(winTvalO) <- c('Lt')
-  
-  outputlist[['XlimOrth']]=list('par'=winXlimO,'MSE'=winXvalO)
-  outputlist[['TlimOrth']]=list('par'=winTlimO,'MSE'=winTvalO)
-  
-  
+  if (Orthogonal) {
+    
+    Lx=seq(0, 8, length.out = 41)
+    Lt=seq(0, 4, length.out = 41)
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('Lx'=Lx)
+    searchgridTlim <- expand.grid('Lt'=Lt)
+    
+    # get MSE for points in search grid:
+    XlimMSE <- apply(searchgridXlim,FUN=XorthogonalMSE,MARGIN=c(1),data=df,fitFUN=XlimResets)
+    TlimMSE <- apply(searchgridTlim,FUN=TorthogonalMSE,MARGIN=c(1),data=df,fitFUN=TlimResets)
+    
+    # get 4 best points in the grid:
+    topgridXlim <- data.frame('Lx'=searchgridXlim[order(XlimMSE)[c(1,3,5)],])
+    topgridTlim <- data.frame('Lt'=searchgridTlim[order(TlimMSE)[c(1,3,5)],])
+    
+    # do the actual fitting:
+    allXlimFits <- do.call("rbind",
+                           apply( topgridXlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=XorthogonalMSE,
+                                  method='L-BFGS-B',
+                                  lower=c(0),
+                                  upper=c(13.5),
+                                  data=df,
+                                  fitFUN=XlimResets) )
+    
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=TorthogonalMSE,
+                                  method='L-BFGS-B',
+                                  lower=c(0),
+                                  upper=c(4),
+                                  data=df,
+                                  fitFUN=TlimResets) )
+    
+    # pick the best fit:
+    winXlimFit <- allXlimFits[order(allXlimFits$value)[1],]
+    winTlimFit <- allTlimFits[order(allTlimFits$value)[1],]
+    # print(win[1:3])
+    
+    winXlimO <- as.numeric(winXlimFit[1])
+    names(winXlimO) <- c('Lx')
+    winTlimO <- as.numeric(winTlimFit[1])
+    names(winTlimO) <- c('Lt')
+    
+    winXvalO <- as.numeric(winXlimFit[2])
+    names(winXvalO) <- c('Lx')
+    winTvalO <- as.numeric(winTlimFit[2])
+    names(winTvalO) <- c('Lt')
+    
+    outputlist[['XlimOrth']]=list('par'=winXlimO,'MSE'=winXvalO)
+    outputlist[['TlimOrth']]=list('par'=winTlimO,'MSE'=winTvalO)
+    
+  }
   
   
   # **********************************
@@ -2485,6 +2486,57 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Xgamma=TRUE, Tgamm
     
     
     outputlist[['XdistNormal']]=list('par'=winXparN,'logL'=winXvalN)
+    
+  }
+  
+  # **********************************
+  # the T-Normal distribution
+  # **********************************
+  
+  if (Tnormal) {
+    
+    # create search "grids":
+    mT = seq(0, 4, length.out = 16)
+    sT = seq(0, 4, length.out = 16)
+    
+    # make them into data frames:
+    searchgridTlim <- expand.grid('mTn'=mT, 'sTn'=sT)
+    
+    # get Likelihoods for points in search grid:
+    expTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=ToffsetGaussianLikelihood)
+    
+    # get best points in the grid:
+    topgridTlim <- searchgridTlim[order(expTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # print(topgridXlim)
+    
+    # do the actual fitting:
+    allTlimFits <- do.call("rbind",
+                           apply( topgridTlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c( 0.0, 0.0 ),
+                                  upper=c( 4.0, 4.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=ToffsetGaussianLikelihood,) )
+    
+    
+    
+    # pick the best fit:
+    winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+    
+    winTparN <- unlist(winTlimFit[c('mTn','sTn')])
+    
+    winTvalN <- as.numeric(winTlimFit$value)
+    names(winTvalN) <- c('logL')
+    
+    
+    outputlist[['TdistNormal']]=list('par'=winTparN,'logL'=winTvalN)
     
   }
   
@@ -2912,18 +2964,20 @@ fitParticipantModels <- function() {
   
   participant <- c()
   
-  XlimMSE <- c()
+  XlimLik <- c()
   XlimAIC <- c()
-  XlimP   <- c()
-  TlimMSE <- c()
+  XlimPn <- c()
+  TlimLik <- c()
   TlimAIC <- c()
-  TlimP   <- c()
+  TlimPn <- c()
   XgamLik <- c()
   XgamAIC <- c()
-  XgamP   <- c()
   TgamLik <- c()
   TgamAIC <- c()
-  TgamP   <- c()
+  XlimPng <- c()
+  TlimPng <- c()
+  XgamPng <- c()
+  TgamPng <- c()
   
   for (ppno in c(unique(df$participant),-1)) {
     
@@ -2935,44 +2989,71 @@ fitParticipantModels <- function() {
       pdf <- df
     }
     
-    p_fits <- fitSomeModels(df=pdf, Xnormal = FALSE )
+    p_fits <- fitSomeModels(df=pdf)
     
-    X_MSE <- p_fits$XlimOrth$MSE
-    T_MSE <- p_fits$TlimOrth$MSE
+    # X_MSE <- p_fits$XlimOrth$MSE
+    # T_MSE <- p_fits$TlimOrth$MSE
+    # 
+    # AICs <- AICc(MSE=c(X_MSE, T_MSE), k=c(2,2), N=6)
+    # limLL <- relativeLikelihood(AICs)
+    # 
+    # # print(AICs)
+    # # print(limLL)
+    # 
+    # XlimMSE <- c(XlimMSE, X_MSE)
+    # XlimAIC <- c(XlimAIC, AICs['Lx'])
+    # TlimMSE <- c(TlimMSE, T_MSE)
+    # TlimAIC <- c(TlimAIC, AICs['Lt'])
+    # XlimP <- c(XlimP, limLL['Lx'])
+    # TlimP <- c(TlimP, limLL['Lt'])
     
-    AICs <- AICc(MSE=c(X_MSE, T_MSE), k=c(2,2), N=6)
-    limLL <- relativeLikelihood(AICs)
+    Xn_lL <- as.numeric(p_fits$XdistNormal$logL)
+    Tn_lL <- as.numeric(p_fits$TdistNormal$logL)
     
+    NlogL <- c('Xn_ll'=Xn_lL, 'Tn_ll'=Tn_lL)
+    NAICs <- AIClL(NlogL, k=c(2,2))
+    normLL <- relativeLikelihood(NAICs)
+    
+    #print(p_fits$XdistNormal)
+    # print(Xn_lL)
     # print(AICs)
     # print(limLL)
     
-    XlimMSE <- c(XlimMSE, X_MSE)
-    XlimAIC <- c(XlimAIC, AICs['Lx'])
-    TlimMSE <- c(TlimMSE, T_MSE)
-    TlimAIC <- c(TlimAIC, AICs['Lt'])
-    XlimP <- c(XlimP, limLL['Lx'])
-    TlimP <- c(TlimP, limLL['Lt'])
+    XlimLik <- c(XlimLik, Xn_lL)
+    XlimAIC <- c(XlimAIC, NAICs['Xn_ll'])
+    TlimLik <- c(TlimLik, Tn_lL)
+    TlimAIC <- c(TlimAIC, NAICs['Tn_ll'])
+    XlimPn <- c(XlimPn, normLL['Xn_ll'])
+    TlimPn <- c(TlimPn, normLL['Tn_ll'])
     
-    X_lL <- as.numeric(p_fits$XdistGamma$logL)
-    T_lL <- as.numeric(p_fits$TdistGamma$logL)
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     
-    logL <- c('Xll'=X_lL, 'Tll'=T_lL)
-    AICs <- AIClL(logL, k=c(2,2))
-    gamLL <- relativeLikelihood(AICs)
+    Xg_lL <- as.numeric(p_fits$XdistGamma$logL)
+    Tg_lL <- as.numeric(p_fits$TdistGamma$logL)
+    
+    GlogL <- c('Xg_ll'=Xg_lL, 'Tg_ll'=Tg_lL)
+    GAICs <- AIClL(GlogL, k=c(2,2))
+    LL <- relativeLikelihood(c(NAICs,GAICs))
     
     #print(AICs)
     #print(limLL)
     
-    XgamLik <- c(XgamLik, X_lL)
-    XgamAIC <- c(XgamAIC, AICs['Xll'])
-    TgamLik <- c(TgamLik, T_lL)
-    TgamAIC <- c(TgamAIC, AICs['Tll'])
-    XgamP <- c(XgamP, gamLL['Xll'])
-    TgamP <- c(TgamP, gamLL['Tll'])
-  
+    XgamLik <- c(XgamLik, Xg_lL)
+    XgamAIC <- c(XgamAIC, GAICs['Xg_ll'])
+    TgamLik <- c(TgamLik, Tg_lL)
+    TgamAIC <- c(TgamAIC, GAICs['Tg_ll'])
+    XgamPng <- c(XgamPng, LL['Xg_ll'])
+    TgamPng <- c(TgamPng, LL['Tg_ll'])
+    XlimPng <- c(XlimPng, LL['Xn_ll'])
+    TlimPng <- c(TlimPng, LL['Tn_ll'])
+    
   }
   
-  return(data.frame(participant,XlimMSE,XlimAIC,TlimMSE,TlimAIC,XlimP,TlimP,XgamLik,XgamAIC,TgamLik,TgamAIC,XgamP,TgamP))
+  # print(length(participant))
+  # print(length(XlimLik))
+  # print(length(XlimAIC))
+  
+  return(data.frame(participant,XlimLik,XlimAIC,TlimLik,TlimAIC,XlimPn,TlimPn,XgamLik,XgamAIC,TgamLik,TgamAIC,XlimPng,TlimPng,XgamPng,TgamPng))
   
 }
 
