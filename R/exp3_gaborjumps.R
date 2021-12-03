@@ -202,12 +202,12 @@ ANOVAonPSEs <- function() {
 
 # figures -----
 
-plotJumpPSEs <- function(target='inline', individualDots=FALSE) {
+plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE) {
   
   colors <- getColors()
   
   if (target == 'pdf') {
-    pdf( file = 'doc/fig_6_gaborjump_exp_alt.pdf', width=6, height=4 )
+    pdf( file = 'doc/fig_6_gaborjump_exp.pdf', width=6, height=4 )
   }
   
   layout(mat = matrix(c(1,2), 
@@ -224,19 +224,27 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE) {
   
   par(mar=c(1,1,2.2,1))
   
-  if (individualDots) {
-    pos <- 0.15 # Plot OffSet
-  } else {
-    pos <- 0
+  # 1 data, 2 individual dots, 3 model fits
+  pos <- c(0,0,0)
+  
+  if (individualDots & !modelDots) {
+    pos <- c(0.2, -0.2, 0) # Plot OffSet
+  }
+  if (!individualDots & modelDots) {
+    pos <- c(-0.2, 0, 0.2)
+  }
+  if (individualDots & modelDots) {
+    pos <- c(0, -0.3, 0.3)
   }
   
   plot(methodsFig,xlim=c(0,width),ylim=c(0,height),asp=1)
   title('A: methods', font.main=1, cex.main=1.5, adj=0, line=0.5)
   
-  
   PSEdf <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
   groupPSEs <- PSEdf[which(PSEdf$participant == 'group'),]
   participantPSEs <- PSEdf[which(PSEdf$participant != 'group'),]
+  
+  modelPSEs <- read.csv('data/gaborjump/modelfitPSEs.csv', stringsAsFactors = FALSE)
   
   par(mar = c(2.8,2.8,2.2,0.1),
       mgp = c(2, 0.55, 0) )
@@ -277,10 +285,21 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE) {
       pPSEs <- participantPSEs$PSE[which(participantPSEs$path_length == pathlength & participantPSEs$stimdur == stimdur)]
       
       CI <- getConfidenceInterval(data=pPSEs, method = 'b')
-      lines(rep(stimdur+pos,2)+xoff,CI,col=color,lty=1,lw=1)
-      points(stimdur+pos+xoff,mu,col=color,pch=cond_pch,cex=1)
+      lines(rep(stimdur+pos[1],2)+xoff,CI,col=color,lty=1,lw=1)
+      points(stimdur+pos[1]+xoff,mu,col=color,pch=cond_pch,cex=1)
       if (individualDots) {
-        points(rep(stimdur-pos,length(pPSEs))+xoff,pPSEs,col=t_col(color,percent=75),pch=cond_pch,cex=1)
+        points(rep(stimdur+pos[2],length(pPSEs))+xoff,pPSEs,col=t_col(color,percent=75),pch=cond_pch,cex=1)
+      }
+      
+      # modelPSEs
+      if (modelDots) {
+        idx <- which(modelPSEs$path_length == pathlength & modelPSEs$duration == stimdur)
+        fitPSE <- modelPSEs$fitPSE[idx]
+        points(stimdur+pos[3]+xoff,fitPSE,col=mixCol('#FFFFFF', color, balance=c(2,1)),pch=18,cex=1.5)
+      }
+      if (gammaDots) {
+        gammaFit <- modelPSEs$gamma[idx]
+        points(stimdur+pos[3]+xoff,gammaFit,col=color,pch=18,cex=1)
       }
       
       text(x=2+xoff,
@@ -292,12 +311,30 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE) {
     }
     
     if (pathlength == 2) {
+      legend <- c('without spontaneous resets','1 s', '2 s', '3 s')
+      col    <- c('#000000',lc)
+      lty    <- c(2,0,0,0)
+      pch    <- c(NA,16,16,16)
+      if (modelDots) {
+        legend <- c(legend, 'Poisson model')
+        col    <- c(col, '#AAAAAA')
+        lty    <- c(lty,0)
+        pch    <- c(pch,18)
+      }
+      if (gammaDots) {
+        legend <- c(legend, 'gamma model')
+        col    <- c(col, '#666666')
+        lty    <- c(lty,0)
+        pch    <- c(pch,18)
+      }
       legend(0,3.6,
-             legend=c('without spontaneous resets','1 s', '2 s', '3 s'),
-             col=c('#000000',lc), lty=c(2,0,0,0),
-             pch=c(NA,16,16,16),
+             legend=legend,
+             col=col,
+             lty=lty,
+             pch=pch,
+             cex=0.7,
              seg.len = 1.5,
-             bty='n', cex=0.7)
+             bty='n')
     } 
     
     axis(side=1,at=c(1,2,3),cex.axis=0.7,labels=c('1','2','3'))
@@ -331,10 +368,21 @@ fitResetProbRAD <- function() {
 }
 
 
-getBestFitPlotPoints <- function() {
+getBestFitPlotPoints <- function(distribution='exponential') {
   
-  #par <- 0.007178981
-  par <- 0.00697628
+  if (distribution == 'exponential') {
+    # runs with 1000 simulated stimuli per condition, per fit
+    #par <- 0.007178981
+    #par <- 0.00697628
+    # runs with 10000 simulated stimuli / percepts:
+    par <- c(0.007071804)
+  }
+  
+  if (distribution == 'gamma') {
+    shape <- 3.735556
+    rate  <-  2.805160
+    par   <- c(rate/100, shape)
+  }
   
   df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
   df <- df[which(df$participant == 'group'),]
@@ -345,7 +393,7 @@ getBestFitPlotPoints <- function() {
   
   
   for (condno in c(1:dim(df)[1])) {
-    df$fitPSEs[condno] <- mean(bootstrapPSEs(par=par,
+    df$fitPSE[condno] <- mean(bootstrapPSEs(par=par,
                                             duration=df$duration[condno],
                                             path_length=df$path_length[condno],
                                             ) )
@@ -374,7 +422,7 @@ fitResetProbability <- function(data=NULL) {
   fit <- optim(par          = par,
                fn           = timeLimitMSE, 
                data         = data,
-               runs         = 10000,
+               runs         = 1000000,
                method       = 'Brent',
                lower        = c(0),
                upper        = c(1))
@@ -415,6 +463,19 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
   
   reset_probability <- par[1]
   
+  if (length(par) == 1) {
+    wait_for_events <- 1
+  } else {
+    avg_wait_for_events <- par[2]
+    fraction <- avg_wait_for_events - floor(avg_wait_for_events)
+    if (fraction != 0) {
+      wait_for_events <- round( floor(avg_wait_for_events) + (fraction > runif(1)) )
+    } else {
+      wait_for_events <- round( avg_wait_for_events )
+    }
+  }
+  
+  events_counted <- 0
   # any other model parameters?
   
   steps <- duration / slice
@@ -437,7 +498,11 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
     #if (cutoff > runif(1)) {
     if (reset_probability > runif(1)) {
       # reset time!
-      reset_time       <- time
+      events_counted <- events_counted + 1
+      if (events_counted == wait_for_events) {
+        reset_time       <- time
+        events_counted   <- 0
+      }
       
     }
     
@@ -460,189 +525,189 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
 
 # gamma distribution based time model -----
 
-getBestAmpFitPlotPoints <- function() {
-  
-  par <- c(88.56911) # best fit
-  par <- c(0.1)
-  # 
-  shape <- 3.735556
-  rate <-  2.805160
-  
-  
-  df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
-  df <- df[which(df$participant == 'group'),]
-  
-  data <- df[c('path_length', 'stimdur')]
-  names(data) <- c('path_length', 'duration')
-  data$PSE <- df$PSE
-  
-  data$fitPSE <- NA
-  
-  
-  for (cn in dim(data)[1]) {
-    
-    duration <- data$duration[cn]
-    path_length <- data$path_length[cn]
-    
-    predictedPSEs <- bootstrapGammaAmpPSEs(par         = par, 
-                                           duration    = data$duration[cn], 
-                                           path_length = data$path_length[cn], 
-                                           runs        = runs, 
-                                           shape       = shape, 
-                                           rate        = rate)
-    
-    data$fitPSE <- mean(predictedPSEs)
-    
-  }
-  
-  return(data)
-  
-}
-
-fitResetAmpRAD <- function() {
-  
-  #Re-Analyzed Data
-  
-  df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
-  df <- df[which(df$participant == 'group'),]
-  
-  conditions <- df[c('path_length', 'stimdur')]
-  names(conditions) <- c('path_length', 'duration')
-  conditions$PSE <- df$PSE
-  
-  fit <- fitResetAmplitude(data=conditions)
-  
-  return(fit)
-  
-}
-
-
-fitResetAmplitude <- function(data=NULL) {
-  
-  # optimal fit of gamma distribtuion on T of resets:
-  shape <- 3.735556
-  rate <-  2.805160
-  
-  if (is.null(data)) {
-    # these are the 6 conditions:
-    data <- expand.grid(
-      'duration'   = c( 1, 2, 3 ),
-      'path_length' = c( 2, 4 )
-    )
-    data$PSE <- c(1.00, 0.83, 0.66, 1.65, 1.50, 1.20)
-  }
-
-  par <- c(5) # 45 degree reset
-  
-  fit <- optim(par          = par,
-               fn           = gammaAmpMSE, 
-               data         = data,
-               runs         = 100000,
-               method       = 'Brent',
-               lower        = c(0),
-               upper        = c(90),
-               shape        = shape,
-               rate         = rate)
-  
-  return(fit)
-  
-}
-
-gammaAmpMSE <- function(par, data, runs=10000, shape, rate) {
-
-  MSE <- c()
-  
-  for (cn in dim(data)[1]) {
-    
-    duration <- data$duration[cn]
-    path_length <- data$path_length[cn]
-    
-    predictedPSEs <- bootstrapGammaAmpPSEs(par=par, 
-                                           duration=duration, 
-                                           path_length=path_length, 
-                                           runs=runs, 
-                                           shape=shape, 
-                                           rate=rate)
-    
-    MSE <- c(MSE, (mean(predictedPSEs) - data$PSE[cn])^2)
-    
-  }
-  
-  return(mean(MSE))
-  
-}
-
-bootstrapGammaAmpPSEs <- function(par, duration, path_length, runs=10000, shape, rate) {
-  
-  # repeat for a sufficciently large number of runs:
-  allPSEs <- sapply(rep(list(par),runs),FUN=generateOneGammaAmpPSE, duration=duration, path_length=path_length, shape=shape, rate=rate)
-  
-  return(allPSEs)
-  
-}
-
-generateOneGammaAmpPSE <- function(par, duration=duration, path_length=path_length, shape=shape, rate=rate) {
-  
-  # at the start, we don't have a PSE, but we'll get one:
-  PSE <- NULL
-  
-  Ve <- path_length / duration # dva's per second
-  ar <- (par/180)*pi           # reset Angle in Radians
-  slope <- sin(ar)/cos(ar)     # as a slope (for trig)
-    
-  offset     <- c(0,0)  # this is where the percept starts from
-  total_time <- 0       # this is how much time has elapsed
-  
-  # we do stuff until there is a PSE to report:
-  while (is.null(PSE)) {
-    
-    # we sample a reset from the gamma distribution:
-    resetTime <- rgamma(1,shape=shape,rate=rate)
-    
-    if ((total_time + resetTime) > duration) {
-      # if we exceed stimulus duration, we calculate a PSE at cut-off (before the reset)
-      
-      # this should get us out of the while loop, to return the PSE:
-      PSE <- (((duration - total_time) * Ve) / sqrt(2)) + offset[1]
-      
-    } else {
-    
-      # it's always a 45 degree line
-      # so we add the same distance to both offset coordinates
-      offset <- offset + ((resetTime/sqrt(2)) * Ve)
-      
-      # now we do the reset:
-      if (par == 90) {
-        # hit-the-wall reset, such that the PSE is equal to the offset at the reset:
-        PSE <- offset
-      } else if (par == 0) {
-        # jump reset, also fairly simple:
-        offset[1]   <- 0
-        total_time  <- total_time + resetTime
-        
-      } else {
-        # something in between:
-
-        # let's see if this gets us over the finish line:
-        if (total_time + resetTime + ((slope * offset[1]) / Ve) > duration) {
-          # the PSE gets measured before the percept is back at zero:
-          PSE <- offset[1] - ((path_length - offset[2]) / slope)
-        } else {
-          # we get the new offset and total time, for build-up towards a another reset:
-          offset[1] <- 0
-          offset[2] <- offset[2] + (offset[1] * slope)
-          total_time <- total_time + resetTime + ((offset[1] * slope) / Ve)
-        }
-        
-      }
-      
-    }
-    
-  }
-  
-  return(PSE)
-  
-}
+# getBestAmpFitPlotPoints <- function() {
+#   
+#   par <- c(88.56911) # best fit
+#   par <- c(0.1)
+#   # 
+#   shape <- 3.735556
+#   rate <-  2.805160
+#   
+#   
+#   df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
+#   df <- df[which(df$participant == 'group'),]
+#   
+#   data <- df[c('path_length', 'stimdur')]
+#   names(data) <- c('path_length', 'duration')
+#   data$PSE <- df$PSE
+#   
+#   data$fitPSE <- NA
+#   
+#   
+#   for (cn in dim(data)[1]) {
+#     
+#     duration <- data$duration[cn]
+#     path_length <- data$path_length[cn]
+#     
+#     predictedPSEs <- bootstrapGammaAmpPSEs(par         = par, 
+#                                            duration    = data$duration[cn], 
+#                                            path_length = data$path_length[cn], 
+#                                            runs        = runs, 
+#                                            shape       = shape, 
+#                                            rate        = rate)
+#     
+#     data$fitPSE <- mean(predictedPSEs)
+#     
+#   }
+#   
+#   return(data)
+#   
+# }
+# 
+# fitResetAmpRAD <- function() {
+#   
+#   #Re-Analyzed Data
+#   
+#   df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
+#   df <- df[which(df$participant == 'group'),]
+#   
+#   conditions <- df[c('path_length', 'stimdur')]
+#   names(conditions) <- c('path_length', 'duration')
+#   conditions$PSE <- df$PSE
+#   
+#   fit <- fitResetAmplitude(data=conditions)
+#   
+#   return(fit)
+#   
+# }
+# 
+# 
+# fitResetAmplitude <- function(data=NULL) {
+#   
+#   # optimal fit of gamma distribtuion on T of resets:
+#   shape <- 3.735556
+#   rate <-  2.805160
+#   
+#   if (is.null(data)) {
+#     # these are the 6 conditions:
+#     data <- expand.grid(
+#       'duration'   = c( 1, 2, 3 ),
+#       'path_length' = c( 2, 4 )
+#     )
+#     data$PSE <- c(1.00, 0.83, 0.66, 1.65, 1.50, 1.20)
+#   }
+# 
+#   par <- c(5) # 45 degree reset
+#   
+#   fit <- optim(par          = par,
+#                fn           = gammaAmpMSE, 
+#                data         = data,
+#                runs         = 100000,
+#                method       = 'Brent',
+#                lower        = c(0),
+#                upper        = c(90),
+#                shape        = shape,
+#                rate         = rate)
+#   
+#   return(fit)
+#   
+# }
+# 
+# gammaAmpMSE <- function(par, data, runs=10000, shape, rate) {
+# 
+#   MSE <- c()
+#   
+#   for (cn in dim(data)[1]) {
+#     
+#     duration <- data$duration[cn]
+#     path_length <- data$path_length[cn]
+#     
+#     predictedPSEs <- bootstrapGammaAmpPSEs(par=par, 
+#                                            duration=duration, 
+#                                            path_length=path_length, 
+#                                            runs=runs, 
+#                                            shape=shape, 
+#                                            rate=rate)
+#     
+#     MSE <- c(MSE, (mean(predictedPSEs) - data$PSE[cn])^2)
+#     
+#   }
+#   
+#   return(mean(MSE))
+#   
+# }
+# 
+# bootstrapGammaAmpPSEs <- function(par, duration, path_length, runs=10000, shape, rate) {
+#   
+#   # repeat for a sufficciently large number of runs:
+#   allPSEs <- sapply(rep(list(par),runs),FUN=generateOneGammaAmpPSE, duration=duration, path_length=path_length, shape=shape, rate=rate)
+#   
+#   return(allPSEs)
+#   
+# }
+# 
+# generateOneGammaAmpPSE <- function(par, duration=duration, path_length=path_length, shape=shape, rate=rate) {
+#   
+#   # at the start, we don't have a PSE, but we'll get one:
+#   PSE <- NULL
+#   
+#   Ve <- path_length / duration # dva's per second
+#   ar <- (par/180)*pi           # reset Angle in Radians
+#   slope <- sin(ar)/cos(ar)     # as a slope (for trig)
+#     
+#   offset     <- c(0,0)  # this is where the percept starts from
+#   total_time <- 0       # this is how much time has elapsed
+#   
+#   # we do stuff until there is a PSE to report:
+#   while (is.null(PSE)) {
+#     
+#     # we sample a reset from the gamma distribution:
+#     resetTime <- rgamma(1,shape=shape,rate=rate)
+#     
+#     if ((total_time + resetTime) > duration) {
+#       # if we exceed stimulus duration, we calculate a PSE at cut-off (before the reset)
+#       
+#       # this should get us out of the while loop, to return the PSE:
+#       PSE <- (((duration - total_time) * Ve) / sqrt(2)) + offset[1]
+#       
+#     } else {
+#     
+#       # it's always a 45 degree line
+#       # so we add the same distance to both offset coordinates
+#       offset <- offset + ((resetTime/sqrt(2)) * Ve)
+#       
+#       # now we do the reset:
+#       if (par == 90) {
+#         # hit-the-wall reset, such that the PSE is equal to the offset at the reset:
+#         PSE <- offset
+#       } else if (par == 0) {
+#         # jump reset, also fairly simple:
+#         offset[1]   <- 0
+#         total_time  <- total_time + resetTime
+#         
+#       } else {
+#         # something in between:
+# 
+#         # let's see if this gets us over the finish line:
+#         if (total_time + resetTime + ((slope * offset[1]) / Ve) > duration) {
+#           # the PSE gets measured before the percept is back at zero:
+#           PSE <- offset[1] - ((path_length - offset[2]) / slope)
+#         } else {
+#           # we get the new offset and total time, for build-up towards a another reset:
+#           offset[1] <- 0
+#           offset[2] <- offset[2] + (offset[1] * slope)
+#           total_time <- total_time + resetTime + ((offset[1] * slope) / Ve)
+#         }
+#         
+#       }
+#       
+#     }
+#     
+#   }
+#   
+#   return(PSE)
+#   
+# }
 
 
 # code graveyard -----
