@@ -2691,7 +2691,7 @@ plotModels <- function(target='inline') {
   
   df <- getDataTrials()
   
-  modelfits <- fitSomeModels(df, Xnormal=FALSE)
+  modelfits <- fitSomeModels(df)
   
   colors <- getColors()
   
@@ -2719,7 +2719,8 @@ plotModels <- function(target='inline') {
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
-  Lx <- modelfits$XlimOrth$par['Lx']
+  Lx <- modelfits$XdistNormal$par['mXn']
+  #print(Lx)
   lines(x   = rep(Lx,2),
         y   = c(0,13.5), 
         col = colors$blue$s,
@@ -2729,7 +2730,7 @@ plotModels <- function(target='inline') {
           col = colors$blue$s,
           border=NA)
   
-  Lt <- as.numeric(modelfits$TlimOrth$par['Lt'])
+  Lt <- as.numeric(modelfits$TdistNormal$par['mTn'])
   for (speed in c(3,4)) {
     lines(x   = sin(seq(0,pi/2,length.out = 50)) * Lt * speed,
           y   = cos(seq(0,pi/2,length.out = 50)) * Lt * speed,
