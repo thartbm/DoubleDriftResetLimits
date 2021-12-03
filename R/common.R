@@ -594,6 +594,21 @@ linPal <- function(from='#FFFFFF', to='#E51636', n=256, alpha=NULL) {
   
 }
 
+mixCol <- function(a='#FFFFFF', b='#E51636', balance=c(1,1)) {
+  
+  a <- col2rgb(a,alpha=TRUE)/255
+  b <- col2rgb(b,alpha=TRUE)/255
+  
+  w <- balance / sum(balance)
+  
+  R <- (a[1]*w[1]) + (b[1]*w[2])
+  G <- (a[2]*w[1]) + (b[2]*w[2])
+  B <- (a[3]*w[1]) + (b[3]*w[2])
+  A <- (a[4]*w[1]) + (b[4]*w[2])
+  
+  return(rgb(red=R, green=G, blue=B, alpha=A))
+  
+}
 
 
 
