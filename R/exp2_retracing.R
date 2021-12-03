@@ -1381,19 +1381,29 @@ plotResetPoints <- function(target='inline') {
           border=NA)
   lines(c(0,75),group_k*c(0,75),col=colors$lightblue$s,lty=1)
   
+  condCI <- aggregate(angle ~ Vi + Ve, data=avg_df_p, FUN=getConfidenceInterval)
+  condCI$vector_prediction <- (atan( condCI$Vi / condCI$Ve ) / pi ) * 180
+  
   for (speed in c(3,4)) {
     
-    idx <- which(avg_df_g$Ve == 13.5/speed)
+    
     speedcol <- c(colors$orange$s,colors$orange$s)[speed-2]
-    speedpch <- c(1,2)[speed-2]
-    points(avg_df_g$vector_prediction[idx],avg_df_g$angle[idx],col=speedcol,pch=speedpch,cex=2)
+    
+    for (Vi in unique(condCI$Vi)) {
+      idx <- which(condCI$Vi == Vi & condCI$Ve == 13.5/speed)
+      lines(rep(condCI$vector_prediction[idx],2),condCI$angle[idx,c(1,2)],col=t_col(speedcol,percent=81.5),lw=6,lend=1)
+    }
+    
+    idx <- which(avg_df_g$Ve == 13.5/speed)
+    speedpch <- c(16,17)[speed-2]
+    points(avg_df_g$vector_prediction[idx],avg_df_g$angle[idx],col=speedcol,pch=speedpch,cex=1.5)
     
   }
   
   legend(x=0, y=45, 
          legend = c('group means (3 s)', 'group means (4 s)', 'Heller et al. (2021)', sprintf('K=%0.2f',group_k)),
          col=c(colors$orange$s, colors$orange$s, 'black', colors$lightblue$s), 
-         pch=c(1,2,NA,NA), lty=c(0,0,1,1), 
+         pch=c(16,17,NA,NA), lty=c(0,0,1,1), 
          bty='n', cex=1)
   
   axis(side=1,at=seq(0,75,15))
