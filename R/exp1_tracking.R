@@ -657,7 +657,7 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   angles <- c(0,pi/4)
   # Heller et al. (2021):
   lines(angles,0.74*((angles/pi)*180),col='black',lty=1)
-  lines(angles,0.60*((angles/pi)*180),col='black',lty=2)
+  #lines(angles,0.60*((angles/pi)*180),col='black',lty=2)
   
   # individual participants
   points(xcoords, (df$heading/pi)*180, col=colors$lightblue$s, pch=1, cex=1.0)
@@ -682,9 +682,9 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   
   
   legend(x=0, y=45, 
-         legend=c('Heller et al. (2021), K=0.74', 'K=0.60', 'participants (N=4)', 'average'), 
-         col=c('black','black', colors$lightblue$s, colors$yorkred$s), 
-         pch=c(NA,NA,1,1), lty=c(1,2,0,0), 
+         legend=c('Heller et al. (2021), K=0.74', 'participants (N=4)', 'average'), 
+         col=c('black', colors$lightblue$s, colors$yorkred$s), 
+         pch=c(NA,1,1), lty=c(1,0,0), 
          bty='n', cex=1)
   
   #axis(side=1,at=seq(0,pi/4,pi/8),labels=c('0',expression(pi/8),expression(pi/4)))
