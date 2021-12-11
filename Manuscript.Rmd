@@ -6,10 +6,10 @@ author:
 - Patrick Cavanagh 1,2,3
 output:
   pdf_document: default
-  html_document:
-    df_print: paged
   word_document:
     reference_docx: template.docx
+  html_document:
+    df_print: paged
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -228,7 +228,7 @@ We observe that reset times were well modeled by broad gamma distribution, sugge
 
 The data from 10 participants showed that for a fixed path and illusion strength, longer durations produced smaller illusory offsets at the end (Fig 6B, round dots). This can be explained by (among others) resets randomly occuring throughout time. Liu et al. [-@Liu2021] present a Poisson process model with a constant chance of reset of ~0.7 / _s_ (Fig 6B, light diamonds). In comparison, with the gamma distribution fit to our data here (rate=$2.81$, shape=$3.74$), we found a ~0.75 / _s_ chance of a reset. Moreover, if we simply take the parameters of the gamma distribution fit to reset times in the re-tracing experiment (without further optimization), we can also generate the PSEs that should be found in Liu et al.'s experiment (Fig 6B, dark diamonds). We see that the two findings, based on very different approaches, are mostly in agreement with each other.
 
-```{r fig6, echo=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.cap="\\label{fig:fig6}**Figure 6:** Spontaneous resets without hand trajectories. Experiment and Results based on data from Liu et al. [-@Liu2021], re-analyzed here. **A:** By ensuring the perceived path of a double-drift stimulus is straight down (teal arrows), any gap-induced reset, should be equal to the accumulated illusion if there are no spontaneous resets (black arrow), but smaller if there are (light blue arrow). Gaps were presented after 1, 2 or 3 seconds, and 2 or 4 dva real paths, which allows psychophysics to quantify the amount of illusion left after several periods of observing a double-drift stimulus. **B:** Points of subject equivalence show that the size of the illusion decreases with time even as the real path, and maximum illusion is kept constant. These data are in line with resets occurring randomly over time. The simplest model presented by Liu et al. (2021) keeps the illusion strength constant and fits a chance of reset per time unit as ~0.007 / 10 ms to match the gap-evoked reset (diamond symbols)."}
+```{r fig6, echo=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.cap="\\label{fig:fig6}**Figure 6:** Spontaneous resets without hand trajectories. Experiment and Results based on data from Liu et al. [-@Liu2021], re-analyzed here. **A:** By ensuring the perceived path of a double-drift stimulus is straight down (teal arrows), any gap-induced reset, should be equal to the accumulated illusion if there are no spontaneous resets (black arrow), but smaller if there are (light blue arrow). Gaps were presented after 1, 2 or 3 seconds, and 2 or 4 dva real paths, which allows psychophysics to quantify the amount of illusion left after several periods of observing a double-drift stimulus. **B:** Points of subject equivalence show that the size of the illusion decreases with time even as the real path, and maximum illusion is kept constant. These data are in line with resets occurring randomly over time. The simplest model presented by Liu et al. [-@Liu2021] keeps the illusion strength constant and fits a chance of reset per time unit as ~0.7 / _s_ to match the gap-evoked reset (diamond symbols)."}
 plotJumpPSEs(target = 'inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE, modelLine=TRUE, gammaLine=TRUE)
 ```
 
