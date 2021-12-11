@@ -202,7 +202,7 @@ ANOVAonPSEs <- function() {
 
 # figures -----
 
-plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE) {
+plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE, modelLine=FALSE, gammaLine=FALSE) {
   
   colors <- getColors()
   
@@ -279,7 +279,9 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       mu <- groupPSEs$PSE[idx]
       sigma <- groupPSEs$std[idx]
       
-      color <- colors[[ c('orange', 'yorkred', 'purple')[stimdur] ]]$s
+      #color <- colors[[ c('orange', 'yorkred', 'purple')[stimdur] ]]$s
+      #color <- colors[[ c('orange', 'orange', 'orange')[stimdur] ]]$s
+      color <- colors$orange$s
       lc <- c(lc, color)
       
       pPSEs <- participantPSEs$PSE[which(participantPSEs$path_length == pathlength & participantPSEs$stimdur == stimdur)]
@@ -292,8 +294,8 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       }
       
       # modelPSEs
+      idx <- which(modelPSEs$path_length == pathlength & modelPSEs$duration == stimdur)
       if (modelDots) {
-        idx <- which(modelPSEs$path_length == pathlength & modelPSEs$duration == stimdur)
         fitPSE <- modelPSEs$fitPSE[idx]
         points(stimdur+pos[3]+xoff,fitPSE,col=mixCol('#FFFFFF', color, balance=c(2,1)),pch=18,cex=1.5)
       }
@@ -310,11 +312,22 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       
     }
     
+    if (modelLine) {
+      idx <- which(modelPSEs$path_length == pathlength)
+      lines(c(1,2,3)+pos[1]+xoff,modelPSEs$fitPSE[idx],col=colors$yorkred$s, lty=3)
+    }
+    if (gammaLine) {
+      idx <- which(modelPSEs$path_length == pathlength)
+      lines(c(1,2,3)+pos[1]+xoff,modelPSEs$gamma[idx],col=colors$purple$s, lty=3)
+    }
+    
+    
+    
     if (pathlength == 2) {
-      legend <- c('without spontaneous resets','1 s', '2 s', '3 s')
-      col    <- c('#000000',lc)
-      lty    <- c(2,0,0,0)
-      pch    <- c(NA,16,16,16)
+      legend <- c('without spontaneous resets','mean PSE + 95% CI')
+      col    <- c('#000000',colors$orange$s)
+      lty    <- c(2,1)
+      pch    <- c(NA,16)
       if (modelDots) {
         legend <- c(legend, 'Poisson model')
         col    <- c(col, '#AAAAAA')
@@ -326,6 +339,18 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
         col    <- c(col, '#666666')
         lty    <- c(lty,0)
         pch    <- c(pch,18)
+      }
+      if (modelLine) {
+        legend <- c(legend, 'Poisson model')
+        col    <- c(col, colors$yorkred$s)
+        lty    <- c(lty,3)
+        pch    <- c(pch,NA)
+      }
+      if (gammaLine) {
+        legend <- c(legend, 'gamma model')
+        col    <- c(col, colors$purple$s)
+        lty    <- c(lty,3)
+        pch    <- c(pch,NA)
       }
       legend(0,3.6,
              legend=legend,

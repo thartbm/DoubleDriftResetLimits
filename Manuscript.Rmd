@@ -5,11 +5,11 @@ author:
 - Denise Y.P. Henriques 1
 - Patrick Cavanagh 1,2,3
 output:
+  pdf_document: default
   html_document:
     df_print: paged
   word_document:
     reference_docx: template.docx
-  pdf_document: default
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -229,7 +229,7 @@ We observe that reset times were well modeled by broad gamma distribution, sugge
 The data from 10 participants showed that for a fixed path and illusion strength, longer durations produced smaller illusory offsets at the end (Fig 6B, round dots). This can be explained by (among others) resets randomly occuring throughout time. Liu et al. [-@Liu2021] present a Poisson process model with a constant chance of reset of ~0.7 / _s_ (Fig 6B, light diamonds). In comparison, with the gamma distribution fit to our data here (rate=$2.81$, shape=$3.74$), we found a ~0.75 / _s_ chance of a reset. Moreover, if we simply take the parameters of the gamma distribution fit to reset times in the re-tracing experiment (without further optimization), we can also generate the PSEs that should be found in Liu et al.'s experiment (Fig 6B, dark diamonds). We see that the two findings, based on very different approaches, are mostly in agreement with each other.
 
 ```{r fig6, echo=FALSE, message=FALSE, fig.width=6, fig.height=4, fig.cap="\\label{fig:fig6}**Figure 6:** Spontaneous resets without hand trajectories. Experiment and Results based on data from Liu et al. [-@Liu2021], re-analyzed here. **A:** By ensuring the perceived path of a double-drift stimulus is straight down (teal arrows), any gap-induced reset, should be equal to the accumulated illusion if there are no spontaneous resets (black arrow), but smaller if there are (light blue arrow). Gaps were presented after 1, 2 or 3 seconds, and 2 or 4 dva real paths, which allows psychophysics to quantify the amount of illusion left after several periods of observing a double-drift stimulus. **B:** Points of subject equivalence show that the size of the illusion decreases with time even as the real path, and maximum illusion is kept constant. These data are in line with resets occurring randomly over time. The simplest model presented by Liu et al. (2021) keeps the illusion strength constant and fits a chance of reset per time unit as ~0.007 / 10 ms to match the gap-evoked reset (diamond symbols)."}
-plotJumpPSEs(target = 'inline', individualDots = FALSE, modelDots = TRUE, gammaDots=TRUE)
+plotJumpPSEs(target = 'inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE, modelLine=TRUE, gammaLine=TRUE)
 ```
 
 Kwon, Tadin, and Knill [-@Kwon2015] proposed a Bayesian object tracking model to explain the double-drift illusion and other phenomena. In their model, when the position signals are weak they have less weight and the motion signals make a prediction that moves the perceived position away from the true location. Their model predicts that after about 200 _ms_ the motion prediction saturates and the perceived path then continues parallel to the physical path, as in the “hit the wall” resets we describe above [@Kwon2015, Fig. 3]. In contrast to their model, the resets in our re-tracing task show quite variable timing (Fig. 5A) and are better described by a fairly broad gamma distribution (Fig. 5B). This argues against a  mechanism that is based on comparing the current location to the physical location and saturating or triggering a reset when the discrepancy is too large. In any case, the best fitting temporal limit of the reset points in our data was not 200 _ms_ but 1.3 _s_ and 99% of detected reset times are above 200 _ms_ (see Fig. 5A). Moreover, 4/9 of our participants clearly reported “return” resets that the Kwon et al. [-@Kwon2015] model does not predict, and only 1/9 participants showed clear "hit-the-wall" resets. The “return” resets suggest that both the physical and perceived locations are available to the visual system and that when spontaneous resets occur, the perceived location returns toward the physical location. Our results suggest that the resets, whether saturation or returns, happen randomly over time, rather than at a particular deviation in spatial offset or after a fixed duration. Future models of position perception for the double-drift stimulus need to include a realistic model of the locations and type of resets.
