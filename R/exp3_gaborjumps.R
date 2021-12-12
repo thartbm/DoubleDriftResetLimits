@@ -202,7 +202,7 @@ ANOVAonPSEs <- function() {
 
 # figures -----
 
-plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE, modelLine=FALSE, gammaLine=FALSE) {
+plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE, gammaDots=FALSE, modelLine=FALSE, gammaLine=FALSE, propExpect=FALSE) {
   
   colors <- getColors()
   
@@ -249,27 +249,38 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
   par(mar = c(2.8,2.8,2.2,0.1),
       mgp = c(2, 0.55, 0) )
   
+  ylim <- c(0,3.5)
+  if (propExpect) {ylim <- c(0,1.1)}
   plot(-1000,-1000,main='',xlab='',ylab='',
-       xlim=c(0,8),ylim=c(0,3.5),
+       xlim=c(0,8),ylim=ylim,
        bty='n',ax=F)
   
   title(main='B: results', font.main=1, cex.main=1.5, adj=0, line=0.5)
   title(xlab='stimulus duration [s]', line=1.6, cex.lab=0.7)
-  title(ylab='gap-evoked reset [dva]', line=1.6, cex.lab=0.7)
+  if (propExpect) {
+    title(ylab='gap-evoked reset [% expected]', line=1.6, cex.lab=0.7)
+  } else {
+    title(ylab='gap-evoked reset [dva]', line=1.6, cex.lab=0.7)
+  }
+  
+  if (propExpect) {
+    lines(c(0.5,7.5)+xoff,c(1,1),col='#000000',lty=2)
+  }
   
   for (pathlength in c(2,4)) {
     
     xoff <- (pathlength-2)*2
     
-    lines(c(0.5,3.5)+xoff,rep(pathlength/sqrt(2),2),col='#000000',lty=2)
-    
-    text( x=3.5+xoff, 
-          y=(pathlength/sqrt(2))+0.14, 
-          sprintf('%0.1f dva', pathlength/sqrt(2)), 
-          adj=c(1,1),
-          cex=0.7, 
-          col='#000000'  )
-    
+    if (!propExpect) {
+      lines(c(0.5,3.5)+xoff,rep(pathlength/sqrt(2),2),col='#000000',lty=2)
+      text( x=3.5+xoff, 
+            y=(pathlength/sqrt(2))+0.14, 
+            sprintf('%0.1f dva', pathlength/sqrt(2)), 
+            adj=c(1,1),
+            cex=0.7, 
+            col='#000000'  )
+    }
+  
     cond_pch <- c(16,16)[pathlength/2] 
     lc <- c()
     
@@ -281,7 +292,7 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       
       #color <- colors[[ c('orange', 'yorkred', 'purple')[stimdur] ]]$s
       #color <- colors[[ c('orange', 'orange', 'orange')[stimdur] ]]$s
-      color <- colors$orange$s
+      color <- colors$lightblue$s
       lc <- c(lc, color)
       
       pPSEs <- participantPSEs$PSE[which(participantPSEs$path_length == pathlength & participantPSEs$stimdur == stimdur)]
@@ -314,18 +325,18 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
     
     if (modelLine) {
       idx <- which(modelPSEs$path_length == pathlength)
-      lines(c(1,2,3)+pos[1]+xoff,modelPSEs$fitPSE[idx],col=colors$yorkred$s, lty=3)
+      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$fitPSE[idx],col=colors$orange$s, lty=1)
     }
     if (gammaLine) {
       idx <- which(modelPSEs$path_length == pathlength)
-      lines(c(1,2,3)+pos[1]+xoff,modelPSEs$gamma[idx],col=colors$purple$s, lty=3)
+      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$gamma[idx],col=colors$purple$s, lty=2)
     }
     
     
     
     if (pathlength == 2) {
       legend <- c('without spontaneous resets','mean PSE + 95% CI')
-      col    <- c('#000000',colors$orange$s)
+      col    <- c('#000000',colors$lightblue$s)
       lty    <- c(2,1)
       pch    <- c(NA,16)
       if (modelDots) {
@@ -342,14 +353,14 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       }
       if (modelLine) {
         legend <- c(legend, 'Poisson model')
-        col    <- c(col, colors$yorkred$s)
-        lty    <- c(lty,3)
+        col    <- c(col, colors$orange$s)
+        lty    <- c(lty,1)
         pch    <- c(pch,NA)
       }
       if (gammaLine) {
         legend <- c(legend, 'gamma model')
         col    <- c(col, colors$purple$s)
-        lty    <- c(lty,3)
+        lty    <- c(lty,2)
         pch    <- c(pch,NA)
       }
       legend(0,3.6,
@@ -393,35 +404,48 @@ fitResetProbRAD <- function() {
 }
 
 
-getBestFitPlotPoints <- function(distribution='exponential') {
+getBestFitPlotPoints <- function() {
   
-  if (distribution == 'exponential') {
-    # runs with 1000 simulated stimuli per condition, per fit
-    #par <- 0.007178981
-    #par <- 0.00697628
-    # runs with 10000 simulated stimuli / percepts:
-    par <- c(0.007071804)
-  }
   
-  if (distribution == 'gamma') {
-    shape <- 3.735556
-    rate  <-  2.805160
-    par   <- c(rate/100, shape)
-  }
+  PSEdata <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
+  PSEdata <- PSEdata[which(PSEdata$participant == 'group'),]
   
-  df <- read.csv('data/gaborjump/exp_PSEs.csv', stringsAsFactors = FALSE)
-  df <- df[which(df$participant == 'group'),]
   
-  df <- df[c('path_length', 'stimdur', 'PSE')]
-  names(df) <- c('path_length', 'duration', 'PSE')
+  df <- expand.grid('path_length'=c(2,4), 'duration'=seq(0.5,3.5,0.25))
+  #names(df) <- c('path_length', 'duration', 'PSE')
+  df$PSE <- NA
   df$fitPSE <- NA
+  df$gamma <- NA
   
   
+  # runs with 1000 simulated stimuli per condition, per fit
+  #par <- 0.007178981
+  #par <- 0.00697628
+  # runs with 10000 simulated stimuli / percepts:
+  exp_par <- c(0.007071804)
+  
+  # parameters from exp 2
+  shape <- 3.735556
+  rate  <-  2.805160
+  gam_par   <- c(rate/100, shape)
+  
+
   for (condno in c(1:dim(df)[1])) {
-    df$fitPSE[condno] <- mean(bootstrapPSEs(par=par,
+    df$fitPSE[condno] <- mean(bootstrapPSEs(par=exp_par,
                                             duration=df$duration[condno],
                                             path_length=df$path_length[condno],
+                                            runs=25000,
                                             ) )
+    df$gamma[condno] <- mean(bootstrapPSEs(par=gam_par,
+                                           duration=df$duration[condno],
+                                           path_length=df$path_length[condno],
+                                           runs=25000,
+                                           ) )
+    # this is not strictly necessary, as we need the original data anyway:
+    data_idx <- which(PSEdata$stimdur == df$duration[condno] & PSEdata$path_length == df$path_length[condno])
+    if (length(data_idx) == 1) {
+      df$PSE[condno] <- PSEdata$PSE[data_idx]
+    }
   }
   
   return(df)
