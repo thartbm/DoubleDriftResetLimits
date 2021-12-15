@@ -458,20 +458,23 @@ getColors <- function(transparency=81.5) {
   
   colors <- list()
   
-  colors[['blue']]      <- list('s'='#005de4ff')
-  colors$blue[['t']] <- t_col(colors$blue$s,percent=transparency)
+  colors[['blue']]        <- list('s'='#005de4ff')
+  colors$blue[['t']]      <- t_col(colors$blue$s,percent=transparency)
   
-  colors[['lightblue']] <- list('s'='#0fd2e2ff')
+  colors[['lightblue']]   <- list('s'='#0fd2e2ff')
   colors$lightblue[['t']] <- t_col(colors$lightblue$s,percent=transparency)
   
-  colors[['yorkred']]   <- list('s'='#e51636ff')
-  colors$yorkred[['t']] <- t_col(colors$yorkred$s,percent=transparency)
+  colors[['yorkred']]     <- list('s'='#e51636ff')
+  colors$yorkred[['t']]   <- t_col(colors$yorkred$s,percent=transparency)
   
-  colors[['orange']]    <- list('s'='#ff8200ff')
-  colors$orange[['t']] <- t_col(colors$orange$s,percent=transparency)
+  colors[['orange']]      <- list('s'='#ff8200ff')
+  colors$orange[['t']]    <- t_col(colors$orange$s,percent=transparency)
   
-  colors[['purple']]    <- list('s'='#b400e4ff')
-  colors$purple[['t']] <- t_col(colors$purple$s,percent=transparency)
+  colors[['purple']]      <- list('s'='#b400e4ff')
+  colors$purple[['t']]    <- t_col(colors$purple$s,percent=transparency)
+  
+  colors[['darkgreen']]   <- list('s'='#408040ff')
+  colors$darkgreen[['t']] <- t_col(colors$purple$s,percent=transparency)
   
   return(colors)
   
