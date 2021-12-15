@@ -182,6 +182,8 @@ ANOVAonPSEs <- function() {
     
     df <- df[which(df$participant != 'group'),]
     
+    df$normPSE <- df$PSE / (df$path_length / sqrt(2))
+    
     df$participant <- as.factor(df$participant)
     df$path_length <- as.factor(df$path_length)
     df$stim_dur <- as.factor(df$stimdur)
@@ -250,7 +252,7 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       mgp = c(2, 0.55, 0) )
   
   ylim <- c(0,3.5)
-  if (propExpect) {ylim <- c(0,1.1)}
+  if (propExpect) {ylim <- c(-.1,1.3)}
   plot(-1000,-1000,main='',xlab='',ylab='',
        xlim=c(0,8),ylim=ylim,
        bty='n',ax=F)
@@ -258,21 +260,24 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
   title(main='B: results', font.main=1, cex.main=1.5, adj=0, line=0.5)
   title(xlab='stimulus duration [s]', line=1.6, cex.lab=0.7)
   if (propExpect) {
-    title(ylab='gap-evoked reset [% expected]', line=1.6, cex.lab=0.7)
+    title(ylab='% reduction of expected illusion', line=1.6, cex.lab=0.7, adj=0.5/1.3)
   } else {
     title(ylab='gap-evoked reset [dva]', line=1.6, cex.lab=0.7)
   }
   
   if (propExpect) {
-    lines(c(0.5,7.5)+xoff,c(1,1),col='#000000',lty=2)
+    lines(c(0.25,7.75),c(1,1),col='#000000',lty=1)
+    #text(4,1.03,'expected illusion: no spontaneous resets', cex=0.7)
   }
   
   for (pathlength in c(2,4)) {
     
     xoff <- (pathlength-2)*2
     
+    expected <- pathlength/sqrt(2)
+    
     if (!propExpect) {
-      lines(c(0.5,3.5)+xoff,rep(pathlength/sqrt(2),2),col='#000000',lty=2)
+      lines(c(0.5,3.5)+xoff,rep(expected,2),col='#000000',lty=2)
       text( x=3.5+xoff, 
             y=(pathlength/sqrt(2))+0.14, 
             sprintf('%0.1f dva', pathlength/sqrt(2)), 
@@ -292,12 +297,18 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       
       #color <- colors[[ c('orange', 'yorkred', 'purple')[stimdur] ]]$s
       #color <- colors[[ c('orange', 'orange', 'orange')[stimdur] ]]$s
-      color <- colors$lightblue$s
+      color <- colors$darkgreen$s
       lc <- c(lc, color)
       
       pPSEs <- participantPSEs$PSE[which(participantPSEs$path_length == pathlength & participantPSEs$stimdur == stimdur)]
       
       CI <- getConfidenceInterval(data=pPSEs, method = 'b')
+      if (propExpect) {
+        mu <- mu / expected
+        sigma <- sigma / expected
+        CI <- CI / expected
+      }
+      
       lines(rep(stimdur+pos[1],2)+xoff,CI,col=color,lty=1,lw=1)
       points(stimdur+pos[1]+xoff,mu,col=color,pch=cond_pch,cex=1)
       if (individualDots) {
@@ -308,37 +319,50 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
       idx <- which(modelPSEs$path_length == pathlength & modelPSEs$duration == stimdur)
       if (modelDots) {
         fitPSE <- modelPSEs$fitPSE[idx]
+        if (propExpect) { fitPSE <- fitPSE / expected }
         points(stimdur+pos[3]+xoff,fitPSE,col=mixCol('#FFFFFF', color, balance=c(2,1)),pch=18,cex=1.5)
       }
       if (gammaDots) {
         gammaFit <- modelPSEs$gamma[idx]
+        if (propExpect) { gammaFit <- gammaFit / expected }
         points(stimdur+pos[3]+xoff,gammaFit,col=color,pch=18,cex=1)
       }
       
+      if (propExpect) {ply <- -.075} else {ply <- 0}
       text(x=2+xoff,
-           y=0,
+           y=ply,
            sprintf('%d dva path',pathlength),
            cex=0.9,
            col='#999999')
       
     }
     
+    if (propExpect) {denom <- expected} else {denom <- 1}
     if (modelLine) {
       idx <- which(modelPSEs$path_length == pathlength)
-      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$fitPSE[idx],col=colors$orange$s, lty=1)
+      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$fitPSE[idx]/denom,col=colors$orange$s, lty=1)
     }
     if (gammaLine) {
       idx <- which(modelPSEs$path_length == pathlength)
-      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$gamma[idx],col=colors$purple$s, lty=2)
+      lines(modelPSEs$duration[idx]+pos[1]+xoff,modelPSEs$gamma[idx]/denom,col=colors$orange$s, lty=2)
     }
     
     
     
     if (pathlength == 2) {
-      legend <- c('without spontaneous resets','mean PSE + 95% CI')
-      col    <- c('#000000',colors$lightblue$s)
-      lty    <- c(2,1)
-      pch    <- c(NA,16)
+      if (propExpect) {
+        legend_y <- 1.35
+        legend <- c('mean PSE (95% CI)')
+        col    <- c(colors$darkgreen$s)
+        lty    <- c(1)
+        pch    <- c(16)
+      } else {
+        legend_y <- 3.6
+        legend <- c('without spontaneous resets','mean PSE + 95% CI')
+        col    <- c('#000000',colors$darkgreen$s)
+        lty    <- c(2,1)
+        pch    <- c(NA,16)
+      }
       if (modelDots) {
         legend <- c(legend, 'Poisson model')
         col    <- c(col, '#AAAAAA')
@@ -346,7 +370,7 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
         pch    <- c(pch,18)
       }
       if (gammaDots) {
-        legend <- c(legend, 'gamma model')
+        legend <- c(legend, 'Gamma model')
         col    <- c(col, '#666666')
         lty    <- c(lty,0)
         pch    <- c(pch,18)
@@ -358,12 +382,12 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
         pch    <- c(pch,NA)
       }
       if (gammaLine) {
-        legend <- c(legend, 'gamma model')
-        col    <- c(col, colors$purple$s)
+        legend <- c(legend, 'Gamma model')
+        col    <- c(col, colors$orange$s)
         lty    <- c(lty,2)
         pch    <- c(pch,NA)
       }
-      legend(0,3.6,
+      legend(0,legend_y,
              legend=legend,
              col=col,
              lty=lty,
@@ -375,7 +399,11 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
     
     axis(side=1,at=c(1,2,3),cex.axis=0.7,labels=c('1','2','3'))
     axis(side=1,at=c(5,6,7),cex.axis=0.7,labels=c('1','2','3'))
-    axis(side=2,at=c(0.0,0.7,2.1,3.5),cex.axis=0.7)
+    if (propExpect) {
+      axis(side=2,at=c(0.0,0.5,1.0),labels=c('100', '50', '0'),cex.axis=0.7)
+    } else {
+      axis(side=2,at=c(0.0,0.7,2.1,3.5),cex.axis=0.7)
+    }
     
   }
   
@@ -434,13 +462,13 @@ getBestFitPlotPoints <- function() {
     df$fitPSE[condno] <- mean(bootstrapPSEs(par=exp_par,
                                             duration=df$duration[condno],
                                             path_length=df$path_length[condno],
-                                            runs=25000,
+                                            runs=100000,
                                             ) )
     df$gamma[condno] <- mean(bootstrapPSEs(par=gam_par,
-                                           duration=df$duration[condno],
-                                           path_length=df$path_length[condno],
-                                           runs=25000,
-                                           ) )
+                                          duration=df$duration[condno],
+                                          path_length=df$path_length[condno],
+                                          runs=100000,
+                                          ) )
     # this is not strictly necessary, as we need the original data anyway:
     data_idx <- which(PSEdata$stimdur == df$duration[condno] & PSEdata$path_length == df$path_length[condno])
     if (length(data_idx) == 1) {
@@ -518,6 +546,7 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
     avg_wait_for_events <- par[2]
     fraction <- avg_wait_for_events - floor(avg_wait_for_events)
     if (fraction != 0) {
+      # does NOT work for shape parameters below ONE:
       wait_for_events <- round( floor(avg_wait_for_events) + (fraction > runif(1)) )
     } else {
       wait_for_events <- round( avg_wait_for_events )
@@ -529,7 +558,7 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
   
   steps <- duration / slice
   timesteps <- c(1:steps)
-  
+
   reset_time <- 0
   # number_of_resets <- 0
   
@@ -538,7 +567,7 @@ generateOnePSE <- function(par, slice=0.01, duration=1, path_length=1, returnTra
   for (time in timesteps) {
     
     # where is the stimulus drifting of to?
-    current_drift <- (path_length / sqrt(2)) * (time - reset_time)/(steps-1)
+    current_drift <- (path_length / sqrt(2)) * (time - reset_time)/(steps)
     
     # criterion for reset:
     # depends on reset_probability only (multiplier is always 1)
