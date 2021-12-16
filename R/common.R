@@ -810,4 +810,35 @@ density2D <- function(x, y, bw=1, weights=NULL, n=100, from=NULL, to=NULL, cut=3
   
 }
 
+library('rsvg')
+library(magick)
 
+replotMethodsFigures <- function(figno=1, target='inline') {
+  
+  if (figno == 1) {
+    width <- 6
+    height <- 2.4
+    sourceno <- 1
+    outputfile <- 'doc/Fig1_methods1'
+  } 
+  
+  if (figno == 3) {
+    width <- 6
+    height <- 3.4125
+    sourceno <- 2
+    outputfile <- 'doc/Fig3_methods2'
+  }
+  
+  if (target == 'pdf') {
+    pdf(file=sprintf('%s.pdf',outputfile), width=width, height=height)
+  }
+  
+  Fig <- image_read_pdf(sprintf('doc/methods_fig_%d.pdf',sourceno))
+  par(mai=c(0,0,0,0))
+  plot(Fig)
+  
+  if (target %in% c('pdf')) {
+    dev.off()
+  }
+  
+}
