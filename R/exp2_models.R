@@ -2698,6 +2698,9 @@ plotModels <- function(target='inline') {
   if (target == 'pdf') {
     pdf(file = 'doc/Fig5_marginals_distributions.pdf', width=6, height=4/0.75, bg='white')
   }
+  if (target == 'svg') {
+    svglite(filename='doc/Fig5_marginals_distributions.svg', width=6, height=4/0.75, fix_text_size = FALSE)
+  }
   
   # layout(mat=matrix(c(2,1,4,2,1,5,7,3,6),byrow=TRUE,ncol=3,nrow=3),
   #        widths = c(0.75,2,1.5), heights = c(1,1,1))
