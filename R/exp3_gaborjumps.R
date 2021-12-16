@@ -209,7 +209,7 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
   colors <- getColors()
   
   if (target == 'pdf') {
-    pdf( file = 'doc/fig_6_gaborjump_exp.pdf', width=6, height=4 )
+    pdf( file = 'doc/Fig6_gaborjump_exp.pdf', width=6, height=4 )
   }
   
   layout(mat = matrix(c(1,2), 

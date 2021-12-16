@@ -457,6 +457,9 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   if (target=='svg') {
     svglite(file='doc/Fig2-new.svg',width=6,height=5,fix_text_size = FALSE)
   }
+  if (target=='pdf') {
+    pdf(file='doc/Fig2_tracking.pdf', width=6,height=5)
+  }
   
   layout( matrix(c(1,1,2,3,4,4), nrow = 3, ncol = 2, byrow = FALSE), 
           heights=c(1.1,1.0,0.9), widths=c(0.9,1.1))
@@ -692,7 +695,7 @@ plotBoundedTracking <- function(target='inline', discontinuous=FALSE) {
   axis(side=2,at=seq(0,45,15))
   
   
-  if (target %in% c('svg')) {
+  if (target %in% c('svg','pdf')) {
     dev.off()
   }
   
