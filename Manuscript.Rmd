@@ -23,6 +23,11 @@ link-citations: yes
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+
+# this may take a long time, but sets up the R environemt
+# such that (I hope) all packages are compatible with my code:
+renv::restore()
+
 # First we load all custom scripts:
 
 # The function in this file downloads the data from the OSF project:
