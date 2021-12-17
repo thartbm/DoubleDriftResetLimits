@@ -772,7 +772,7 @@ getData54 <- function(illusionMinimum=0) {
 getDataTrials <- function(illusionMinimum=0, illusionMaximum=90) {
   
   # load re-trace resets and illusion strengths
-  df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
   
   # remove trials without reset:
   df <- df[!is.na(df$resetX),]
