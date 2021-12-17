@@ -5,11 +5,11 @@ author:
 - Denise Y.P. Henriques 1
 - Patrick Cavanagh 1,2,3
 output:
-  pdf_document: default
-  html_document:
-    df_print: paged
   word_document:
     reference_docx: template.docx
+  html_document:
+    df_print: paged
+  pdf_document: default
 header-includes:
 - \usepackage{lineno}
 - \linenumbers

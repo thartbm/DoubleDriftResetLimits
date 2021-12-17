@@ -1,6 +1,6 @@
 library('svglite')
 library('ez')
-library('segmented')
+#library('segmented')
 
 source('R/common.R')
 #source('R/models.R')
@@ -516,7 +516,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11),
     ppno <- participants[participant.idx]
     
     # load participants data file:
-    df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',ppno))
+    df <- read.csv(sprintf('data/onepass_V4/onepass_V4_p%02d.csv',ppno))
     
     # get the numbers of trials that are in the re-trace condition
     trials <- unique(df$trial[df$taskname == task])
@@ -587,7 +587,7 @@ preProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11),
                    illusionstrength)
   
   # write data frame to disk:
-  write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
+  write.csv(df, file=sprintf('data/onepass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
   
 }
 
@@ -748,37 +748,37 @@ getSplineReversalResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,
   
 }
 
-getMultilinearResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
-  
-  # THIS FUNCTION WAS NOT FINISHED AS IT WAS GETTING BAROQUE
-  
-  # make data frame and switch coordinates:
-  df <- data.frame('x'=y,
-                   'y'=x,
-                   't'=t)  # don't really need t, right?
-  
-  # starting point for segmented linear regression:
-  start.lm <- lm(y ~ x, data=df)
-  
-  predict.lm( object = start.lm )
-  
-  breakpoints <- 1
-  
-  seg.lm <- segmented::segmented( start.lm, 
-                                  seg.Z   = ~x, 
-                                  npsi    = breakpoints, # 1 break point
-                                  control = seg.control( display = FALSE ) )
-  
-  predict.segmented()
-  
-  # this test indicates that (when p<.05) there MAY be an additional breakpoint
-  # davies.test(start.lm)
-  
-  # here put a while-loop:
-  # add a segment as long as that explains the data better
-  # probably use AIC -> rel log likelihood, as criterion for "better"
-  
-}
+# getMultilinearResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE) {
+#   
+#   # THIS FUNCTION WAS NOT FINISHED AS IT WAS GETTING BAROQUE
+#   
+#   # make data frame and switch coordinates:
+#   df <- data.frame('x'=y,
+#                    'y'=x,
+#                    't'=t)  # don't really need t, right?
+#   
+#   # starting point for segmented linear regression:
+#   start.lm <- lm(y ~ x, data=df)
+#   
+#   predict.lm( object = start.lm )
+#   
+#   breakpoints <- 1
+#   
+#   seg.lm <- segmented::segmented( start.lm, 
+#                                   seg.Z   = ~x, 
+#                                   npsi    = breakpoints, # 1 break point
+#                                   control = seg.control( display = FALSE ) )
+#   
+#   predict.segmented()
+#   
+#   # this test indicates that (when p<.05) there MAY be an additional breakpoint
+#   # davies.test(start.lm)
+#   
+#   # here put a while-loop:
+#   # add a segment as long as that explains the data better
+#   # probably use AIC -> rel log likelihood, as criterion for "better"
+#   
+# }
 
 
 get2ndDerInflectResetPoint <- function(x,y,t,internalspeed=NA,externalspeed=NA,returnTrajectory=FALSE,minimum=c('x'=NULL,'y'=NULL),angularcutoff=NULL) {
@@ -1037,7 +1037,7 @@ getDirectionAtCutoff <- function(x,y, cutoff) {
 
 summarizeTraceBoundsV4 <- function() {
   
-  df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
   
   df$internalspeed <- abs(df$internalspeed)
   
@@ -1286,7 +1286,7 @@ plotResetPoints <- function(target='inline') {
   }
   
   
-  df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
   
   #print(dim(df))
   
@@ -1903,7 +1903,7 @@ plotAllTrajectories <- function(participants = c(2,3,4,5,6,8,9,10,11),rotate=0,a
                  nrow = 4, ncol = 3, byrow = TRUE)
   layout(mat=mat)
   
-  df <- read.csv('data/onePass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
+  df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
   
   for (participant in participants) {
     

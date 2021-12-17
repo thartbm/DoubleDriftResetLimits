@@ -1,4 +1,8 @@
 
+# some dependencies that are not automatically picked up by renv:
+
+library('pdftools')
+
 
 # useful extra operator:
 `%notin%` <- Negate(`%in%`)
