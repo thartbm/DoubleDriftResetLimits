@@ -5,6 +5,7 @@
 *.pdf
 *.png
 *.tex
+!template.docx
 
 # History files
 .Rhistory
