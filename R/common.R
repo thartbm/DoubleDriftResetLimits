@@ -2,6 +2,9 @@
 # some dependencies that are not automatically picked up by renv:
 
 library('pdftools')
+library('markdown')
+library('base64enc')
+library('rprojroot')
 
 
 # useful extra operator:
