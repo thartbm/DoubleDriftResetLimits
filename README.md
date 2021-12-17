@@ -17,6 +17,8 @@ Software needed:
 - [RStudio](https://www.rstudio.com/products/rstudio/download/) (free desktop version for your OS)
 - [ImageMagick](https://imagemagick.org/)
 
+When installing ImageMagick, make sure to install the developer files as well, in particular R will want to have `magick-baseconfig.h`.
+
 *Linux:* ensure you have: `make` (probably depends on having a C compiler)
 
 *Windows:* lacks some command line tools, so they are here: [Rtools](https://cran.r-project.org/bin/windows/Rtools) This mostly makes the mingw64 C compiler available to R: useful!
