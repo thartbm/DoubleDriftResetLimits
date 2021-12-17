@@ -15,6 +15,9 @@ https://osf.io/72ndu/
 Software needed: 
 - [R](https://cran.r-project.org/)
 - [RStudio](https://www.rstudio.com/products/rstudio/download/) (free desktop version for your OS)
+- [ImageMagick](https://imagemagick.org/)
+
+When installing ImageMagick, make sure to install the developer files as well, in particular R will want to have `magick-baseconfig.h`.
 
 *Linux:* ensure you have: `make` (probably depends on having a C compiler)
 
