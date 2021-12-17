@@ -3,3 +3,5 @@
 # Except this file
 !.gitignore
 !*.Rmd
+!methods_fig_1.pdf
+!methods_fig_2.pdf
