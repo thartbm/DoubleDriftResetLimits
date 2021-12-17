@@ -20,7 +20,9 @@ Software needed:
 
 *Windows:* lacks some command line tools, so they are here: [Rtools](https://cran.r-project.org/bin/windows/Rtools) This mostly makes the mingw64 C compiler available to R: useful!
 
-Make sure to follow the steps that put rtools on your system PATH though.
+Make sure to follow the steps that put rtools on your system PATH though. Perhaps this is the easiest way to do it is to run this in the R console:
+
+`write('PATH="${RTOOLS40_HOME}\\usr\\bin;${PATH}"', file = "~/.Renviron", append = TRUE)`
 
 On any system, you might want to add `devtools` as well. There's a [devtool guide](https://www.r-project.org/nosvn/pandoc/devtools.html) about this.
 
