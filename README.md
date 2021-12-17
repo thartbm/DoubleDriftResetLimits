@@ -15,6 +15,7 @@ https://osf.io/72ndu/
 Software needed: 
 - [R](https://cran.r-project.org/)
 - [RStudio](https://www.rstudio.com/products/rstudio/download/) (free desktop version for your OS)
+- [ImageMagick](https://imagemagick.org/)
 
 *Linux:* ensure you have: `make` (probably depends on having a C compiler)
 
