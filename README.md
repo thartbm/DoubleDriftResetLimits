@@ -42,7 +42,11 @@ The most time-consuming is probably the first step, which is meant to (try to) i
 
 This is the line that is most likely to fail, so after tinkering with stuff, you might want to retry it. It can also take a lot of time, unfortunately.
 
-I've tried running it on my old Linux system, which worked well because most of the packages are also old and can be copied from the systems installed versions. I've also tried running this in Windows with a new install of R, RStudio and Rtools, and it takes ages, because a hundred old packages need to be downloaded and, often, compiled. Here is the current output, which lists the package dependencies:
+I've tried running it on my old Linux system, which worked well because most of the packages are also old and can be copied from the systems installed versions. I've also tried running this in Windows with a new install of R, RStudio and Rtools, and it takes ages, because a hundred old packages need to be downloaded and, often, compiled.
+
+Even after fixing stuff so it installed the versions of packages that were in my renv lockfile, it then wanted to update some of them. I guess that's fine.
+
+Here is the current output, which lists the package dependencies:
 
 > renv::restore()
 The following package(s) will be updated:
