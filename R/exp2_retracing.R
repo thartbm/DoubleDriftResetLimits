@@ -65,7 +65,7 @@ oldPreProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overw
       
       ppno <- participants[participant.idx]
       
-      df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',ppno))
+      df <- read.csv(sprintf('data/onepass_V4/onepass_V4_p%02d.csv',ppno))
       
       tasktrials <- unique(df$trial[df$taskname == task])
       
@@ -456,7 +456,7 @@ oldPreProcessOnePass_V4 <- function(participants = c(2,3,4,5,6,8,9,10,11), overw
     # boundY <-c()
     
     df <- data.frame(participant, trial, internalspeed, internaldirection, externalspeed, fixationside, initialdirection, illusionstrength, boundX, boundY)
-    write.csv(df, file=sprintf('data/onePass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
+    write.csv(df, file=sprintf('data/onepass_V4/onePass_V4_%s.csv', task), quote=F, row.names=F)
     
   }
   
@@ -1041,7 +1041,7 @@ summarizeTraceBoundsV4 <- function() {
   
   df$internalspeed <- abs(df$internalspeed)
   
-  df2 <- read.csv('data/onePass_V4/onePass_V4_arrow.csv', stringsAsFactors = F)
+  #df2 <- read.csv('data/onepass_V4/onePass_V4_arrow.csv', stringsAsFactors = F)
   
   # participants <- unique(df$participant)
   # 
@@ -1674,7 +1674,7 @@ getTrajectoryExamples <- function(participants = c(2,3,4,5,6,8,9,10,11), nsample
   for (participant in participants) {
     
     # load participant's data:
-    df <- read.csv(sprintf('data/onePass_V4/onepass_V4_p%02d.csv',participant))
+    df <- read.csv(sprintf('data/onepass_V4/onepass_V4_p%02d.csv',participant))
     
     # select only re-tracing trials:
     tasktrials <- unique(df$trial[df$taskname == 're-trace'])
