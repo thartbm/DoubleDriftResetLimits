@@ -20,6 +20,8 @@ Software needed:
 
 *Windows:* lacks some command line tools, so they are here: [Rtools](https://cran.r-project.org/bin/windows/Rtools) This mostly makes the mingw64 C compiler available to R: useful!
 
+Make sure to follow the steps that put rtools on your system PATH though.
+
 On any system, you might want to add `devtools` as well. There's a [devtool guide](https://www.r-project.org/nosvn/pandoc/devtools.html) about this.
 
 Once you open the `Manuscript.Rmd` file, you should be able to "knit" the manuscript to Word, PDF or HTML (somewhere at the top of the document, there should be a 'knit' drop down menu). When you select your output of choice, the first (hidden) chunk of R code will:
