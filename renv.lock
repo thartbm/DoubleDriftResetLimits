@@ -275,6 +275,13 @@
       "Repository": "CRAN",
       "Hash": "0e26be4558dbbc713d7cfe4a4c361f38"
     },
+    "gamlss.dist": {
+      "Package": "gamlss.dist",
+      "Version": "6.0-1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "dd2590bc911ebd304dec5c6cd639e822"
+    },
     "generics": {
       "Package": "generics",
       "Version": "0.1.1",
