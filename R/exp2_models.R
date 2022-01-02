@@ -1435,6 +1435,38 @@ TGammaLikelihood <- function(par, data) {
   
 }
 
+# Ex-Gaussian likelihood models -----
+
+XeGlikelihood <- function(par, data) {
+  
+  rX <- par['rXe'] # exponential rate
+  mX <- par['mXe'] # normal mean
+  sX <- par['sXe'] # normal standard deviation
+  
+  L <- gamlss.dist::dexGAUS(x     = data$X,
+                            mu    = mX,
+                            sigma = sX,
+                            nu    = rX)
+  
+  return(data.frame(L))
+  
+}
+
+TeGlikelihood <- function(par, data) {
+
+  rT <- par['rTe'] # exponential rate
+  mT <- par['mTe'] # normal mean
+  sT <- par['sTe'] # normal standard deviation
+  
+  L <- gamlss.dist::dexGAUS(x     = data$RT,
+                            mu    = mT,
+                            sigma = sT,
+                            nu    = rT)
+  
+  return(data.frame(L))
+  
+}
+
 
 # **********************
 # UNCOUPLED MODELS -----
