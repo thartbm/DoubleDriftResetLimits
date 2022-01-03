@@ -769,7 +769,7 @@ getData54 <- function(illusionMinimum=0) {
   
 }
 
-getDataTrials <- function(illusionMinimum=0, illusionMaximum=90) {
+getDataTrials <- function(illusionMinimum=0, illusionMaximum=90, bin=5) {
   
   # load re-trace resets and illusion strengths
   df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
@@ -820,6 +820,23 @@ getDataTrials <- function(illusionMinimum=0, illusionMaximum=90) {
   
   # select only useful columns:
   df <- df[,c('participant','X', 'Y', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve', 'unMu', 'unRT')]
+  
+  
+  if (is.numeric(bin)) {
+    # add bin-indices
+    indices <- round( seq(1, dim(df)[1]+1, length.out=bin+1) )
+    for (variable in c('X','Y','RT')) {
+      bvn <- sprintf('%s_bin',variable)
+      df[[bvn]] <- NA
+      vo <- order(df[,variable])
+      for (binno in c(1:bin)) {
+        #print(binno)
+        bin_indices <- c(indices[binno]:(indices[binno+1]-1))
+        #print(bin_indices)
+        df[[bvn]][vo[bin_indices]] <- binno
+      }
+    }
+  }
   
   return(df)
   
@@ -3096,6 +3113,8 @@ plotModels <- function(target='inline') {
         useRaster=TRUE,
         col = linPal(from='#FFFFFF',to=colors$yorkred$s,alpha=0.5),
   )
+  
+  
   
   axis(side=1,at=c(0,8))
   axis(side=2,at=c(0,13.5))
