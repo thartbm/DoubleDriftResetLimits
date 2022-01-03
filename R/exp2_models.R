@@ -3089,17 +3089,12 @@ plotModels <- function(target='inline') {
               ncol=length(data_y),
               nrow=length(data_x))
   
-  #pal='Purple-Blue'
-  
   image(add=TRUE,
         x=img_x,
         y=img_y,
         z=Z,
         useRaster=TRUE,
-        #col = gray.colors(256, rev=TRUE),
-        #col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
         col = linPal(from='#FFFFFF',to=colors$yorkred$s,alpha=0.5),
-        #lw=0
   )
   
   axis(side=1,at=c(0,8))
@@ -3130,17 +3125,13 @@ plotModels <- function(target='inline') {
               ncol=length(data_y),
               nrow=length(data_x))
   
-  pal='Purple-Blue'
-  
+
   image(add=TRUE,
         x=img_x,
         y=img_y,
         z=Z,
         useRaster=TRUE,
-        #col = gray.colors(256, rev=TRUE),
-        #col = hcl.colors(n=256, palette=pal, alpha=0.5, rev=TRUE),
         col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5),
-        #lw=0
   )
   
   axis(side=1,at=c(0,8))
