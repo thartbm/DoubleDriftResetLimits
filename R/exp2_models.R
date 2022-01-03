@@ -1422,6 +1422,20 @@ XGammaLikelihood <- function(par, data) {
   
 }
 
+YGammaLikelihood <- function(par, data) {
+  
+  sY <- par['sYg']
+  rY <- par['rYg']
+  
+  L <- dgamma( data$Y, shape=sY, rate=rY )
+  # log(0) will be -Inf, not a good probability to maximize
+  #L[which(is.na(L) | is.infinite(L) | L==0)] <- 1e-10
+  
+  return(data.frame(L))
+  
+}
+
+
 TGammaLikelihood <- function(par, data) {
   
   sT <- par['sTg']
@@ -2401,7 +2415,7 @@ plotUncoupledModels <- function(df, target='inline') {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE, Orthogonal=FALSE) {
+fitSomeModels <- function(df, jointModel=FALSE, Xnormal=FALSE, Tnormal=FALSE, Xgamma=TRUE, Tgamma=TRUE, Ygamma=FALSE, Orthogonal=FALSE, TexGaussian=FALSE, XexGaussian=FALSE) {
   
   outputlist <- list()
   
@@ -2666,6 +2680,51 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
     
   }
   
+  # Y gamma
+  
+  if (Ygamma) {
+    
+    # create search "grids":
+    sY = seq(0, 20, length.out = 16)
+    rY = 1/seq(0, 13.5, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridYlim <- expand.grid('sYg'=sY, 'rYg'=rY)
+    
+    # get MSE for points in search grid:
+    gamYlimLLs <- apply(searchgridYlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=YGammaLikelihood)
+    
+    # get 5 best points in the grid:
+    topgridYlim <- searchgridYlim[order(gamYlimLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allYlimFits <- do.call("rbind",
+                           apply( topgridYlim,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10),
+                                  upper=c( 20.0,  13.5),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=YGammaLikelihood) )
+    
+    
+    # pick the best fit:
+    winYlimFit <- allYlimFits[order(allYlimFits$value, decreasing = TRUE)[1],]
+    
+    winYparG <- unlist(winYlimFit[c('sYg','rYg')])
+    
+    winYvalG <- as.numeric(winYlimFit$value)
+    names(winYvalG) <- c('logL')
+    
+    outputlist[['YdistGamma']]=list('par'=winYparG,'logL'=winYvalG)
+    
+  }
+  
   # **************************************
   # the joint model:
   # X has a normal distribution
@@ -2711,6 +2770,100 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
     names(winJointXTval) <- c('logL')
     
     outputlist[['JointXnormalTgamma']]=list('par'=winJointXTpar,'L'=winJointXTval)
+    
+  }
+  
+  if (TexGaussian) {
+    
+    # create search "grids":
+    mTe = seq(0, 4, length.out = 16)
+    sTe = seq(0, 4, length.out = 16)[2:16]
+    rTe = seq(0, 4, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridTeG <- expand.grid('mTe'=mTe,
+                                 'sTe'=sTe,
+                                 'rTe'=rTe)
+    
+    # get MSE for points in search grid:
+    TeGLLs <- apply(searchgridTeG,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TeGlikelihood)
+    
+    # get 5 best points in the grid:
+    topgridTeG <- searchgridTeG[order(TeGLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allTeGfits <- do.call("rbind",
+                           apply( topgridTeG,
+                                  MARGIN=c(1),
+                                  FUN=optimx,
+                                  fn=resetLogLikelihood,
+                                  method=c('nlminb'),
+                                  lower=c(1e-10, 1e-10, 1e-10),
+                                  upper=c(  4.0,   4.0,   4.0),
+                                  control=control,
+                                  data=df,
+                                  fitFUN=TeGlikelihood )
+    )
+    
+    
+    # pick the best fit:
+    winTeGfit <- allTeGfits[order(allTeGfits$value, decreasing = TRUE)[1],]
+    
+    winTparEG <- unlist(winTeGfit[c('mTe','sTe','rTe')])
+    
+    winTvalEG <- as.numeric(winTeGfit$value)
+    names(winTvalEG) <- c('logL')
+    
+    outputlist[['TdistExGauss']]=list('par'=winTparEG,'logL'=winTvalEG)
+    
+  }
+  
+  if (XexGaussian) {
+    
+    # create search "grids":
+    mXe = seq(0, 8, length.out = 16)
+    sXe = seq(0, 8, length.out = 16)[2:16]
+    rXe = seq(0, 8, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridXeG <- expand.grid('mXe'=mXe,
+                                 'sXe'=sXe,
+                                 'rXe'=rXe)
+    
+    # get MSE for points in search grid:
+    XeGLLs <- apply(searchgridXeG,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XeGlikelihood)
+    
+    # get 5 best points in the grid:
+    topgridXeG <- searchgridXeG[order(XeGLLs, decreasing = TRUE)[c(1,5,9)],]
+    
+    control <- list( 'maximize' = TRUE )
+    
+    # do the actual fitting:
+    allXeGfits <- do.call("rbind",
+                          apply( topgridXeG,
+                                 MARGIN=c(1),
+                                 FUN=optimx,
+                                 fn=resetLogLikelihood,
+                                 method=c('nlminb'),
+                                 lower=c(1e-10, 1e-10, 1e-10),
+                                 upper=c(  8.0,   8.0,   8.0),
+                                 control=control,
+                                 data=df,
+                                 fitFUN=XeGlikelihood )
+    )
+    
+    
+    # pick the best fit:
+    winXeGfit <- allXeGfits[order(allXeGfits$value, decreasing = TRUE)[1],]
+    
+    winXparEG <- unlist(winXeGfit[c('mXe','sXe','rXe')])
+    
+    winXvalEG <- as.numeric(winXeGfit$value)
+    names(winXvalEG) <- c('logL')
+    
+    outputlist[['XdistExGauss']]=list('par'=winXparEG,'logL'=winXvalEG)
     
   }
   
