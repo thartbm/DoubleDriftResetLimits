@@ -2415,7 +2415,7 @@ plotUncoupledModels <- function(df, target='inline') {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-fitSomeModels <- function(df, jointModel=FALSE, Xnormal=FALSE, Tnormal=FALSE, Xgamma=TRUE, Tgamma=TRUE, Ygamma=FALSE, Orthogonal=FALSE, TexGaussian=FALSE, XexGaussian=FALSE) {
+fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE, Ygamma=FALSE, Orthogonal=FALSE, TexGaussian=FALSE, XexGaussian=FALSE) {
   
   outputlist <- list()
   
@@ -3073,7 +3073,17 @@ plotModels <- function(target='inline') {
   
   
   par <- modelfits$TdistGamma$par
-  likelihoods <- TGammaLikelihood(par,data)
+  
+  W3 <- mean(df$speed == 4.5)
+  W4 <- mean(df$speed == 3.375)
+  
+  data$speed <- 4.5
+  likelihoods3 <- TGammaLikelihood(par,data)
+  
+  data$speed <- 3.375
+  likelihoods4 <- TGammaLikelihood(par,data)
+  
+  likelihoods <- (W3 * likelihoods3) + (W4 * likelihoods4) 
   
   Z <- matrix(likelihoods$L,
               ncol=length(data_y),
