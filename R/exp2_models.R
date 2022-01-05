@@ -547,6 +547,8 @@ relativeLikelihood <- function(crit) {
 # % explained variance -----
 # # # # # # # # # # # # # #
 
+# 2D variance is NOT as straightforward as I thought
+# DO NOT USE:
 
 D2var <- function(coords, ddof=0) {
   
@@ -825,7 +827,7 @@ getDataTrials <- function(illusionMinimum=0, illusionMaximum=90, bin=5) {
   if (is.numeric(bin)) {
     # add bin-indices
     indices <- round( seq(1, dim(df)[1]+1, length.out=bin+1) )
-    for (variable in c('X','Y','RT')) {
+    for (variable in c('angle','Y','X')) {
       bvn <- sprintf('%s_bin',variable)
       df[[bvn]] <- NA
       vo <- order(df[,variable])
@@ -2421,9 +2423,9 @@ plotUncoupledModels <- function(df, target='inline') {
   
 }
 
-# ****************************
-# fit / plot joint model -----
-# ****************************
+# ***********************************
+# fit / plot distribution model -----
+# ***********************************
 
 # this first function fits models that fit single limits/offsets/distributions
 # i.e. on one coordinate only, for now this is the X and T coordinates
@@ -2432,13 +2434,16 @@ plotUncoupledModels <- function(df, target='inline') {
 # which is what the orthogonal and normal models compare (it is the same)
 # and then there is an offset gamma distribution for comparison
 
-fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE, Ygamma=FALSE, Orthogonal=FALSE, TexGaussian=FALSE, XexGaussian=FALSE) {
+fitSomeModels <- function(df, scaleFUN=median, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgamma=TRUE, Tgamma=TRUE, Ygamma=FALSE, Orthogonal=FALSE, TexGaussian=FALSE, XexGaussian=FALSE, XgammaBin=FALSE, TgammaBin=FALSE) {
   
   outputlist <- list()
   
   # ********************************
   # ortogonal models, just because
   # ********************************
+  
+  # these are fitted / evaluated in isometric coordinates (cm,cm)
+  # so no normalization or scaling is needed
   
   if (Orthogonal) {
     
@@ -2507,6 +2512,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
   
   if (Xnormal) {
     
+    d_df <- df
+    d_df$X <- d_df$X / scaleFUN(d_df$X)
+    
     # create search "grids":
     mX = seq(0, 8, length.out = 16)
     sX = seq(0, 8, length.out = 16)
@@ -2557,6 +2565,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
   # **********************************
   
   if (Tnormal) {
+    
+    d_df <- df
+    d_df$RT <- d_df$RT / scaleFUN(d_df$RT)
     
     # create search "grids":
     mT = seq(0, 4, length.out = 16)
@@ -2609,15 +2620,18 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
   
   if (Tgamma) {
     
+    d_df <- df
+    d_df$RT <- d_df$RT / scaleFUN(d_df$RT)
+    
     # create search "grids":
     sT = seq(0, 20, length.out = 16)
-    rT = 1/seq(0, 4, length.out = 16)[2:16]
+    rT = seq(0, 20, length.out = 16)[2:16]
     
     # make them into data frames:
     searchgridTlim <- expand.grid('sTg'=sT, 'rTg'=rT)
     
     # get MSE for points in search grid:
-    gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TGammaLikelihood)
+    gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=TGammaLikelihood)
     
     # get 5 best points in the grid:
     topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
@@ -2632,9 +2646,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                   fn=resetLogLikelihood,
                                   method=c('nlminb'),
                                   lower=c(1e-10, 1e-10),
-                                  upper=c( 20.0,  10.0),
+                                  upper=c( 20.0,  20.0),
                                   control=control,
-                                  data=df,
+                                  data=d_df,
                                   fitFUN=TGammaLikelihood) )
     
     
@@ -2650,21 +2664,91 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
     
   }
   
+  if (TgammaBin) {
+    
+    # create search "grids":
+    sT = seq(0, 20, length.out = 16)
+    rT = seq(0, 20, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridTlim <- expand.grid('sTg'=sT, 'rTg'=rT)
+    
+    logL  <-  0
+    scale <- c()
+    shape <- c()
+    rate  <- c()
+    
+    for (bin in sort(unique(df$angle_bin))) {
+      
+      print(bin)
+      
+      bin_df <- df[which(df$angle_bin == bin),]
+      f <- scaleFUN(bin_df$RT)
+      bin_df$RT <- bin_df$RT / f
+      
+      scale <- c(scale, f)
+      
+      # get MSE for points in search grid:
+      gamTlimLLs <- apply(searchgridTlim,FUN=resetLogLikelihood,MARGIN=c(1),data=bin_df,fitFUN=TGammaLikelihood)
+      
+      # get 5 best points in the grid:
+      topgridTlim <- searchgridTlim[order(gamTlimLLs, decreasing = TRUE)[c(1,5,9)],]
+      
+      control <- list( 'maximize' = TRUE )
+      
+      # do the actual fitting:
+      allTlimFits <- do.call("rbind",
+                             apply( topgridTlim,
+                                    MARGIN=c(1),
+                                    FUN=optimx,
+                                    fn=resetLogLikelihood,
+                                    method=c('nlminb'),
+                                    lower=c(1e-10, 1e-10),
+                                    upper=c( 20.0,  20.0),
+                                    control=control,
+                                    data=bin_df,
+                                    fitFUN=TGammaLikelihood) )
+      
+      
+      # pick the best fit:
+      winTlimFit <- allTlimFits[order(allTlimFits$value, decreasing = TRUE)[1],]
+      
+      winTparG <- unlist(winTlimFit[c('sTg','rTg')])
+      
+      shape <- c(shape, winTparG['sTg'])
+      rate  <- c(rate,  winTparG['rTg'])
+      
+      o_df <- df[which(df$Y_bin != bin),]
+      o_df$RT <- o_df$RT / f
+      
+      logL <- logL + resetLogLikelihood(par=winTparG,
+                                        data=o_df,
+                                        fitFUN=TGammaLikelihood)
+      
+    }
+    
+    outputlist[['TdistGammaAbin']]=list('par'=list('shape'=shape, 'rate'=rate, 'scale'=scale),'logL'=logL)
+    
+  }
+  
   # **********************************
   # the X-Gamma distributions
   # **********************************
   
   if (Xgamma) {
     
+    d_df <- df
+    d_df$X <- d_df$X / scaleFUN(d_df$X)
+    
     # create search "grids":
     sXg = seq(0, 20, length.out = 16)
-    rXg = 1/seq(0, 4, length.out = 16)[2:16]
+    rXg = seq(0, 20, length.out = 16)[2:16]
     
     # make them into data frames:
     searchgridXlim <- expand.grid('sXg'=sXg, 'rXg'=rXg)
     
     # get MSE for points in search grid:
-    gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XGammaLikelihood)
+    gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=XGammaLikelihood)
     
     # get 5 best points in the grid:
     topgridXlim <- searchgridXlim[order(gamXlimLLs, decreasing = TRUE)[c(1,5,9)],]
@@ -2679,9 +2763,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                   fn=resetLogLikelihood,
                                   method=c('nlminb'),
                                   lower=c(1e-10, 1e-10),
-                                  upper=c( 20.0,  10.0),
+                                  upper=c( 20.0,  20.0),
                                   control=control,
-                                  data=df,
+                                  data=d_df,
                                   fitFUN=XGammaLikelihood) )
     
     
@@ -2697,19 +2781,89 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
     
   }
   
-  # Y gamma
+  if (XgammaBin) {
+    
+    # create search "grids":
+    sXg = seq(0, 20, length.out = 16)
+    rXg = seq(0, 20, length.out = 16)[2:16]
+    
+    # make them into data frames:
+    searchgridXlim <- expand.grid('sXg'=sXg, 'rXg'=rXg)
+    
+    logL  <-  0
+    scale <- c()
+    shape <- c()
+    rate  <- c()
+    
+    for (bin in sort(unique(df$Y_bin))) {
+      
+      print(bin)
+      
+      bin_df <- df[which(df$Y_bin == bin),]
+      f <- scaleFUN(bin_df$X)
+      bin_df$X <- bin_df$X / f
+      
+      scale <- c(scale, f)
+      
+      # get MSE for points in search grid:
+      gamXlimLLs <- apply(searchgridXlim,FUN=resetLogLikelihood,MARGIN=c(1),data=bin_df,fitFUN=XGammaLikelihood)
+      
+      # get 5 best points in the grid:
+      topgridXlim <- searchgridXlim[order(gamXlimLLs, decreasing = TRUE)[c(1,5,9)],]
+      
+      control <- list( 'maximize' = TRUE )
+      
+      # do the actual fitting:
+      allXlimFits <- do.call("rbind",
+                             apply( topgridXlim,
+                                    MARGIN=c(1),
+                                    FUN=optimx,
+                                    fn=resetLogLikelihood,
+                                    method=c('nlminb'),
+                                    lower=c(1e-10, 1e-10),
+                                    upper=c( 20.0,  20.0),
+                                    control=control,
+                                    data=bin_df,
+                                    fitFUN=XGammaLikelihood) )
+      
+      
+      # pick the best fit:
+      winXlimFit <- allXlimFits[order(allXlimFits$value, decreasing = TRUE)[1],]
+      
+      winXparG <- unlist(winXlimFit[c('sXg','rXg')])
+      
+      shape <- c(shape, winXparG['sXg'])
+      rate  <- c(rate,  winXparG['rXg'])
+      
+      o_df <- df[which(df$Y_bin != bin),]
+      o_df$X <- o_df$X / f
+      
+      logL <- logL + resetLogLikelihood(par=winXparG,
+                                        data=o_df,
+                                        fitFUN=XGammaLikelihood)
+      
+    }
+    
+    outputlist[['XdistGammaYbin']]=list('par'=list('shape'=shape, 'rate'=rate, 'scale'=scale),'logL'=logL)
+    
+  }
+  
+  # Y gamma?
   
   if (Ygamma) {
     
+    d_df <- df
+    d_df$Y <- d_df$Y / scaleFUN(d_df$Y)
+    
     # create search "grids":
     sY = seq(0, 20, length.out = 16)
-    rY = 1/seq(0, 13.5, length.out = 16)[2:16]
+    rY = seq(0, 20, length.out = 16)[2:16]
     
     # make them into data frames:
     searchgridYlim <- expand.grid('sYg'=sY, 'rYg'=rY)
     
     # get MSE for points in search grid:
-    gamYlimLLs <- apply(searchgridYlim,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=YGammaLikelihood)
+    gamYlimLLs <- apply(searchgridYlim,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=YGammaLikelihood)
     
     # get 5 best points in the grid:
     topgridYlim <- searchgridYlim[order(gamYlimLLs, decreasing = TRUE)[c(1,5,9)],]
@@ -2724,9 +2878,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                   fn=resetLogLikelihood,
                                   method=c('nlminb'),
                                   lower=c(1e-10, 1e-10),
-                                  upper=c( 20.0,  13.5),
+                                  upper=c( 20.0,  20.0),
                                   control=control,
-                                  data=df,
+                                  data=d_df,
                                   fitFUN=YGammaLikelihood) )
     
     
@@ -2748,54 +2902,63 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
   # T has a gamma distribution
   # **************************************
   
-  if (jointModel) {
-    
-    # build a search grid:
-    xNm <- seq(0,8,length.out = 10)
-    xNs <- seq(0,4,length.out = 10)
-    tGs <- seq(0,10,length.out = 10)[2:11]
-    tGr <- seq(0, 5,length.out = 10)[2:11]
-    jointXTgrid <- expand.grid('mXn'=xNm, 'sXn'=xNs, 'sTg'=tGs, 'rTg'= tGr)
-    
-    # get Likelihoods for points in search grid:
-    jointXTlLs <- apply(jointXTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XgaussianTgammaLikelihood)
-    
-    # get some of the best points in the grid:
-    topgridJointXT <- jointXTgrid[order(jointXTlLs, decreasing = TRUE)[c(1:10)],]
-    
-    control <- list( 'maximize' = TRUE )
-    
-    # do the actual fitting:
-    allJointXTfits <- do.call("rbind",
-                              apply( topgridJointXT,
-                                     MARGIN=c(1),
-                                     FUN=optimx,
-                                     fn=resetLogLikelihood,
-                                     method=c('nlminb'),
-                                     lower=c( 0.0, 0.0,  0.0, 0.0 ),
-                                     upper=c( 8.0, 4.0, 10.0, 5.0 ),
-                                     control=control,
-                                     data=df,
-                                     fitFUN=XgaussianTgammaLikelihood) )
-    
-    # pick the best fit:
-    winJointXTfit <- allJointXTfits[order(allJointXTfits$value)[1],]
-    
-    winJointXTpar <- unlist(winJointXTfit[c('mXn','sXn','sTg','rTg')])
-    
-    winJointXTval <- as.numeric(winJointXTfit$value)
-    names(winJointXTval) <- c('logL')
-    
-    outputlist[['JointXnormalTgamma']]=list('par'=winJointXTpar,'L'=winJointXTval)
-    
-  }
+  # maybe this should be removed as it makes no sense
+  # yet is a lot of work to maintain...
+  
+  # if (jointModel) {
+  #   d_df <- df
+  #   d_df$X  <- d_df$X  / scaleFUN(d_df$X)
+  #   d_df$RT <- d_df$RT / scaleFUN(d_df$RT)
+  #   
+  #   # build a search grid:
+  #   xNm <- seq(0,8,length.out = 10)
+  #   xNs <- seq(0,4,length.out = 10)
+  #   tGs <- seq(0,10,length.out = 10)[2:11]
+  #   tGr <- seq(0, 5,length.out = 10)[2:11]
+  #   jointXTgrid <- expand.grid('mXn'=xNm, 'sXn'=xNs, 'sTg'=tGs, 'rTg'= tGr)
+  #   
+  #   # get Likelihoods for points in search grid:
+  #   jointXTlLs <- apply(jointXTgrid,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=XgaussianTgammaLikelihood)
+  #   
+  #   # get some of the best points in the grid:
+  #   topgridJointXT <- jointXTgrid[order(jointXTlLs, decreasing = TRUE)[c(1:10)],]
+  #   
+  #   control <- list( 'maximize' = TRUE )
+  #   
+  #   # do the actual fitting:
+  #   allJointXTfits <- do.call("rbind",
+  #                             apply( topgridJointXT,
+  #                                    MARGIN=c(1),
+  #                                    FUN=optimx,
+  #                                    fn=resetLogLikelihood,
+  #                                    method=c('nlminb'),
+  #                                    lower=c( 0.0, 0.0,  0.0, 0.0 ),
+  #                                    upper=c( 8.0, 4.0, 10.0, 5.0 ),
+  #                                    control=control,
+  #                                    data=d_df,
+  #                                    fitFUN=XgaussianTgammaLikelihood) )
+  #   
+  #   # pick the best fit:
+  #   winJointXTfit <- allJointXTfits[order(allJointXTfits$value)[1],]
+  #   
+  #   winJointXTpar <- unlist(winJointXTfit[c('mXn','sXn','sTg','rTg')])
+  #   
+  #   winJointXTval <- as.numeric(winJointXTfit$value)
+  #   names(winJointXTval) <- c('logL')
+  #   
+  #   outputlist[['JointXnormalTgamma']]=list('par'=winJointXTpar,'L'=winJointXTval)
+  #   
+  # }
   
   if (TexGaussian) {
     
+    d_df <- df
+    d_df$RT <- d_df$RT / scaleFUN(d_df$RT)
+    
     # create search "grids":
-    mTe = seq(0, 4, length.out = 16)
-    sTe = seq(0, 4, length.out = 16)[2:16]
-    rTe = seq(0, 4, length.out = 16)[2:16]
+    mTe = seq(0, 2,  length.out = 16)
+    sTe = seq(0, 20, length.out = 16)[2:16]
+    rTe = seq(0, 20, length.out = 16)[2:16]
     
     # make them into data frames:
     searchgridTeG <- expand.grid('mTe'=mTe,
@@ -2803,7 +2966,7 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                  'rTe'=rTe)
     
     # get MSE for points in search grid:
-    TeGLLs <- apply(searchgridTeG,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=TeGlikelihood)
+    TeGLLs <- apply(searchgridTeG,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=TeGlikelihood)
     
     # get 5 best points in the grid:
     topgridTeG <- searchgridTeG[order(TeGLLs, decreasing = TRUE)[c(1,5,9)],]
@@ -2818,9 +2981,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                   fn=resetLogLikelihood,
                                   method=c('nlminb'),
                                   lower=c(1e-10, 1e-10, 1e-10),
-                                  upper=c(  4.0,   4.0,   4.0),
+                                  upper=c(  2.0,  20.0,  20.0),
                                   control=control,
-                                  data=df,
+                                  data=d_df,
                                   fitFUN=TeGlikelihood )
     )
     
@@ -2839,10 +3002,14 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
   
   if (XexGaussian) {
     
+    d_df <- df
+    d_df$X <- d_df$X / scaleFUN(d_df$X)
+    
+    
     # create search "grids":
-    mXe = seq(0, 8, length.out = 16)
-    sXe = seq(0, 8, length.out = 16)[2:16]
-    rXe = seq(0, 8, length.out = 16)[2:16]
+    mXe = seq(0,  2, length.out = 16)
+    sXe = seq(0, 20, length.out = 16)[2:16]
+    rXe = seq(0, 20, length.out = 16)[2:16]
     
     # make them into data frames:
     searchgridXeG <- expand.grid('mXe'=mXe,
@@ -2850,7 +3017,7 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                  'rXe'=rXe)
     
     # get MSE for points in search grid:
-    XeGLLs <- apply(searchgridXeG,FUN=resetLogLikelihood,MARGIN=c(1),data=df,fitFUN=XeGlikelihood)
+    XeGLLs <- apply(searchgridXeG,FUN=resetLogLikelihood,MARGIN=c(1),data=d_df,fitFUN=XeGlikelihood)
     
     # get 5 best points in the grid:
     topgridXeG <- searchgridXeG[order(XeGLLs, decreasing = TRUE)[c(1,5,9)],]
@@ -2865,9 +3032,9 @@ fitSomeModels <- function(df, jointModel=FALSE, Xnormal=TRUE, Tnormal=TRUE, Xgam
                                  fn=resetLogLikelihood,
                                  method=c('nlminb'),
                                  lower=c(1e-10, 1e-10, 1e-10),
-                                 upper=c(  8.0,   8.0,   8.0),
+                                 upper=c(  2.0,  20.0,  20.0),
                                  control=control,
-                                 data=df,
+                                 data=d_df,
                                  fitFUN=XeGlikelihood )
     )
     
@@ -2893,7 +3060,7 @@ plotModels <- function(target='inline') {
   
   df <- getDataTrials()
   
-  modelfits <- fitSomeModels(df)
+  modelfits <- fitSomeModels(df, )
   
   colors <- getColors()
   
@@ -2912,6 +3079,12 @@ plotModels <- function(target='inline') {
          widths = c(1,2,1.5), heights = c(2,1,1))
   
   par(mar=c(3.5,3.5,2,2))
+  
+  # # # # # # # # # # # # # # # #
+  #
+  # first plot: resets and limits
+  #
+  # # # # # # # # # # # # # # # #
   
   plot(df$X,df$Y,
        main='',xlab='',ylab='',
@@ -2939,21 +3112,17 @@ plotModels <- function(target='inline') {
   for (speed in c(3,4)) {
     lines(x   = sin(seq(0,pi/2,length.out = 50)) * Lt * speed,
           y   = cos(seq(0,pi/2,length.out = 50)) * Lt * speed,
-          col = colors$yorkred$s,
+          col = c(colors$yorkred$s, colors$orange$s)[speed-2],
           lw  = 2,
-          lty = speed-2)
+          lty = 1)
     polygon(x   = c(-.2,0,0),
             y   = (Lt * speed) + c(0, .2, -.2),
-            col = colors$yorkred$s,
+            col = c(colors$yorkred$s, colors$orange$s)[speed-2],
             border=NA)
   }
-  # lines(x   = c(0,8),
-  #       y   = rep(Lt,2),
-  #       col = colors$yorkred$s)
   
   axis(side=1,at=c(0,4,8))
   axis(side=2,at=c(0,4.5,9,13.5))
-  
   
   
   # # # # # # # # # # # # # # #
@@ -2961,7 +3130,6 @@ plotModels <- function(target='inline') {
   # second plot: T distribution
   #
   # # # # # # # # # # # # # # #
-  
   
   
   plot(-1000,-1000,
@@ -2976,12 +3144,12 @@ plotModels <- function(target='inline') {
   idx <- which(histogram$breaks < 4)
   barheights=histogram$density[idx] #/max(histogram$density[idx])
   #print(barheights)
-  for (id in idx) {
-    y <- c(histogram$breaks[c(id,id,id+1,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
-    x <- c(1,1-barheights[c(id,id)],1)
-    polygon(x=x, y=y,
-            col='#CCCCCC',border=NA)
-  }
+  # for (id in idx) {
+  #   y <- c(histogram$breaks[c(id,id,id+1,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+  #   x <- c(1,1-barheights[c(id,id)],1)
+  #   # polygon(x=x, y=y,
+  #   #         col='#CCCCCC',border=NA)
+  # }
   
   
   x <- c(0)
@@ -2998,6 +3166,7 @@ plotModels <- function(target='inline') {
   
   # draw a line with the density of the model function
   par  <- modelfits$TdistGamma$par
+  par['rTg'] <- par['rTg'] / median(df$RT)
   #print(par)
   data <- data.frame('RT'=seq(0,4,0.02))
   dens <- TGammaLikelihood(par,data)$L 
@@ -3040,7 +3209,7 @@ plotModels <- function(target='inline') {
   
   # draw a line with the density of the model function
   par  <- modelfits$XdistGamma$par
-  #print(par)
+  par['rXg'] <- par['rXg'] / median(df$X)
   data <- data.frame('X'=seq(0,8,0.02))
   dens <- XGammaLikelihood(par,data)$L 
   #dens <- dens / max(dens)
@@ -3088,21 +3257,78 @@ plotModels <- function(target='inline') {
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
+  # empty Z matrix:
+  Z <- matrix(0,
+              ncol=length(data_y),
+              nrow=length(data_x))
   
-  par <- modelfits$TdistGamma$par
+  # we're going to fill this in based on angular bins:
+  angles <- matrix(atan2(data$X, data$Y), ncol=length(data_y), nrow=length(data_x))
   
-  W3 <- mean(df$speed == 4.5)
-  W4 <- mean(df$speed == 3.375)
+  # we need bin-boundaries:
+  binspar <- modelfits$TdistGammaAbin$par
   
-  data$speed <- 4.5
-  likelihoods3 <- TGammaLikelihood(par,data)
+  # fit model for each
+  for (bin in sort(unique(df$angle_bin))) {
+    
+    lo <- min(df$angle[df$angle_bin == bin])
+    if (bin > 1) {
+      lo <- mean(c(lo, max(df$angle[df$angle_bin == (bin-1)])))
+    } else {
+      lo <- 0
+    }
+    hi <- max(df$angle[df$angle_bin == bin])
+    if (bin < 5) {
+      hi <- mean(c(hi, min(df$angle[df$angle_bin == (bin+1)])))
+    } else {
+      hi <- pi/2
+    }
+    
+    #cat(sprintf('bin %d: %0.2f - %0.2f\n',bin,lo,hi))
+    
+    d_data <- data
+    d_data$RT <- d_data$RT / binspar$scale[bin]
+    
+    binpars <- c(binspar$shape[bin], binspar$rate[bin])
+    
+    W3 <- mean(df$speed == 4.5   & df$angle_bin == bin)
+    W4 <- mean(df$speed == 3.375 & df$angle_bin == bin)
+    
+    d_data$speed <- 4.5
+    likelihoods3 <- TGammaLikelihood(par=binpars,data=d_data)
+    
+    d_data$speed <- 3.375
+    likelihoods4 <- TGammaLikelihood(par=binpars,data=d_data)
+    
+    binLikelihoods <- matrix( (W3 * likelihoods3$L) + (W4 * likelihoods4$L),
+                              ncol=length(data_y),
+                              nrow=length(data_x)  )
+    
+    idx <- which(angles > lo & angles <= hi)
+    Z[idx] <- binLikelihoods[idx]
+    
+    # rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
+    #             max(df$angle[which(df$angle_bin == bin)]), 
+    #             length.out = 12)
+    if (bin == 1) {rads <- seq(0, max(df$angle[which(df$angle_bin == bin)]), length.out = 12)}
+    else if (bin == 5) {rads <- seq(min(df$angle[which(df$angle_bin == bin)]), pi/2, length.out = 12)}
+    else {rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
+                      max(df$angle[which(df$angle_bin == bin)]), 
+                      length.out = 12)}
+    
+    for (speedno in c(1,2)) {
+      speed <- c(3.375, 4.5)[speedno]
+      mf <- binspar$scale[bin] * speed
+      lines(x=sin(rads)*mf,
+            y=cos(rads)*mf,
+            lty=1,
+            col=c(colors$yorkred$s, colors$orange$s)[speedno],
+            lw=1.5)
+    }
+    
+  }
   
-  data$speed <- 3.375
-  likelihoods4 <- TGammaLikelihood(par,data)
-  
-  likelihoods <- (W3 * likelihoods3) + (W4 * likelihoods4) 
-  
-  Z <- matrix(likelihoods$L,
+  Z <- matrix(Z,
               ncol=length(data_y),
               nrow=length(data_x))
   
@@ -3113,8 +3339,6 @@ plotModels <- function(target='inline') {
         useRaster=TRUE,
         col = linPal(from='#FFFFFF',to=colors$yorkred$s,alpha=0.5),
   )
-  
-  
   
   axis(side=1,at=c(0,8))
   axis(side=2,at=c(0,13.5))
@@ -3136,43 +3360,253 @@ plotModels <- function(target='inline') {
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
-  
-  par <- modelfits$XdistGamma$par
-  likelihoods <- XGammaLikelihood(par,data)
-  
-  Z <- matrix(likelihoods$L,
+  # empty Z matrix:
+  Z <- matrix(0,
               ncol=length(data_y),
               nrow=length(data_x))
   
-
+  # we're going to fill this in based on Y-coord bins:
+  Y_coords <- matrix(data$Y, ncol=length(data_y), nrow=length(data_x))
+  
+  # we need bin-boundaries:
+  binspar <- modelfits$XdistGammaYbin$par
+  
+  # fit model for each
+  for (bin in sort(unique(df$Y_bin))) {
+    
+    if (bin == 1) {
+      lo <- 0
+    } else {
+      lo <- mean(c(min(df$Y[df$Y_bin == bin]),
+                   max(df$Y[df$Y_bin == (bin-1)])))
+    }
+    if (bin == 5) {
+      hi <- 13.5
+    } else {
+      hi <- mean(c(max(df$Y[df$Y_bin == bin]),
+                   min(df$Y[df$Y_bin == (bin+1)])))
+    }
+    
+    #cat(sprintf('bin %d: %0.2f - %0.2f\n',bin,lo,hi))
+    
+    d_data <- data
+    d_data$X <- d_data$X / binspar$scale[bin]
+    
+    binpars <- c(binspar$shape[bin], binspar$rate[bin])
+    
+    likelihoods <- XGammaLikelihood(par=binpars,data=d_data)
+    
+    binLikelihoods <- matrix( likelihoods$L,
+                              ncol=length(data_y),
+                              nrow=length(data_x)  )
+    
+    idx <- which(Y_coords > lo & Y_coords <= hi)
+    Z[idx] <- binLikelihoods[idx]
+    
+    y_ends <- c(min(df$Y[which(df$Y_bin == bin)]),
+                min(13.4,max(df$Y[which(df$Y_bin == bin)]))  )
+    
+    if (bin == 1) {y_ends[1] <-  0.0}
+    if (bin == 5) {y_ends[2] <- 13.5}
+    
+    mf <- binspar$scale[bin]
+    lines(x=rep(mf,2),
+          y=y_ends,
+          lty=1,
+          col=colors$blue$s,
+          lw=1.5)
+    
+  }
+  
+  Z <- matrix(Z,
+              ncol=length(data_y),
+              nrow=length(data_x))
+  
   image(add=TRUE,
         x=img_x,
         y=img_y,
         z=Z,
         useRaster=TRUE,
-        col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5),
+        col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5)
   )
   
   axis(side=1,at=c(0,8))
   axis(side=2,at=c(0,13.5))
   
-
   if (target %in% c('pdf','svg')) {
     dev.off()
   }
   
 }
 
+# examplePlots <- function() {
+#   
+#   colors <- getColors()
+#   
+#   df <- getDataTrials()
+#   
+#   modelfits <- fitSomeModels(df, Xnormal=FALSE, Tnormal=FALSE, Xgamma=TRUE, Tgamma=FALSE, XgammaBin=FALSE, TgammaBin=FALSE)
+#   
+#   layout(mat=matrix(c(1,2),ncol=2,nrow=1))
+#   
+#   plot(-1000,-1000,
+#        main='raw data',ylab='probability density',xlab='raw unit',
+#        ylim=c(0,1.0),xlim=c(0,8),
+#        bty='n', ax=F)
+#   
+#   histogram <- hist(df$X[which(df$X <=8)], breaks=seq(0, 8, length.out = 40), plot=FALSE)
+#   idx <- which(histogram$breaks < 8)
+#   barheights=histogram$density[idx] #/max(histogram$density[idx])
+#   
+#   x <- c(0)
+#   y <- c(0)
+#   for (id in idx) {
+#     x <- c(x, histogram$breaks[c(id,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+#     y <- c(y, barheights[c(id,id)])
+#   }
+#   y <- c(y,0)
+#   x <- c(x,histogram$breaks[id])
+#   # switch X and Y for plotting:
+#   polygon(x=x, y=y,
+#           col='#CCCCCC',border=NA)
+#   
+#   
+#   par  <- modelfits$XdistGamma$par
+#   par['rXg'] <- par['rXg'] / median(df$X)
+#   #print(par)
+#   data <- data.frame('X'=seq(0,8,0.04))
+#   dens <- XGammaLikelihood(par,data)$L 
+#   xvals <- data$X
+#   
+#   lines(x=xvals,y=dens,col=colors$yorkred$s)
+#   
+#   lines(x=rep(median(df$X),2),y=c(0,1.0),col=colors$blue$s)
+#   
+#   axis(side=1,at=c(0,2,4,6,8))
+#   axis(side=2,at=c(0,0.25,0.50,0.75,1.00))
+#   
+#   plot(-1000,-1000,
+#        main='scaled by median',ylab='probability density',xlab='scaled unit',
+#        ylim=c(0,1.0),xlim=c(0,4),
+#        bty='n', ax=F)
+#   
+#   df$X <- df$X / median(df$X)
+#   
+#   histogram <- hist(df$X[which(df$X <=4)], breaks=seq(0, 4, length.out = 40), plot=FALSE)
+#   idx <- which(histogram$breaks < 4)
+#   barheights=histogram$density[idx] #/max(histogram$density[idx])
+#   
+#   x <- c(0)
+#   y <- c(0)
+#   for (id in idx) {
+#     x <- c(x, histogram$breaks[c(id,id+1)]) #+ c(0.005,0.005,-0.005,-0.005)
+#     y <- c(y, barheights[c(id,id)])
+#   }
+#   y <- c(y,0)
+#   x <- c(x,histogram$breaks[id])
+#   # switch X and Y for plotting:
+#   polygon(x=x, y=y,
+#           col='#CCCCCC',border=NA)
+#   par  <- modelfits$XdistGamma$par
+#   #par['rXg'] <- par['rXg'] / median(df$X)
+#   #print(par)
+#   data <- data.frame('X'=seq(0,8,0.04))
+#   dens <- XGammaLikelihood(par,data)$L 
+#   xvals <- data$X
+#   
+#   lines(x=xvals,y=dens,col=colors$yorkred$s)
+#   
+#   lines(x=rep(median(df$X),2),y=c(0,1.0),col=colors$blue$s)
+#   
+#   axis(side=1,at=c(0,2,4,6,8)/2)
+#   axis(side=2,at=c(0,0.25,0.50,0.75,1.00))
+#   
+#   
+# }
+
+# makeFitTable <- function() {
+#   
+#   df <- getDataTrials()
+#   
+#   
+#   
+# }
+
 AIClL <- function(lL, k) {
   return((2*k) - (2*lL))
 }
 
-fitParticipantModels <- function() {
+compareDistributionModels <- function() {
   
   df <- getDataTrials()
   
-  participant <- c()
+  modelfits <- fitSomeModels(df, Ygamma=TRUE)
   
+  modelnames <- c("XdistNormal",
+                  "TdistNormal",
+                  "XdistGamma",
+                  "TdistGamma",
+                  "YdistGamma",
+                  "XdistGammaYbin",
+                  "TdistGammaAbin"  )
+  
+  modelparameters <- list("XdistNormal"=2,
+                          "TdistNormal"=2,
+                          "XdistGamma"=2,
+                          "TdistGamma"=2,
+                          "YdistGamma"=2,
+                          "XdistGammaYbin"=10,
+                          "TdistGammaAbin"=10  )
+  
+  modelcomparisons <- list('XTnormal'=c(1,2),
+                           'XTYgamma'=c(3,4,5),
+                           'XnormGam'=c(1,3),
+                           'TnormGam'=c(2,4),
+                           'XTbinGam'=c(6,7))
+  
+  for (mc_name in names(modelcomparisons)) {
+    
+    cat('\n')
+    print(mc_name)
+    
+    model_nums <- modelcomparisons[[mc_name]]
+    
+    m_names <- c()
+    logLikelihoods <- c()
+    npars <- c()
+    
+    for(mod_no in model_nums) {
+      
+      mod_name <- modelnames[mod_no]
+      
+      m_names <- c(m_names, mod_name)
+      logLikelihoods <- c(logLikelihoods, modelfits[[mod_name]]$logL)
+      npars <- c(npars, modelparameters[[mod_name]])
+    }
+    
+
+    
+    names(logLikelihoods) <- m_names
+    print(logLikelihoods)
+    
+
+    AICs <- AIClL(logLikelihoods, npars)
+    print(AICs)
+    print(relativeLikelihood(AICs))
+  }
+  
+}
+
+# this function won't work well on the binned data:
+# do we bin anew for each participant? then how do we compare?
+# if we keep the bins, then some are empty
+
+fitParticipantModels <- function() {
+
+  df <- getDataTrials()
+
+  participant <- c()
+
   XlimLik <- c()
   XlimAIC <- c()
   XlimPn <- c()
@@ -3187,9 +3621,9 @@ fitParticipantModels <- function() {
   TlimPng <- c()
   XgamPng <- c()
   TgamPng <- c()
-  
+
   for (ppno in c(unique(df$participant),-1)) {
-    
+
     if (ppno > 0) {
       participant <- c(participant, sprintf('%d',ppno))
       pdf <- df[which(df$participant==ppno),]
@@ -3197,56 +3631,56 @@ fitParticipantModels <- function() {
       participant <- c(participant, 'all')
       pdf <- df
     }
-    
-    p_fits <- fitSomeModels(df=pdf)
-    
+
+    p_fits <- fitSomeModels(df=pdf, XgammaBin=FALSE, TgammaBin=FALSE)
+
     # X_MSE <- p_fits$XlimOrth$MSE
     # T_MSE <- p_fits$TlimOrth$MSE
-    # 
+    #
     # AICs <- AICc(MSE=c(X_MSE, T_MSE), k=c(2,2), N=6)
     # limLL <- relativeLikelihood(AICs)
-    # 
+    #
     # # print(AICs)
     # # print(limLL)
-    # 
+    #
     # XlimMSE <- c(XlimMSE, X_MSE)
     # XlimAIC <- c(XlimAIC, AICs['Lx'])
     # TlimMSE <- c(TlimMSE, T_MSE)
     # TlimAIC <- c(TlimAIC, AICs['Lt'])
     # XlimP <- c(XlimP, limLL['Lx'])
     # TlimP <- c(TlimP, limLL['Lt'])
-    
+
     Xn_lL <- as.numeric(p_fits$XdistNormal$logL)
     Tn_lL <- as.numeric(p_fits$TdistNormal$logL)
-    
+
     NlogL <- c('Xn_ll'=Xn_lL, 'Tn_ll'=Tn_lL)
     NAICs <- AIClL(NlogL, k=c(2,2))
     normLL <- relativeLikelihood(NAICs)
-    
+
     #print(p_fits$XdistNormal)
     # print(Xn_lL)
     # print(AICs)
     # print(limLL)
-    
+
     XlimLik <- c(XlimLik, Xn_lL)
     XlimAIC <- c(XlimAIC, NAICs['Xn_ll'])
     TlimLik <- c(TlimLik, Tn_lL)
     TlimAIC <- c(TlimAIC, NAICs['Tn_ll'])
     XlimPn <- c(XlimPn, normLL['Xn_ll'])
     TlimPn <- c(TlimPn, normLL['Tn_ll'])
-    
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    
+
     Xg_lL <- as.numeric(p_fits$XdistGamma$logL)
     Tg_lL <- as.numeric(p_fits$TdistGamma$logL)
-    
+
     GlogL <- c('Xg_ll'=Xg_lL, 'Tg_ll'=Tg_lL)
     GAICs <- AIClL(GlogL, k=c(2,2))
     LL <- relativeLikelihood(c(NAICs,GAICs))
-    
+
     #print(AICs)
     #print(limLL)
-    
+
     XgamLik <- c(XgamLik, Xg_lL)
     XgamAIC <- c(XgamAIC, GAICs['Xg_ll'])
     TgamLik <- c(TgamLik, Tg_lL)
@@ -3255,15 +3689,15 @@ fitParticipantModels <- function() {
     TgamPng <- c(TgamPng, LL['Tg_ll'])
     XlimPng <- c(XlimPng, LL['Xn_ll'])
     TlimPng <- c(TlimPng, LL['Tn_ll'])
-    
+
   }
-  
+
   # print(length(participant))
   # print(length(XlimLik))
   # print(length(XlimAIC))
-  
+
   return(data.frame(participant,XlimLik,XlimAIC,TlimLik,TlimAIC,XlimPn,TlimPn,XgamLik,XgamAIC,TgamLik,TgamAIC,XlimPng,TlimPng,XgamPng,TgamPng))
-  
+
 }
 
 # Code Graveyard: -----
