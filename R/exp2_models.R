@@ -3058,12 +3058,13 @@ fitSomeModels <- function(df, scaleFUN=median, jointModel=FALSE, Xnormal=TRUE, T
 
 plotModels <- function(target='inline') {
   
-  bins <- 5
+  bins <- 4
   df <- getDataTrials(bins=bins)
   
   modelfits <- fitSomeModels(df)
   
   colors <- getColors()
+  darkorange <- mixCol(colors$yorkred$s, colors$orange$s, balance=c(1,0))
   
   if (target == 'pdf') {
     pdf(file = 'doc/Fig5_marginals_distributions.pdf', width=6, height=4/0.75, bg='white')
@@ -3113,12 +3114,12 @@ plotModels <- function(target='inline') {
   for (speed in c(3,4)) {
     lines(x   = sin(seq(0,pi/2,length.out = 50)) * Lt * speed,
           y   = cos(seq(0,pi/2,length.out = 50)) * Lt * speed,
-          col = c(colors$yorkred$s, colors$orange$s)[speed-2],
+          col = c(colors$yorkred$s, darkorange)[speed-2],
           lw  = 2,
           lty = 1)
     polygon(x   = c(-.2,0,0),
             y   = (Lt * speed) + c(0, .2, -.2),
-            col = c(colors$yorkred$s, colors$orange$s)[speed-2],
+            col = c(colors$yorkred$s, darkorange)[speed-2],
             border=NA)
   }
   
@@ -3174,7 +3175,7 @@ plotModels <- function(target='inline') {
   #dens <- dens / max(dens)
   #print(max(dens))
   xvals <- data$RT
-  lines(x=1-dens,y=xvals,col=colors$yorkred$s)
+  lines(x=1-dens,y=xvals,col=colors$yorkred$s,lw=2)
   
   axis(side=2,at=c(0,1,2,3,4))
   
@@ -3217,7 +3218,7 @@ plotModels <- function(target='inline') {
   #print(max(dens))
   #print(dens)
   xvals <- data$X
-  lines(x=xvals,y=0.36-dens,col=colors$blue$s)
+  lines(x=xvals,y=0.36-dens,col=colors$blue$s,lw=2)
   
   
   
@@ -3286,7 +3287,7 @@ plotModels <- function(target='inline') {
   
   for (bin in c(1:bins)) {
     if (bin == 1) {rads <- seq(0, max(df$angle[which(df$angle_bin == bin)]), length.out = 12)}
-    else if (bin == 5) {rads <- seq(min(df$angle[which(df$angle_bin == bin)]), pi/2, length.out = 12)}
+    else if (bin == bins) {rads <- seq(min(df$angle[which(df$angle_bin == bin)]), pi/2, length.out = 12)}
     else {rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
                       max(df$angle[which(df$angle_bin == bin)]), 
                       length.out = 12)}
@@ -3297,8 +3298,8 @@ plotModels <- function(target='inline') {
       lines(x=sin(rads)*mf,
             y=cos(rads)*mf,
             lty=1,
-            col=c(colors$yorkred$s, colors$orange$s)[speedno],
-            lw=1.5)
+            col=c(colors$yorkred$s, darkorange)[speedno],
+            lw=2)
     }
   }
   
@@ -3353,7 +3354,7 @@ plotModels <- function(target='inline') {
          y=y_ends,
          lty=1,
          col=colors$blue$s,
-         lw=1.5)
+         lw=2)
   }
 
   axis(side=1,at=c(0,8))
