@@ -771,7 +771,7 @@ getData54 <- function(illusionMinimum=0) {
   
 }
 
-getDataTrials <- function(illusionMinimum=0, illusionMaximum=90, bin=5) {
+getDataTrials <- function(illusionMinimum=0, illusionMaximum=90, bins=5) {
   
   # load re-trace resets and illusion strengths
   df <- read.csv('data/onepass_V4/onePass_V4_re-trace.csv', stringsAsFactors = F)
@@ -824,14 +824,14 @@ getDataTrials <- function(illusionMinimum=0, illusionMaximum=90, bin=5) {
   df <- df[,c('participant','X', 'Y', 'RT', 'speed', 'slope', 'angle', 'sin.a', 'cos.a', 'Vi', 'Ve', 'unMu', 'unRT')]
   
   
-  if (is.numeric(bin)) {
+  if (is.numeric(bins)) {
     # add bin-indices
-    indices <- round( seq(1, dim(df)[1]+1, length.out=bin+1) )
+    indices <- round( seq(1, dim(df)[1]+1, length.out=bins+1) )
     for (variable in c('angle','Y','X')) {
       bvn <- sprintf('%s_bin',variable)
       df[[bvn]] <- NA
       vo <- order(df[,variable])
-      for (binno in c(1:bin)) {
+      for (binno in c(1:bins)) {
         #print(binno)
         bin_indices <- c(indices[binno]:(indices[binno+1]-1))
         #print(bin_indices)
@@ -3058,9 +3058,10 @@ fitSomeModels <- function(df, scaleFUN=median, jointModel=FALSE, Xnormal=TRUE, T
 
 plotModels <- function(target='inline') {
   
-  df <- getDataTrials()
+  bins <- 5
+  df <- getDataTrials(bins=bins)
   
-  modelfits <- fitSomeModels(df, )
+  modelfits <- fitSomeModels(df)
   
   colors <- getColors()
   
@@ -3249,7 +3250,7 @@ plotModels <- function(target='inline') {
   plot(df$X[canvas_idx],df$Y[canvas_idx],
        main='',xlab='',ylab='',
        xlim=c(0,8),ylim=c(0,13.5),
-       pch=16,col=t_col('#000000', percent = 0),cex=0.2,
+       pch=16,col=t_col('#666666', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
   title(main='B: time model',
@@ -3257,78 +3258,21 @@ plotModels <- function(target='inline') {
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
-  # empty Z matrix:
-  Z <- matrix(0,
-              ncol=length(data_y),
-              nrow=length(data_x))
+  par <- modelfits$TdistGamma$par
+  par['rTg'] <- par['rTg'] / median(df$RT)
   
-  # we're going to fill this in based on angular bins:
-  angles <- matrix(atan2(data$X, data$Y), ncol=length(data_y), nrow=length(data_x))
+  W3 <- mean(df$speed == 4.5)
+  W4 <- mean(df$speed == 3.375)
   
-  # we need bin-boundaries:
-  binspar <- modelfits$TdistGammaAbin$par
+  data$speed <- 4.5
+  likelihoods3 <- TGammaLikelihood(par,data)
   
-  # fit model for each
-  for (bin in sort(unique(df$angle_bin))) {
-    
-    lo <- min(df$angle[df$angle_bin == bin])
-    if (bin > 1) {
-      lo <- mean(c(lo, max(df$angle[df$angle_bin == (bin-1)])))
-    } else {
-      lo <- 0
-    }
-    hi <- max(df$angle[df$angle_bin == bin])
-    if (bin < 5) {
-      hi <- mean(c(hi, min(df$angle[df$angle_bin == (bin+1)])))
-    } else {
-      hi <- pi/2
-    }
-    
-    #cat(sprintf('bin %d: %0.2f - %0.2f\n',bin,lo,hi))
-    
-    d_data <- data
-    d_data$RT <- d_data$RT / binspar$scale[bin]
-    
-    binpars <- c(binspar$shape[bin], binspar$rate[bin])
-    
-    W3 <- mean(df$speed == 4.5   & df$angle_bin == bin)
-    W4 <- mean(df$speed == 3.375 & df$angle_bin == bin)
-    
-    d_data$speed <- 4.5
-    likelihoods3 <- TGammaLikelihood(par=binpars,data=d_data)
-    
-    d_data$speed <- 3.375
-    likelihoods4 <- TGammaLikelihood(par=binpars,data=d_data)
-    
-    binLikelihoods <- matrix( (W3 * likelihoods3$L) + (W4 * likelihoods4$L),
-                              ncol=length(data_y),
-                              nrow=length(data_x)  )
-    
-    idx <- which(angles > lo & angles <= hi)
-    Z[idx] <- binLikelihoods[idx]
-    
-    # rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
-    #             max(df$angle[which(df$angle_bin == bin)]), 
-    #             length.out = 12)
-    if (bin == 1) {rads <- seq(0, max(df$angle[which(df$angle_bin == bin)]), length.out = 12)}
-    else if (bin == 5) {rads <- seq(min(df$angle[which(df$angle_bin == bin)]), pi/2, length.out = 12)}
-    else {rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
-                      max(df$angle[which(df$angle_bin == bin)]), 
-                      length.out = 12)}
-    
-    for (speedno in c(1,2)) {
-      speed <- c(3.375, 4.5)[speedno]
-      mf <- binspar$scale[bin] * speed
-      lines(x=sin(rads)*mf,
-            y=cos(rads)*mf,
-            lty=1,
-            col=c(colors$yorkred$s, colors$orange$s)[speedno],
-            lw=1.5)
-    }
-    
-  }
+  data$speed <- 3.375
+  likelihoods4 <- TGammaLikelihood(par,data)
   
-  Z <- matrix(Z,
+  likelihoods <- (W3 * likelihoods3) + (W4 * likelihoods4) 
+  
+  Z <- matrix(likelihoods$L,
               ncol=length(data_y),
               nrow=length(data_x))
   
@@ -3338,7 +3282,25 @@ plotModels <- function(target='inline') {
         z=Z,
         useRaster=TRUE,
         col = linPal(from='#FFFFFF',to=colors$yorkred$s,alpha=0.5),
-  )
+  )    
+  
+  for (bin in c(1:bins)) {
+    if (bin == 1) {rads <- seq(0, max(df$angle[which(df$angle_bin == bin)]), length.out = 12)}
+    else if (bin == 5) {rads <- seq(min(df$angle[which(df$angle_bin == bin)]), pi/2, length.out = 12)}
+    else {rads <- seq(min(df$angle[which(df$angle_bin == bin)]),
+                      max(df$angle[which(df$angle_bin == bin)]), 
+                      length.out = 12)}
+    
+    for (speedno in c(1,2)) {
+      speed <- c(3.375, 4.5)[speedno]
+      mf <- median(df$RT[df$angle_bin == bin]) * speed
+      lines(x=sin(rads)*mf,
+            y=cos(rads)*mf,
+            lty=1,
+            col=c(colors$yorkred$s, colors$orange$s)[speedno],
+            lw=1.5)
+    }
+  }
   
   axis(side=1,at=c(0,8))
   axis(side=2,at=c(0,13.5))
@@ -3352,7 +3314,7 @@ plotModels <- function(target='inline') {
   plot(df$X[canvas_idx],df$Y[canvas_idx],
        main='',xlab='',ylab='',
        xlim=c(0,8),ylim=c(0,13.5),
-       pch=16,col=t_col('#000000', percent = 0),cex=0.2,
+       pch=16,col=t_col('#666666', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
   title(main='C: offset model',
@@ -3360,76 +3322,40 @@ plotModels <- function(target='inline') {
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
   
-  # empty Z matrix:
-  Z <- matrix(0,
+  par <- modelfits$XdistGamma$par
+  par['rXg'] <- par['rXg'] / median(df$X)
+  likelihoods <- XGammaLikelihood(par,data)
+  
+  Z <- matrix(likelihoods$L,
               ncol=length(data_y),
               nrow=length(data_x))
   
-  # we're going to fill this in based on Y-coord bins:
-  Y_coords <- matrix(data$Y, ncol=length(data_y), nrow=length(data_x))
-  
-  # we need bin-boundaries:
-  binspar <- modelfits$XdistGammaYbin$par
-  
-  # fit model for each
-  for (bin in sort(unique(df$Y_bin))) {
-    
-    if (bin == 1) {
-      lo <- 0
-    } else {
-      lo <- mean(c(min(df$Y[df$Y_bin == bin]),
-                   max(df$Y[df$Y_bin == (bin-1)])))
-    }
-    if (bin == 5) {
-      hi <- 13.5
-    } else {
-      hi <- mean(c(max(df$Y[df$Y_bin == bin]),
-                   min(df$Y[df$Y_bin == (bin+1)])))
-    }
-    
-    #cat(sprintf('bin %d: %0.2f - %0.2f\n',bin,lo,hi))
-    
-    d_data <- data
-    d_data$X <- d_data$X / binspar$scale[bin]
-    
-    binpars <- c(binspar$shape[bin], binspar$rate[bin])
-    
-    likelihoods <- XGammaLikelihood(par=binpars,data=d_data)
-    
-    binLikelihoods <- matrix( likelihoods$L,
-                              ncol=length(data_y),
-                              nrow=length(data_x)  )
-    
-    idx <- which(Y_coords > lo & Y_coords <= hi)
-    Z[idx] <- binLikelihoods[idx]
-    
-    y_ends <- c(min(df$Y[which(df$Y_bin == bin)]),
-                min(13.4,max(df$Y[which(df$Y_bin == bin)]))  )
-    
-    if (bin == 1) {y_ends[1] <-  0.0}
-    if (bin == 5) {y_ends[2] <- 13.5}
-    
-    mf <- binspar$scale[bin]
-    lines(x=rep(mf,2),
-          y=y_ends,
-          lty=1,
-          col=colors$blue$s,
-          lw=1.5)
-    
-  }
-  
-  Z <- matrix(Z,
-              ncol=length(data_y),
-              nrow=length(data_x))
+  pal='Purple-Blue'
   
   image(add=TRUE,
         x=img_x,
         y=img_y,
         z=Z,
         useRaster=TRUE,
-        col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5)
+        col = linPal(from='#FFFFFF',to=colors$blue$s,alpha=0.5),
   )
   
+  for (bin in c(1:bins)) {
+
+    y_ends <- c(min(df$Y[which(df$Y_bin == bin)]),
+               min(13.4,max(df$Y[which(df$Y_bin == bin)]))  )
+    
+    if (bin == 1)    {y_ends[1] <-  0.0}
+    if (bin == bins) {y_ends[2] <- 13.5}
+    
+    mf <- median(df$X[df$Y_bin == bin])
+    lines(x=rep(mf,2),
+         y=y_ends,
+         lty=1,
+         col=colors$blue$s,
+         lw=1.5)
+  }
+
   axis(side=1,at=c(0,8))
   axis(side=2,at=c(0,13.5))
   
