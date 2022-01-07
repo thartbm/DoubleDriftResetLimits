@@ -3058,13 +3058,15 @@ fitSomeModels <- function(df, scaleFUN=median, jointModel=FALSE, Xnormal=TRUE, T
 
 plotModels <- function(target='inline') {
   
-  bins <- 4
+  bins <- 3
   df <- getDataTrials(bins=bins)
   
   modelfits <- fitSomeModels(df)
   
   colors <- getColors()
   darkorange <- mixCol(colors$yorkred$s, colors$orange$s, balance=c(1,0))
+  lightred  <- mixCol(colors$yorkred$s, '#FFFFFF', balance=c(1,0.10))
+  darkred   <- mixCol(colors$yorkred$s, '#000000', balance=c(1,0.30))
   
   if (target == 'pdf') {
     pdf(file = 'doc/Fig5_marginals_distributions.pdf', width=6, height=4/0.75, bg='white')
@@ -3114,12 +3116,12 @@ plotModels <- function(target='inline') {
   for (speed in c(3,4)) {
     lines(x   = sin(seq(0,pi/2,length.out = 50)) * Lt * speed,
           y   = cos(seq(0,pi/2,length.out = 50)) * Lt * speed,
-          col = c(colors$yorkred$s, darkorange)[speed-2],
+          col = c(darkred, lightred)[speed-2],
           lw  = 2,
           lty = 1)
     polygon(x   = c(-.2,0,0),
             y   = (Lt * speed) + c(0, .2, -.2),
-            col = c(colors$yorkred$s, darkorange)[speed-2],
+            col = c(darkred, lightred)[speed-2],
             border=NA)
   }
   
@@ -3254,7 +3256,7 @@ plotModels <- function(target='inline') {
        pch=16,col=t_col('#666666', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
-  title(main='B: time model',
+  title(main='B: reset time',
         font.main=1, cex.main=1.5, adj=0, line=0.25)
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
@@ -3298,7 +3300,7 @@ plotModels <- function(target='inline') {
       lines(x=sin(rads)*mf,
             y=cos(rads)*mf,
             lty=1,
-            col=c(colors$yorkred$s, darkorange)[speedno],
+            col=c(darkred, lightred)[speedno],
             lw=2)
     }
   }
@@ -3318,7 +3320,7 @@ plotModels <- function(target='inline') {
        pch=16,col=t_col('#666666', percent = 0),cex=0.2,
        bty='n',ax=F,asp=1)
   
-  title(main='C: offset model',
+  title(main='C: reset offset',
         font.main=1, cex.main=1.5, adj=0, line=0.25)
   title(xlab='reset X [cm]', line=2.4)
   title(ylab='reset Y [cm]', line=2.4)
@@ -3465,9 +3467,10 @@ AIClL <- function(lL, k) {
 
 compareDistributionModels <- function() {
   
-  df <- getDataTrials()
+  bins <- 4
+  df <- getDataTrials(bins=bins)
   
-  modelfits <- fitSomeModels(df, Ygamma=TRUE)
+  modelfits <- fitSomeModels(df, Ygamma=TRUE, XgammaBin=TRUE, TgammaBin=TRUE)
   
   modelnames <- c("XdistNormal",
                   "TdistNormal",
@@ -3482,8 +3485,8 @@ compareDistributionModels <- function() {
                           "XdistGamma"=2,
                           "TdistGamma"=2,
                           "YdistGamma"=2,
-                          "XdistGammaYbin"=10,
-                          "TdistGammaAbin"=10  )
+                          "XdistGammaYbin"=bins*2,
+                          "TdistGammaAbin"=bins*2  )
   
   modelcomparisons <- list('XTnormal'=c(1,2),
                            'XTYgamma'=c(3,4,5),
