@@ -3058,7 +3058,7 @@ fitSomeModels <- function(df, scaleFUN=median, jointModel=FALSE, Xnormal=TRUE, T
 
 plotModels <- function(target='inline') {
   
-  bins <- 3
+  bins <- 4
   df <- getDataTrials(bins=bins)
   
   modelfits <- fitSomeModels(df)
