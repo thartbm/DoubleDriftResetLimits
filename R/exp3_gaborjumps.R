@@ -209,7 +209,10 @@ plotJumpPSEs <- function(target='inline', individualDots=FALSE, modelDots=FALSE,
   colors <- getColors()
   
   if (target == 'pdf') {
-    pdf( file = 'doc/Fig6_gaborjump_exp.pdf', width=6, height=4 )
+    cairo_pdf( file = 'doc/Fig6_gaborjump_exp.pdf', width=6, height=4 )
+  }
+  if (target == 'svg') {
+    svglite::svglite(filename = 'doc/Fig6_gaborjump_exp.svg', width=6, height=4, fix_text_size = F)
   }
   
   layout(mat = matrix(c(1,2), 
