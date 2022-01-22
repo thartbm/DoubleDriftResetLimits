@@ -7,9 +7,9 @@ author:
 output:
   word_document:
     reference_docx: template.docx
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 header-includes:
 - \usepackage{lineno}
 - \linenumbers
@@ -140,7 +140,7 @@ Here we calculate $V_i$ and $V_e$ in _cm/s_; _cps_ * 0.58 _cm_ for $V_i$ and 13.
 
 In particular, we compare the illusion strengths we find with those reported by Heller et al. [-@Heller2021]. They show a double-drift stimulus with 36 combinations of internal and external motion for 500 ms and then have participants indicate on a ring where they perceived the path of the stimulus to intersect with this ring. While they hypothesize that illusion strength decreases with faster external motion (perhaps because of resets or limits on perception), here we will use their overall estimate of illusion strength, given by $K=0.74$. While in _dva/s_ our stimuli have relatively high external and relatively low internal motion, compared to Heller et al. [-@Heller2021], they are within the range of tested stimuli as are the predicted illusion strengths.
 
-All analyses were done in R 3.6.1 [@Rproject]. All data, as well as scripts for the experiments and analyses are available on OSF: [https://osf.io/72ndu/](https://osf.io/72ndu/).
+All analyses were done in R 3.6.1 [@Rproject]. All data, as well as scripts for the experiments and analyses are available on OSF: [https://osf.io/q65as/](https://osf.io/q65as/).
 
 ## Results
 
