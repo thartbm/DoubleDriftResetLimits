@@ -1,14 +1,16 @@
 # Double Drift Reset Limits
 
-R analyses and PsychoPy experiments to test limits to spontaneous resets in the double-drift illusion. We expected to see that resets of this illusion would be limited in space: the perceived position of the stimulus can't be more than some distance away from the real position. We actually find no limits, but rather a broad distribution of reset points over time.
+R analyses and PsychoPy experiments to test limits to spontaneous resets in the double-drift illusion. We expected to see that resets of this illusion would be limited in space: the perceived position of the stimulus can't be more than some distance away from the real position. We actually find no struct limits, but rather a broad distribution of reset points over time. This may indicate that resets are triggered by events that are unrelated to the stimulus, such as distractions of attention.
 
 Here is the pre-print:
 
 [Measuring the double-drift illusion with hand trajectories](https://doi.org/10.1101/2021.08.06.455415)
 
-Accompanies the data in this Open Science Framework repository:
+And the data in this Open Science Framework repository:
 
 https://osf.io/72ndu/
+
+Look for the registered version of the project around January 23rd, 2022. This should have the version of the data and code at acceptance of the manuscript for publication in the Journal of Vision.
 
 ## "Running" Manuscript.Rmd
 
@@ -19,9 +21,9 @@ Software needed:
 
 When installing ImageMagick, make sure to install the developer files as well, in particular R will want to have `magick-baseconfig.h`.
 
-*Linux:* ensure you have: `make` (probably depends on having a C compiler)
+*Linux:* Ensure you have: `make` (probably depends on having a C compiler). I have written the code on Linux in R 3.6.1.
 
-*Windows:* lacks some command line tools, so they are here: [Rtools](https://cran.r-project.org/bin/windows/Rtools) This mostly makes the mingw64 C compiler available to R: useful!
+*Windows:* lacks some command line tools, so they are here: [Rtools](https://cran.r-project.org/bin/windows/Rtools) This mostly makes the mingw64 C compiler available to R: useful! I have tested the R code on Windows in R 4.0.1.
 
 Make sure to follow the steps that put rtools on your system PATH though. Perhaps this is the easiest way to do it is to run this in the R console:
 
@@ -40,13 +42,11 @@ The most time-consuming is probably the first step, which is meant to (try to) i
 
 `renv::restore()`
 
-This is the line that is most likely to fail, so after tinkering with stuff, you might want to retry it. It can also take a lot of time, unfortunately.
+This is the line that is most likely to fail, so after tinkering with stuff, you might want to retry it. It can take a lot of time, unfortunately, but manually doing this probably takes more time.
 
-I've tried running it on my old Linux system, which worked well because most of the packages are also old and can be copied from the systems installed versions. I've also tried running this in Windows with a new install of R, RStudio and Rtools, and it takes ages, because a hundred old packages need to be downloaded and, often, compiled.
+I've tried running it on my old Linux system, which worked well because most of the system packages are also old and can be copied into the project environment. I've also tried running this in Windows with a new install of R, RStudio and Rtools, and it takes ages, because a hundred old packages need to be downloaded and, often, compiled. But it worked. Even after fixing stuff so it installed the versions of packages that were in my renv lockfile, it then wanted to update some of them. I guess that's fine.
 
-Even after fixing stuff so it installed the versions of packages that were in my renv lockfile, it then wanted to update some of them. I guess that's fine.
-
-Here is the current output, which lists the package dependencies:
+Here is an older version of the output, which lists the package dependencies:
 
 > renv::restore()
 The following package(s) will be updated:
@@ -145,3 +145,15 @@ The following package(s) will be updated:
 - zip            [* -> 2.0.2]
 
 Do you want to proceed? [y/N]: y
+
+# Running the experiments
+
+The experiments are written in Python using PsychoPy, but are based on Python 2.7 (yes, they were conducted quite some time ago), and so probably need updating. The code is mainly provided here for transparency.
+
+The online tracking experiment: `exp/runBoundedTracking.py`
+
+The delayed re-tracing experiment: `exp/runOnePassExperiment_V4.py`
+
+# Other tasks
+
+You may notice there are data sets / experiments that did not end up in the manuscript. While they are interesting, they do not add anything new to the findings, so we opted to leave them out for the sake of brevity / readability. However, the data and code are made available on OSF and GitHub respectively, and can be used by others acoording to the licenses we set on both repositories, as long as they are not used for profit (code/GitHub) and are also freely shared after (both data/OSF and code/GitHub).
