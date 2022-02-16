@@ -820,7 +820,7 @@ density2D <- function(x, y, bw=1, weights=NULL, n=100, from=NULL, to=NULL, cut=3
 library('rsvg')
 library(magick)
 
-replotMethodsFigures <- function(figno=1, target='inline') {
+replotMethodsFigures <- function(figno=1, target='inline', version=NULL) {
   
   if (figno == 1) {
     width <- 6
@@ -840,7 +840,11 @@ replotMethodsFigures <- function(figno=1, target='inline') {
     pdf(file=sprintf('%s.pdf',outputfile), width=width, height=height)
   }
   
-  Fig <- image_read_pdf(sprintf('doc/methods_fig_%d.pdf',sourceno))
+  if (is.null(version)) {
+    Fig <- image_read_pdf(sprintf('doc/methods_fig_%d.pdf',sourceno))
+  } else {
+    Fig <- image_read_pdf(sprintf('doc/methods_fig_%d_v%d.pdf',sourceno,version))
+  }
   par(mai=c(0,0,0,0))
   plot(Fig)
   
